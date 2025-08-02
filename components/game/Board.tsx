@@ -48,18 +48,26 @@ export default function Board({ board, players, currentPlayerId }: BoardProps) {
   };
 
   // Get tile element at position (for future enhanced boards)
-  const getTileAt = (x: number, y: number): TileElement | undefined => {
-    // This will be used when you add the enhanced tiles array to your board
-    // For now, return undefined
+    const getTileAt = (x: number, y: number): TileElement | undefined => {
+    // Check if board has the enhanced tiles array
+    if (board.tiles && Array.isArray(board.tiles) && board.tiles.length > 0) {
+        // Check if it's a flat array of tile elements (enhanced board)
+        if ('position' in board.tiles[0]) {
+        return (board.tiles as any[]).find(
+            (tile: any) => tile.position?.x === x && tile.position?.y === y
+        );
+        }
+    }
     return undefined;
-  };
+    };
 
-  // Get laser at position (for future enhanced boards)
-  const getLaserAt = (x: number, y: number): Laser | undefined => {
-    // This will be used when you add lasers to your board
-    // For now, return undefined
+    // Get laser at position (for enhanced boards)
+    const getLaserAt = (x: number, y: number): Laser | undefined => {
+    // if (board.lasers && Array.isArray(board.lasers)) {
+    //     return (board.lasers as any[]).find((laser: any) => laser.position?.x === x && laser.position?.y === y);
+    // }
     return undefined;
-  };
+    };
 
   // Get the visual representation of a tile
   const getTileContent = (x: number, y: number): React.ReactElement[] => {
