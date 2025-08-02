@@ -1,0 +1,43 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  games         GamePlayer[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Game {
+  id            String    @id @default(cuid())
+  roomCode      String    @unique @default(cuid())
+  name          String
+  state         String    @default("{}")  // JSON game state
+  phase         String    @default("waiting")
+  started       Boolean   @default(false)
+  players       GamePlayer[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model GamePlayer {
+  id            String    @id @default(cuid())
+  gameId        String
+  userId        String
+  position      Int       // Starting position/robot number
+  ready         Boolean   @default(false)
+  game          Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user          User      @relation(fields: [userId], references: [id])
+  
+  @@unique([gameId, userId])
+  @@index([gameId])
+}
