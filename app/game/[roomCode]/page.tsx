@@ -41,7 +41,14 @@ export default function GamePage() {
     };
   }, [roomCode]);
 
-  const connectToGame = (name: string, playerId?: string | null) => {
+  // Add state for tracking execution
+  const [executionState, setExecutionState] = useState<{
+    currentCard?: ProgramCard;
+    executingPlayer?: string;
+    phase?: 'cards' | 'board-elements';
+  }>({});
+
+const connectToGame = (name: string, playerId?: string | null) => {
     // Connect to socket server
     socketClient.connect();
 
@@ -132,11 +139,32 @@ export default function GamePage() {
     socketClient.on('card-executed', (data: { 
       playerId: string; 
       card: ProgramCard; 
-      newPosition: Position; 
-      newDirection: Direction 
+      register: number;
     }) => {
       console.log('Card executed:', data);
-      // The game state will be updated separately
+      setExecutionState({
+        currentCard: data.card,
+        executingPlayer: data.playerId,
+        phase: 'cards'
+      });
+      
+      // Clear after animation
+      setTimeout(() => {
+        setExecutionState({});
+      }, 1000);
+    });
+
+    // Handle board element phase
+    socketClient.on('register-phase', (data: { 
+      register: number;
+      phase: string;
+    }) => {
+      console.log('Register phase:', data);
+      if (data.phase === 'board-elements') {
+        setExecutionState({
+          phase: 'board-elements'
+        });
+      }
     });
 
     // Handle register start
@@ -354,10 +382,12 @@ export default function GamePage() {
               {/* Game Board - takes most space */}
               <div className="flex-1 bg-gray-800 rounded-lg p-6">
                 <div className="flex items-center justify-center">
-                  <Board 
+                  <AnimatedBoard 
                     board={gameState?.board!}
                     players={gameState?.players || {}}
                     currentPlayerId={playerIdRef.current}
+                    gamePhase={gameState?.phase}
+                    currentRegister={gameState?.currentRegister}
                   />
                 </div>
               </div>
@@ -501,3 +531,29 @@ export default function GamePage() {
     </GameContent>
   );
 }
+
+// Add visual indicator for current executing card
+{executionState.executingPlayer && (
+  <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50">
+    <div className="bg-gray-900 border-4 border-yellow-400 rounded-lg p-4 animate-bounce">
+      <div className="text-center">
+        <p className="text-yellow-400 font-bold">
+          {gameState?.players[executionState.executingPlayer]?.name} plays:
+        </p>
+        <div className={`mt-2 p-3 rounded ${
+          executionState.currentCard?.type.includes('MOVE') ? 'bg-blue-600' :
+          executionState.currentCard?.type.includes('ROTATE') ? 'bg-yellow-600' :
+          executionState.currentCard?.type === 'U_TURN' ? 'bg-red-600' :
+          'bg-purple-600'
+        }`}>
+          <p className="text-white font-bold text-lg">
+            {executionState.currentCard?.type.replace(/_/g, ' ')}
+          </p>
+          <p className="text-sm opacity-75">
+            Priority: {executionState.currentCard?.priority}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+)}

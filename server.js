@@ -306,29 +306,94 @@ app.prepare().then(() => {
 
     // Execute all 5 registers
     async function executeRegisters(gameState) {
+        // Announce execution start
+        io.to(gameState.roomCode).emit('execution-start');
+
         for (let i = 0; i < 5; i++) {
             gameState.currentRegister = i;
-            io.to(gameState.roomCode).emit('register-start', { register: i });
+
+            // Announce register start with fanfare
+            io.to(gameState.roomCode).emit('register-start', {
+                register: i,
+                totalPlayers: Object.keys(gameState.players).length
+            });
+
+            // Wait for UI to show register announcement
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // Execute program cards phase
+            io.to(gameState.roomCode).emit('register-phase', {
+                register: i,
+                phase: 'cards'
+            });
 
             await gameEngine.executeRegister(gameState, i);
 
-            // Broadcast updated game state after each register
+            // Brief pause after all cards executed
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Announce board elements phase
+            io.to(gameState.roomCode).emit('register-phase', {
+                register: i,
+                phase: 'board-elements'
+            });
+
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Execute board elements with visual feedback
+            await gameEngine.executeBoardElements(gameState);
+
+            // Broadcast updated game state
             io.to(gameState.roomCode).emit('game-state', gameState);
 
             // Check if game ended
             if (gameState.phase === 'ended') {
                 console.log(`Game ended! Winner: ${gameState.winner}`);
+                io.to(gameState.roomCode).emit('game-ended', {
+                    winner: gameState.winner,
+                    finalState: gameState
+                });
+
+                // Celebration pause
+                await new Promise(resolve => setTimeout(resolve, 3000));
                 return;
             }
 
-            // Delay between registers
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Mark register as complete
+            io.to(gameState.roomCode).emit('register-complete', { register: i });
+
+            // Pause between registers
+            await new Promise(resolve => setTimeout(resolve, 2000));
         }
 
+        // All registers complete - cleanup phase
+        io.to(gameState.roomCode).emit('cleanup-phase');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Handle end of turn repairs
+        Object.values(gameState.players).forEach(player => {
+            if (player.lives <= 0) return;
+
+            const tile = getTileAt(gameState, player.position.x, player.position.y);
+            if (tile && (tile.type === 'repair' || tile.type === 'upgrade')) {
+                if (player.damage > 0) {
+                    player.damage--;
+                    io.to(gameState.roomCode).emit('player-repaired', {
+                        playerId: player.id,
+                        newDamage: player.damage
+                    });
+                }
+            }
+        });
+
         // After all registers, go back to programming phase
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
         gameState.phase = 'programming';
         gameState.currentRegister = 0;
         dealCards(gameState);
+
+        io.to(gameState.roomCode).emit('programming-phase-start');
         io.to(gameState.roomCode).emit('game-state', gameState);
     }
 });
