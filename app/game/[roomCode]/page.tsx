@@ -1,3 +1,4 @@
+// File: app/game/[roomCode]/page.tsx
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -21,15 +22,22 @@ export default function GamePage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const playerIdRef = useRef<string>('');
 
+  // Add state for tracking execution
+  const [executionState, setExecutionState] = useState<{
+    currentCard?: ProgramCard;
+    executingPlayer?: string;
+    phase?: 'cards' | 'board-elements';
+  }>({});
+
   useEffect(() => {
     // Check if we have a player name in localStorage
     const storedName = localStorage.getItem('playerName');
     const storedPlayerId = localStorage.getItem('playerId');
-    
+
     if (storedName) {
       setPlayerName(storedName);
       playerIdRef.current = storedPlayerId || '';
-      connectToGame(storedName, storedPlayerId);
+      connectToGame(storedName, storedPlayerId || undefined);
     } else {
       setShowNameModal(true);
       setLoading(false);
@@ -41,105 +49,57 @@ export default function GamePage() {
     };
   }, [roomCode]);
 
-  // Add state for tracking execution
-  const [executionState, setExecutionState] = useState<{
-    currentCard?: ProgramCard;
-    executingPlayer?: string;
-    phase?: 'cards' | 'board-elements';
-  }>({});
+  const connectToGame = (name: string, playerId?: string) => {
+    setLoading(true);
 
-const connectToGame = (name: string, playerId?: string | null) => {
-    // Connect to socket server
+    // Connect to Socket.io
     socketClient.connect();
 
-    // Set up event listeners
-    socketClient.onGameState((state: GameState) => {
-      console.log('Received game state:', state);
-      console.log('Current player:', state.players[playerIdRef.current]);
-      setGameState(state);
+    // Listen for game state updates
+    socketClient.on('game-updated', (updatedState: GameState) => {
+      console.log('Game state updated:', updatedState);
+      setGameState(updatedState);
       setLoading(false);
-      
-      // Reset submission state when new cards are dealt
-      if (state.phase === 'programming' && state.players[playerIdRef.current]?.dealtCards?.length > 0) {
+
+      // Reset submission state when new programming phase starts
+      if (updatedState.phase === 'programming') {
         setIsSubmitted(false);
       }
     });
 
-    socketClient.onPlayerJoined((data) => {
-      console.log('Player joined:', data.player.name);
-      // Update the game state with the new player
-      setGameState(prev => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          players: {
-            ...prev.players,
-            [data.player.id]: data.player
-          }
-        };
-      });
+    // Handle errors
+    socketClient.on('error', (errorMsg: string) => {
+      console.error('Socket error:', errorMsg);
+      setError(errorMsg);
+      setLoading(false);
     });
 
-    socketClient.onPlayerLeft((data) => {
-      console.log('Player left:', data.playerId);
-      // Remove the player from game state
-      setGameState(prev => {
-        if (!prev) return prev;
-        const newPlayers = { ...prev.players };
-        delete newPlayers[data.playerId];
-        return {
-          ...prev,
-          players: newPlayers
-        };
-      });
+    // Handle player joined
+    socketClient.on('player-joined', (data: { playerId: string; player: Player }) => {
+      console.log('Player joined:', data);
     });
 
-    socketClient.onGameError((data) => {
-      setError(data.message);
+    // Handle player left
+    socketClient.on('player-left', (data: { playerId: string }) => {
+      console.log('Player left:', data);
     });
 
-    // Handle player disconnection (different from leaving)
-    socketClient.on('player-disconnected', (data: { playerId: string }) => {
-      console.log('Player disconnected:', data.playerId);
-      // Mark player as disconnected but don't remove them
-      setGameState(prev => {
-        if (!prev || !prev.players[data.playerId]) return prev;
-        return {
-          ...prev,
-          players: {
-            ...prev.players,
-            [data.playerId]: {
-              ...prev.players[data.playerId],
-              isDisconnected: true
-            }
-          }
-        };
-      });
+    // Handle game not found
+    socketClient.on('game-not-found', () => {
+      setError('Game not found');
+      setLoading(false);
     });
 
-    // Handle player reconnection
-    socketClient.on('player-reconnected', (data: { playerId: string }) => {
-      console.log('Player reconnected:', data.playerId);
-      setGameState(prev => {
-        if (!prev || !prev.players[data.playerId]) return prev;
-        return {
-          ...prev,
-          players: {
-            ...prev.players,
-            [data.playerId]: {
-              ...prev.players[data.playerId],
-              isDisconnected: false
-            }
-          }
-        };
-      });
+    // Handle cards dealt
+    socketClient.on('cards-dealt', (data: { playerId: string; cards: ProgramCard[] }) => {
+      console.log('Cards dealt:', data);
     });
 
-    // Handle card execution animations
-    socketClient.on('card-executed', (data: { 
-      playerId: string; 
-      card: ProgramCard; 
-      register: number;
+    // Handle card played animation
+    socketClient.on('card-executed', (data: {
+      playerId: string;
+      card: ProgramCard;
+      register: number
     }) => {
       console.log('Card executed:', data);
       setExecutionState({
@@ -147,7 +107,7 @@ const connectToGame = (name: string, playerId?: string | null) => {
         executingPlayer: data.playerId,
         phase: 'cards'
       });
-      
+
       // Clear after animation
       setTimeout(() => {
         setExecutionState({});
@@ -155,7 +115,7 @@ const connectToGame = (name: string, playerId?: string | null) => {
     });
 
     // Handle board element phase
-    socketClient.on('register-phase', (data: { 
+    socketClient.on('register-phase', (data: {
       register: number;
       phase: string;
     }) => {
@@ -193,110 +153,67 @@ const connectToGame = (name: string, playerId?: string | null) => {
 
   const handleLeaveGame = () => {
     if (confirm('Are you sure you want to leave the game?')) {
-      socketClient.leaveGame();
       router.push('/');
     }
   };
 
-  const currentPlayer = gameState?.players[playerIdRef.current];
-  const isHost = Object.keys(gameState?.players || {}).indexOf(playerIdRef.current) === 0;
-
-  // Card management functions
   const handleCardClick = (index: number) => {
-    if (isSubmitted || !currentPlayer) return;
-    
-    // Find first empty register slot
-    const emptySlotIndex = currentPlayer.selectedCards.findIndex(card => card === null);
-    if (emptySlotIndex === -1) return; // All slots full
-    
-    // Get the card
+    if (!gameState || gameState.phase !== 'programming' || isSubmitted) return;
+
+    const currentPlayer = gameState.players[playerIdRef.current];
+    if (!currentPlayer) return;
+
     const card = currentPlayer.dealtCards[index];
     if (!card) return;
-    
-    // Place card in first empty slot
-    const newSelectedCards = [...currentPlayer.selectedCards];
-    newSelectedCards[emptySlotIndex] = card;
-    
-    // Update game state
-    setGameState(prev => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        players: {
-          ...prev.players,
-          [playerIdRef.current]: {
-            ...prev.players[playerIdRef.current],
-            selectedCards: newSelectedCards,
-          },
-        },
-      };
+
+    // Find first empty slot
+    const emptySlotIndex = currentPlayer.selectedCards.findIndex(c => c === null);
+    if (emptySlotIndex === -1) return;
+
+    // Check if card already selected
+    if (currentPlayer.selectedCards.some(c => c?.id === card.id)) return;
+
+    socketClient.emit('select-card', {
+      roomCode,
+      playerId: playerIdRef.current,
+      cardId: card.id,
+      slotIndex: emptySlotIndex,
     });
   };
 
-  const handleCardDrop = (card: ProgramCard, registerIndex: number) => {
-    if (!currentPlayer || isSubmitted) return;
-    
-    // Check if this card is already in a register
-    const existingIndex = currentPlayer.selectedCards.findIndex(
-      c => c && c.id === card.id
-    );
-    
-    const newSelectedCards = [...currentPlayer.selectedCards];
-    
-    // If card exists in another slot, remove it first
-    if (existingIndex !== -1 && existingIndex !== registerIndex) {
-      newSelectedCards[existingIndex] = null;
-    }
-    
-    // Place card in new slot
-    newSelectedCards[registerIndex] = card;
-    
-    // Update game state
-    setGameState(prev => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        players: {
-          ...prev.players,
-          [playerIdRef.current]: {
-            ...prev.players[playerIdRef.current],
-            selectedCards: newSelectedCards,
-          },
-        },
-      };
+  const handleCardDrop = (card: ProgramCard, slotIndex: number) => {
+    if (!gameState || gameState.phase !== 'programming' || isSubmitted) return;
+
+    socketClient.emit('select-card', {
+      roomCode,
+      playerId: playerIdRef.current,
+      cardId: card.id,
+      slotIndex,
     });
   };
 
-  const handleCardRemove = (registerIndex: number) => {
-    if (!currentPlayer || isSubmitted) return;
-    
-    const newSelectedCards = [...currentPlayer.selectedCards];
-    newSelectedCards[registerIndex] = null;
-    
-    setGameState(prev => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        players: {
-          ...prev.players,
-          [playerIdRef.current]: {
-            ...prev.players[playerIdRef.current],
-            selectedCards: newSelectedCards,
-          },
-        },
-      };
+  const handleCardRemove = (slotIndex: number) => {
+    if (!gameState || gameState.phase !== 'programming' || isSubmitted) return;
+
+    socketClient.emit('remove-card', {
+      roomCode,
+      playerId: playerIdRef.current,
+      slotIndex,
     });
   };
 
   const handleSubmitCards = () => {
+    if (!gameState) return;
+
+    const currentPlayer = gameState.players[playerIdRef.current];
     if (!currentPlayer) return;
-    
+
     const filledSlots = currentPlayer.selectedCards.filter(c => c !== null).length;
     if (filledSlots < 5) {
-      alert(`Please select all 5 cards! You have ${filledSlots}/5`);
+      alert(`You need to select 5 cards. You have ${filledSlots}/5`);
       return;
     }
-    
+
     setIsSubmitted(true);
     socketClient.emit('submit-cards', {
       roomCode,
@@ -354,6 +271,9 @@ const connectToGame = (name: string, playerId?: string | null) => {
     );
   }
 
+  const currentPlayer = gameState ? gameState.players[playerIdRef.current] : null;
+  const isHost = gameState && gameState.hostId === playerIdRef.current;
+
   return (
     <GameContent>
       <div className="min-h-screen bg-gray-900 text-white p-4">
@@ -382,12 +302,10 @@ const connectToGame = (name: string, playerId?: string | null) => {
               {/* Game Board - takes most space */}
               <div className="flex-1 bg-gray-800 rounded-lg p-6">
                 <div className="flex items-center justify-center">
-                  <AnimatedBoard 
+                  <Board
                     board={gameState?.board!}
                     players={gameState?.players || {}}
                     currentPlayerId={playerIdRef.current}
-                    gamePhase={gameState?.phase}
-                    currentRegister={gameState?.currentRegister}
                   />
                 </div>
               </div>
@@ -401,54 +319,47 @@ const connectToGame = (name: string, playerId?: string | null) => {
                   </h2>
                   <div className="space-y-2">
                     {gameState && Object.values(gameState.players).map((player, index) => (
-                      <div 
+                      <div
                         key={player.id}
-                        className={`flex items-center justify-between p-2 rounded ${
-                          player.id === playerIdRef.current ? 'bg-gray-700' : ''
-                        } ${player.isDisconnected ? 'opacity-50' : ''}`}
+                        className={`flex items-center justify-between p-2 rounded ${player.id === playerIdRef.current ? 'bg-gray-700' : ''
+                          } ${player.isDisconnected ? 'opacity-50' : ''}`}
                       >
                         <div className="flex items-center gap-2">
-                          <div className={`w-8 h-8 rounded-full bg-${
-                            ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan'][index % 8]
-                          }-500 flex items-center justify-center text-sm font-bold`}>
+                          <div className={`w-8 h-8 rounded-full bg-${['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan'][index % 8]
+                            }-500 flex items-center justify-center text-sm font-bold`}>
                             {index + 1}
                           </div>
                           <span className={player.isDisconnected ? 'line-through' : ''}>
                             {player.name}
+                            {player.id === gameState.hostId && ' 👑'}
                           </span>
-                          {player.id === playerIdRef.current && (
-                            <span className="text-xs text-gray-400">(You)</span>
-                          )}
-                          {index === 0 && (
-                            <span className="text-xs text-yellow-400">(Host)</span>
-                          )}
-                          {player.isDisconnected && (
-                            <span className="text-xs text-red-400">(Disconnected)</span>
-                          )}
                         </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <span>❤️ {player.lives}</span>
-                          <span>⚡ {player.damage}</span>
+                        <div className="flex items-center gap-2">
+                          {player.lives > 0 && (
+                            <span className="text-sm">❤️ {player.lives}</span>
+                          )}
+                          {player.damage > 0 && (
+                            <span className="text-sm text-yellow-400">⚡ {player.damage}</span>
+                          )}
                         </div>
                       </div>
                     ))}
-                    {!gameState && <p className="text-gray-400">Connecting...</p>}
                   </div>
                 </div>
 
                 {/* Game Controls */}
                 <div className="bg-gray-800 rounded-lg p-6">
-                  <h2 className="text-xl font-semibold mb-4">Game Controls</h2>
+                  <h2 className="text-xl font-semibold mb-4">Game Status</h2>
                   {gameState?.phase === 'waiting' && (
                     <>
                       {isHost ? (
-                        <button 
+                        <button
                           onClick={handleStartGame}
                           disabled={Object.keys(gameState.players).length < 2}
                           className="w-full bg-green-600 hover:bg-green-700 py-2 rounded font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          {Object.keys(gameState.players).length < 2 
-                            ? 'Need at least 2 players' 
+                          {Object.keys(gameState.players).length < 2
+                            ? 'Need at least 2 players'
                             : 'Start Game'}
                         </button>
                       ) : (
@@ -490,7 +401,7 @@ const connectToGame = (name: string, playerId?: string | null) => {
                       isSubmitted={isSubmitted}
                     />
                   </div>
-                  
+
                   {/* Program Registers */}
                   <div className="bg-gray-800 rounded-lg p-6">
                     <div className="flex items-center gap-4">
@@ -503,7 +414,7 @@ const connectToGame = (name: string, playerId?: string | null) => {
                           isSubmitted={isSubmitted}
                         />
                       </div>
-                      
+
                       {!isSubmitted && (
                         <button
                           onClick={handleSubmitCards}
@@ -517,7 +428,7 @@ const connectToGame = (name: string, playerId?: string | null) => {
                   </div>
                 </>
               )}
-              
+
               {gameState?.phase === 'waiting' && (
                 <div className="bg-gray-800 rounded-lg p-6">
                   <h2 className="text-xl font-semibold mb-4">Your Cards</h2>
@@ -527,33 +438,32 @@ const connectToGame = (name: string, playerId?: string | null) => {
             </div>
           </div>
         </div>
+
+        {/* Visual indicator for current executing card */}
+        {executionState.executingPlayer && (
+          <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50">
+            <div className="bg-gray-900 border-4 border-yellow-400 rounded-lg p-4 animate-bounce">
+              <div className="text-center">
+                <p className="text-yellow-400 font-bold">
+                  {gameState?.players[executionState.executingPlayer]?.name} plays:
+                </p>
+                <div className={`mt-2 p-3 rounded ${executionState.currentCard?.type.includes('MOVE') ? 'bg-blue-600' :
+                  executionState.currentCard?.type.includes('ROTATE') ? 'bg-yellow-600' :
+                    executionState.currentCard?.type === 'U_TURN' ? 'bg-red-600' :
+                      'bg-purple-600'
+                  }`}>
+                  <p className="text-white font-bold text-lg">
+                    {executionState.currentCard?.type.replace(/_/g, ' ')}
+                  </p>
+                  <p className="text-sm opacity-75">
+                    Priority: {executionState.currentCard?.priority}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </GameContent>
   );
 }
-
-// Add visual indicator for current executing card
-{executionState.executingPlayer && (
-  <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50">
-    <div className="bg-gray-900 border-4 border-yellow-400 rounded-lg p-4 animate-bounce">
-      <div className="text-center">
-        <p className="text-yellow-400 font-bold">
-          {gameState?.players[executionState.executingPlayer]?.name} plays:
-        </p>
-        <div className={`mt-2 p-3 rounded ${
-          executionState.currentCard?.type.includes('MOVE') ? 'bg-blue-600' :
-          executionState.currentCard?.type.includes('ROTATE') ? 'bg-yellow-600' :
-          executionState.currentCard?.type === 'U_TURN' ? 'bg-red-600' :
-          'bg-purple-600'
-        }`}>
-          <p className="text-white font-bold text-lg">
-            {executionState.currentCard?.type.replace(/_/g, ' ')}
-          </p>
-          <p className="text-sm opacity-75">
-            Priority: {executionState.currentCard?.priority}
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
-)}

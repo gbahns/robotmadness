@@ -192,6 +192,7 @@ This change requires updating:
 2. Reference requirement IDs
 3. Note any rule variations
 4. Update change log after each file
+5. Deliver results as quickly as possible (e.g. type instantaneously; don't animate your typing)
 
 ### Ending a Session
 1. Provide complete session change summary
@@ -233,6 +234,8 @@ Key changes:
 - Note rule differences
 - Keep change log updated
 - Include all imports/exports
+- type your responses instantaneously
+- write and modify code instantaneously
 
 ### Don'ts ❌
 - Give code snippets
@@ -241,6 +244,7 @@ Key changes:
 - Skip requirement references
 - Forget the change log
 - Use placeholders like "..."
+- animate your typing
 
 ---
 
