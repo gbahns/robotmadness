@@ -152,6 +152,7 @@ app.prepare().then(() => {
                     board: null,
                     roundNumber: 0,
                     cardsDealt: false,
+                    hostId: null,
                 };
                 games.set(roomCode, gameState);
             }
@@ -177,11 +178,24 @@ app.prepare().then(() => {
                 };
             }
 
+            // Set host if this is the first player
+            if (!gameState.hostId || Object.keys(gameState.players).length === 1) {
+                gameState.hostId = newPlayerId;
+                console.log(`Setting ${playerName} (${newPlayerId}) as host`);
+            }
+
             // Track socket connection
             playerSockets.set(socket.id, { gameId: roomCode, playerId: newPlayerId });
 
             // Join socket room
             socket.join(roomCode);
+
+            console.log(`Current game state:`, {
+                roomCode: gameState.roomCode,
+                hostId: gameState.hostId,
+                players: Object.keys(gameState.players),
+                phase: gameState.phase
+            });
 
             // Send current game state to joining player
             socket.emit('game-state', gameState);
@@ -260,6 +274,8 @@ app.prepare().then(() => {
             }
         });
 
+        // File: server.js - Update the leave-game handler (around line 240)
+
         socket.on('leave-game', () => {
             const socketInfo = playerSockets.get(socket.id);
             if (!socketInfo) return;
@@ -268,7 +284,20 @@ app.prepare().then(() => {
             const gameState = games.get(gameId);
 
             if (gameState && gameState.players[playerId]) {
+                const leavingPlayer = gameState.players[playerId];
                 delete gameState.players[playerId];
+
+                // If the host is leaving, assign a new host
+                if (gameState.hostId === playerId) {
+                    const remainingPlayers = Object.keys(gameState.players);
+                    if (remainingPlayers.length > 0) {
+                        gameState.hostId = remainingPlayers[0];
+                        console.log(`Host left. New host is ${gameState.players[gameState.hostId].name}`);
+
+                        // Notify all players of the updated game state with new host
+                        io.to(gameId).emit('game-state', gameState);
+                    }
+                }
 
                 // Notify other players
                 socket.to(gameId).emit('player-left', { playerId });

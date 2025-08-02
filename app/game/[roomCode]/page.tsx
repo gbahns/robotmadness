@@ -56,7 +56,7 @@ export default function GamePage() {
     socketClient.connect();
 
     // Listen for game state updates
-    socketClient.on('game-updated', (updatedState: GameState) => {
+    socketClient.on('game-state', (updatedState: GameState) => {
       console.log('Game state updated:', updatedState);
       setGameState(updatedState);
       setLoading(false);
@@ -272,7 +272,7 @@ export default function GamePage() {
   }
 
   const currentPlayer = gameState ? gameState.players[playerIdRef.current] : null;
-  const isHost = gameState && gameState.hostId === playerIdRef.current;
+  const isHost = gameState && (gameState as any).hostId === playerIdRef.current;
 
   return (
     <GameContent>
@@ -331,7 +331,7 @@ export default function GamePage() {
                           </div>
                           <span className={player.isDisconnected ? 'line-through' : ''}>
                             {player.name}
-                            {player.id === gameState.hostId && ' 👑'}
+                            {player.id === (gameState as any).hostId && ' 👑'}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
