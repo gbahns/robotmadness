@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
+
 interface GameInfo {
   roomCode: string;
   name: string;
