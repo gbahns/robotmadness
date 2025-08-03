@@ -1,9 +1,12 @@
-// File: /server.js
+// server.js
+// Note: This is a .js file, not .ts - it runs outside Next.js
 
 const { createServer } = require('http');
 const { parse } = require('url');
 const next = require('next');
 const { Server } = require('socket.io');
+const GameEngine = require('./gameEngine');
+const { SAMPLE_BOARD } = require('./boardConfig');
 
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });
@@ -13,7 +16,7 @@ const handle = app.getRequestHandler();
 const games = new Map();
 const playerSockets = new Map(); // socket.id -> { gameId, playerId }
 
-// Card deck (simplified for now)
+// Card deck (simplified for now - we'll import from constants later)
 const CARD_DECK = [
     // U-Turn cards (6 total)
     ...Array.from({ length: 6 }, (_, i) => ({
@@ -59,27 +62,6 @@ const CARD_DECK = [
     })),
 ];
 
-// Default board configuration
-const DEFAULT_BOARD = {
-    width: 12,
-    height: 12,
-    tiles: [],
-    checkpoints: [
-        { position: { x: 6, y: 9 }, number: 1 },
-        { position: { x: 9, y: 5 }, number: 2 },
-        { position: { x: 3, y: 2 }, number: 3 },
-        { position: { x: 6, y: 2 }, number: 4 }
-    ],
-    startingPositions: [
-        { position: { x: 1, y: 11 }, direction: 0 },
-        { position: { x: 3, y: 11 }, direction: 0 },
-        { position: { x: 5, y: 11 }, direction: 0 },
-        { position: { x: 7, y: 11 }, direction: 0 },
-        { position: { x: 9, y: 11 }, direction: 0 },
-        { position: { x: 11, y: 11 }, direction: 0 }
-    ]
-};
-
 // Shuffle array helper
 function shuffleArray(array) {
     const newArray = [...array];
@@ -103,7 +85,6 @@ function dealCards(gameState) {
 
         // Reset selected cards
         player.selectedCards = [null, null, null, null, null];
-        player.submitted = false;
 
         // Calculate locked registers (5+ damage locks registers)
         player.lockedRegisters = Math.max(0, player.damage - 4);
@@ -148,138 +129,135 @@ app.prepare().then(() => {
         transports: ['websocket', 'polling']
     });
 
+    // Initialize game engine
+    const gameEngine = new GameEngine(io);
+
     io.on('connection', (socket) => {
-        console.log('New connection:', socket.id);
+        console.log('Client connected:', socket.id);
 
-        socket.on('join-game', ({ roomCode, playerName, playerId }) => {
-            try {
-                console.log(`Player ${playerName} (${playerId}) joining room ${roomCode}`);
+        socket.on('join-game', async (data) => {
+            const { roomCode, playerName, playerId } = data;
+            console.log(`Player ${playerName} joining room ${roomCode}`);
 
-                let game = games.get(roomCode);
-
-                if (!game) {
-                    // Create new game if it doesn't exist
-                    game = {
-                        id: roomCode,
-                        roomCode,
-                        name: `Game ${roomCode}`,
-                        phase: 'waiting',
-                        currentRegister: 0,
-                        players: {},
-                        board: { ...DEFAULT_BOARD },
-                        roundNumber: 0,
-                        cardsDealt: false,
-                        hostId: playerId
-                    };
-                    games.set(roomCode, game);
-                    console.log(`Created new game: ${roomCode}`);
-                }
-
-                // Check if player is rejoining
-                let player = game.players[playerId];
-                if (!player) {
-                    // New player
-                    const playerCount = Object.keys(game.players).length;
-                    const startingPos = game.board.startingPositions[playerCount] ||
-                        { position: { x: 6, y: 6 }, direction: 0 };
-
-                    player = {
-                        id: playerId,
-                        userId: playerId,
-                        name: playerName,
-                        position: { ...startingPos.position },
-                        direction: startingPos.direction,
-                        damage: 0,
-                        lives: 3,
-                        checkpointsVisited: 0,
-                        isPoweredDown: false,
-                        dealtCards: [],
-                        selectedCards: [null, null, null, null, null],
-                        lockedRegisters: 0,
-                        submitted: false
-                    };
-
-                    game.players[playerId] = player;
-                    console.log(`Added new player ${playerName} to game ${roomCode}`);
-                }
-
-                // Update socket mapping
-                playerSockets.set(socket.id, { gameId: roomCode, playerId });
-
-                // Join socket room
-                socket.join(roomCode);
-
-                // Send game state to joining player
-                socket.emit('game-state', game);
-
-                // Notify others
-                socket.to(roomCode).emit('player-joined', { player });
-
-            } catch (error) {
-                console.error('Error in join-game:', error);
-                socket.emit('game-error', { message: 'Failed to join game' });
+            // Get or create game state
+            let gameState = games.get(roomCode);
+            if (!gameState) {
+                gameState = {
+                    id: roomCode,
+                    roomCode,
+                    name: `Game ${roomCode}`,
+                    phase: 'waiting',
+                    currentRegister: 0,
+                    players: {},
+                    board: null,
+                    roundNumber: 0,
+                    cardsDealt: false,
+                };
+                games.set(roomCode, gameState);
             }
+
+            // Add player to game
+            const newPlayerId = playerId || `player-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+            if (!gameState.players[newPlayerId]) {
+                gameState.players[newPlayerId] = {
+                    id: newPlayerId,
+                    userId: newPlayerId,
+                    name: playerName,
+                    position: { x: 0, y: 0 },
+                    direction: 0,
+                    damage: 0,
+                    lives: 3,
+                    checkpointsVisited: 0,
+                    isPoweredDown: false,
+                    dealtCards: [],
+                    selectedCards: [null, null, null, null, null],
+                    lockedRegisters: 0,
+                    submitted: false,
+                };
+            }
+
+            // Track socket connection
+            playerSockets.set(socket.id, { gameId: roomCode, playerId: newPlayerId });
+
+            // Join socket room
+            socket.join(roomCode);
+
+            // Send current game state to joining player
+            socket.emit('game-state', gameState);
+
+            // Notify other players
+            socket.to(roomCode).emit('player-joined', {
+                player: gameState.players[newPlayerId],
+            });
         });
 
-        socket.on('start-game', () => {
-            const socketInfo = playerSockets.get(socket.id);
-            if (!socketInfo) return;
+        socket.on('start-game', (roomCode) => {
+            const gameState = games.get(roomCode);
+            if (!gameState) return;
 
-            const { gameId, playerId } = socketInfo;
-            const game = games.get(gameId);
-
-            if (!game || game.hostId !== playerId) {
-                socket.emit('game-error', { message: 'Only the host can start the game' });
-                return;
-            }
-
-            if (Object.keys(game.players).length < 2) {
+            // Check if enough players
+            const playerCount = Object.keys(gameState.players).length;
+            if (playerCount < 2) {
                 socket.emit('game-error', { message: 'Need at least 2 players to start' });
                 return;
             }
 
-            console.log(`Starting game ${gameId}`);
-            game.phase = 'programming';
-            dealCards(game);
+            // Use the enhanced board configuration
+            gameState.board = SAMPLE_BOARD;
 
-            io.to(gameId).emit('game-state', game);
-            io.to(gameId).emit('cards-dealt');
+            // Assign starting positions
+            const players = Object.values(gameState.players);
+            players.forEach((player, index) => {
+                const startPos = gameState.board.startingPositions[index % gameState.board.startingPositions.length];
+                player.position = { ...startPos.position };
+                player.direction = startPos.direction;
+            });
+
+            // Update game phase
+            gameState.phase = 'starting';
+
+            // Broadcast updated state to all players
+            io.to(roomCode).emit('game-state', gameState);
+
+            // After a short delay, deal cards and start programming phase
+            setTimeout(() => {
+                dealCards(gameState);
+                console.log('Cards dealt! Game state:', JSON.stringify(gameState.players, null, 2));
+                io.to(roomCode).emit('game-state', gameState);
+            }, 2000);
         });
 
-        socket.on('select-cards', ({ selectedCards }) => {
-            const socketInfo = playerSockets.get(socket.id);
-            if (!socketInfo) return;
+        socket.on('submit-cards', (data) => {
+            const { roomCode, playerId, cards } = data;
+            const gameState = games.get(roomCode);
 
-            const { gameId, playerId } = socketInfo;
-            const game = games.get(gameId);
+            if (!gameState || !gameState.players[playerId]) return;
 
-            if (!game || !game.players[playerId]) return;
-
-            game.players[playerId].selectedCards = selectedCards;
-            io.to(gameId).emit('game-state', game);
-        });
-
-        socket.on('submit-cards', () => {
-            const socketInfo = playerSockets.get(socket.id);
-            if (!socketInfo) return;
-
-            const { gameId, playerId } = socketInfo;
-            const game = games.get(gameId);
-
-            if (!game || !game.players[playerId]) return;
-
-            game.players[playerId].submitted = true;
+            // Store the submitted cards
+            gameState.players[playerId].selectedCards = cards;
+            gameState.players[playerId].submitted = true;
 
             // Check if all players have submitted
-            const allSubmitted = Object.values(game.players).every(p => p.submitted);
+            const allSubmitted = Object.values(gameState.players).every(p => p.submitted);
 
             if (allSubmitted) {
-                console.log(`All players submitted in game ${gameId}, starting execution`);
-                game.phase = 'executing';
-                // TODO: Execute registers
-            }
+                // Move to execution phase
+                gameState.phase = 'executing';
+                gameState.currentRegister = 0;
 
-            io.to(gameId).emit('game-state', game);
+                // Reset submitted flags for next round
+                Object.values(gameState.players).forEach(p => p.submitted = false);
+
+                io.to(roomCode).emit('game-state', gameState);
+
+                // Start executing registers
+                console.log('All players submitted! Starting execution...');
+                executeRegisters(gameState);
+            } else {
+                // Just update this player's status
+                io.to(roomCode).emit('player-submitted', { playerId });
+            }
         });
 
         socket.on('leave-game', () => {
@@ -287,18 +265,18 @@ app.prepare().then(() => {
             if (!socketInfo) return;
 
             const { gameId, playerId } = socketInfo;
-            const game = games.get(gameId);
+            const gameState = games.get(gameId);
 
-            if (game && game.players[playerId]) {
-                delete game.players[playerId];
+            if (gameState && gameState.players[playerId]) {
+                delete gameState.players[playerId];
 
-                // If host left, assign new host
-                if (game.hostId === playerId && Object.keys(game.players).length > 0) {
-                    game.hostId = Object.keys(game.players)[0];
-                }
-
-                io.to(gameId).emit('game-state', game);
+                // Notify other players
                 socket.to(gameId).emit('player-left', { playerId });
+
+                // Clean up empty games
+                if (Object.keys(gameState.players).length === 0) {
+                    games.delete(gameId);
+                }
             }
 
             playerSockets.delete(socket.id);
@@ -308,15 +286,12 @@ app.prepare().then(() => {
         socket.on('disconnect', () => {
             console.log('Client disconnected:', socket.id);
 
+            // Handle player leaving on disconnect
             const socketInfo = playerSockets.get(socket.id);
             if (socketInfo) {
                 const { gameId, playerId } = socketInfo;
-                // Mark player as disconnected but don't remove them
-                const game = games.get(gameId);
-                if (game && game.players[playerId]) {
-                    game.players[playerId].isDisconnected = true;
-                    io.to(gameId).emit('game-state', game);
-                }
+                socket.to(gameId).emit('player-disconnected', { playerId });
+                // Don't remove player from game on disconnect - they might reconnect
             }
 
             playerSockets.delete(socket.id);
@@ -327,6 +302,33 @@ app.prepare().then(() => {
     server.listen(PORT, (err) => {
         if (err) throw err;
         console.log(`> Ready on http://localhost:${PORT}`);
-        console.log('> Socket.io server running');
     });
+
+    // Execute all 5 registers
+    async function executeRegisters(gameState) {
+        for (let i = 0; i < 5; i++) {
+            gameState.currentRegister = i;
+            io.to(gameState.roomCode).emit('register-start', { register: i });
+
+            await gameEngine.executeRegister(gameState, i);
+
+            // Broadcast updated game state after each register
+            io.to(gameState.roomCode).emit('game-state', gameState);
+
+            // Check if game ended
+            if (gameState.phase === 'ended') {
+                console.log(`Game ended! Winner: ${gameState.winner}`);
+                return;
+            }
+
+            // Delay between registers
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+        // After all registers, go back to programming phase
+        gameState.phase = 'programming';
+        gameState.currentRegister = 0;
+        dealCards(gameState);
+        io.to(gameState.roomCode).emit('game-state', gameState);
+    }
 });

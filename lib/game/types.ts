@@ -1,4 +1,4 @@
-// File: lib/game/types.ts
+// lib/game/types.ts
 
 export enum Direction {
   UP = 0,
@@ -49,7 +49,7 @@ export interface Player {
   isVirtual?: boolean;
   isDisconnected?: boolean;
   submitted?: boolean;
-
+  
   // Cards
   dealtCards: ProgramCard[];
   selectedCards: (ProgramCard | null)[];
@@ -66,7 +66,6 @@ export interface GameState {
   board: Board;
   roundNumber: number;
   cardsDealt: boolean;
-  hostId: string; // Added hostId field
 }
 
 export interface Board {
@@ -113,7 +112,7 @@ export enum SocketEvent {
   SELECT_CARDS = 'select-cards',
   SUBMIT_CARDS = 'submit-cards',
   POWER_DOWN = 'power-down',
-
+  
   // Server -> Client
   GAME_STATE = 'game-state',
   PLAYER_JOINED = 'player-joined',

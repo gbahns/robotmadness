@@ -1,66 +1,92 @@
+// components/game/Board.tsx
 import React from 'react';
-import { Board as BoardType, Player, Tile, TileType, Direction, Checkpoint } from '@/lib/game/types';
+import { Board as BoardType, Player, Direction, Position } from '@/lib/game/types';
 import Robot from './Robot';
 
 interface BoardProps {
-  board: BoardType | null;
+  board: BoardType;
   players: Record<string, Player>;
-  currentPlayerId: string;
+  currentPlayerId?: string;
 }
 
-const TILE_SIZE = 50;
+// These interfaces will be used when you add enhanced board features
+interface TileElement {
+  type: 'conveyor' | 'conveyor_express' | 'gear' | 'pusher' | 'repair' | 'pit';
+  position: { x: number; y: number };
+  direction?: number;
+  rotate?: 'clockwise' | 'counterclockwise';
+  registers?: number[];
+  walls?: number[];
+}
 
-const ROBOT_COLORS = [
-  '#FF6B6B', // Red
-  '#4ECDC4', // Teal
-  '#45B7D1', // Blue
-  '#F7DC6F', // Yellow
-  '#BB8FCE', // Purple
-  '#52C75A', // Green
-  '#F39C12', // Orange
-  '#E74C3C', // Crimson
-];
+interface Checkpoint {
+  position: { x: number; y: number };
+  number: number;
+}
+
+interface Laser {
+  position: { x: number; y: number };
+  direction: number;
+  damage: number;
+}
+
+const TILE_SIZE = 48;
+const ROBOT_COLORS = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan'];
 
 export default function Board({ board, players, currentPlayerId }: BoardProps) {
   if (!board) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-gray-500">Loading board...</div>
+      <div className="flex items-center justify-center h-full">
+        <p className="text-gray-400">Waiting for game to start...</p>
       </div>
     );
   }
 
-  // Helper function to get consistent player color
-  const getPlayerIndex = (playerId: string) => {
-    const playerIds = Object.keys(players).sort();
-    return playerIds.indexOf(playerId);
+  // Get player index for color assignment
+  const getPlayerIndex = (playerId: string): number => {
+    return Object.keys(players).indexOf(playerId);
   };
 
-  // Function to render tile content
-  const renderTileContent = (x: number, y: number) => {
-    const tile: Tile = board.tiles[y]?.[x] || { type: TileType.EMPTY, walls: [] };
+  // Get tile element at position (for future enhanced boards)
+    const getTileAt = (x: number, y: number): TileElement | undefined => {
+    // Check if board has the enhanced tiles array
+    if (board.tiles && Array.isArray(board.tiles) && board.tiles.length > 0) {
+        // Check if it's a flat array of tile elements (enhanced board)
+        if ('position' in board.tiles[0]) {
+        return (board.tiles as any[]).find(
+            (tile: any) => tile.position?.x === x && tile.position?.y === y
+        );
+        }
+    }
+    return undefined;
+    };
+
+    // Get laser at position (for enhanced boards)
+    const getLaserAt = (x: number, y: number): Laser | undefined => {
+    // if (board.lasers && Array.isArray(board.lasers)) {
+    //     return (board.lasers as any[]).find((laser: any) => laser.position?.x === x && laser.position?.y === y);
+    // }
+    return undefined;
+    };
+
+  // Get the visual representation of a tile
+  const getTileContent = (x: number, y: number): React.ReactElement[] => {
+    const tile = getTileAt(x, y);
     const elements: React.ReactElement[] = [];
 
-    // Base tile appearance
-    let tileClass = 'border border-gray-700';
+    // Base tile
+    elements.push(
+      <div key="base" className="absolute inset-0 border border-gray-600 bg-gray-800" />
+    );
 
-    if (tile.type === TileType.PIT) {
-      tileClass += ' bg-black';
-    } else if (tile.type === TileType.REPAIR) {
-      tileClass += ' bg-blue-900';
-    } else if (tile.type === TileType.OPTION) {
-      tileClass += ' bg-purple-900';
-    } else {
-      tileClass += ' bg-gray-800';
-    }
-
-    // Special tile elements
-    if (tile.type !== TileType.EMPTY && tile.type !== TileType.PIT) {
+    // Add tile-specific elements when tiles are implemented
+    if (tile) {
       // Conveyor belts
-      if (tile.type === TileType.CONVEYOR || tile.type === TileType.EXPRESS_CONVEYOR) {
-        const color = tile.type === TileType.EXPRESS_CONVEYOR ? 'bg-yellow-600' : 'bg-yellow-800';
-        const arrowRotation = 0; // Will be based on tile direction when implemented
-
+      if (tile.type === 'conveyor' || tile.type === 'conveyor_express') {
+        const isExpress = tile.type === 'conveyor_express';
+        const color = isExpress ? 'bg-yellow-600' : 'bg-yellow-800';
+        const arrowRotation = (tile.direction || 0) * 90;
+        
         elements.push(
           <div key="conveyor" className={`absolute inset-1 ${color} rounded-sm flex items-center justify-center`}>
             <svg
@@ -71,27 +97,16 @@ export default function Board({ board, players, currentPlayerId }: BoardProps) {
             >
               <path d="M10 3l7 7-7 7V3z" />
             </svg>
+            {tile.rotate && (
+              <div className="absolute bottom-0 right-0 text-xs text-gray-900 p-0.5">
+                {tile.rotate === 'clockwise' ? '↻' : '↺'}
+              </div>
+            )}
           </div>
         );
       }
 
-      // Walls
-      if (tile.walls && tile.walls.length > 0) {
-        tile.walls.forEach((wallDir) => {
-          const wallStyles: Record<Direction, string> = {
-            [Direction.UP]: 'top-0 left-0 right-0 h-1',
-            [Direction.RIGHT]: 'top-0 right-0 bottom-0 w-1',
-            [Direction.DOWN]: 'bottom-0 left-0 right-0 h-1',
-            [Direction.LEFT]: 'top-0 left-0 bottom-0 w-1',
-          };
-          elements.push(
-            <div
-              key={`wall-${wallDir}`}
-              className={`absolute bg-red-600 ${wallStyles[wallDir]}`}
-            />
-          );
-        });
-      }
+      // Other tile types can be added here...
     }
 
     // Checkpoints
@@ -101,7 +116,7 @@ export default function Board({ board, players, currentPlayerId }: BoardProps) {
     if (checkpoint) {
       elements.push(
         <div key="checkpoint" className="absolute inset-0 flex items-center justify-center">
-          <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-black font-bold text-lg border-4 border-black shadow-lg">
+          <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-black font-bold text-lg border-4 border-black">
             {checkpoint.number}
           </div>
         </div>
@@ -110,7 +125,7 @@ export default function Board({ board, players, currentPlayerId }: BoardProps) {
 
     // Starting positions (if no checkpoint there)
     if (!checkpoint) {
-      const isStart = board.startingPositions?.some(
+      const isStart = board.startingPositions.some(
         sp => sp.position.x === x && sp.position.y === y
       );
       if (isStart) {
@@ -118,6 +133,23 @@ export default function Board({ board, players, currentPlayerId }: BoardProps) {
           <div key="start" className="absolute inset-0 bg-green-800 opacity-50" />
         );
       }
+    }
+
+    // Lasers (when implemented)
+    const laser = getLaserAt(x, y);
+    if (laser) {
+      const rotation = laser.direction * 90;
+      const color = laser.damage > 1 ? 'text-red-400' : 'text-red-600';
+      elements.push(
+        <div key="laser" className="absolute inset-0 flex items-center justify-center">
+          <div
+            style={{ transform: `rotate(${rotation}deg)` }}
+            className={`text-2xl ${color}`}
+          >
+            ⚡
+          </div>
+        </div>
+      );
     }
 
     // Players
@@ -141,33 +173,68 @@ export default function Board({ board, players, currentPlayerId }: BoardProps) {
   };
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center p-4">
+      <h2 className="text-2xl font-bold mb-4">Game Board</h2>
+      
       {/* Board grid */}
-      <div
-        className="relative bg-gray-900 border-4 border-gray-700 shadow-2xl"
+      <div 
+        className="relative bg-gray-900 border-4 border-gray-700"
         style={{
           width: board.width * TILE_SIZE,
-          height: board.height * TILE_SIZE,
+          height: board.height * TILE_SIZE
         }}
       >
         {Array.from({ length: board.height }, (_, y) => (
-          <div key={y} className="flex">
-            {Array.from({ length: board.width }, (_, x) => (
-              <div
-                key={`${x}-${y}`}
-                className="relative"
-                style={{
-                  width: TILE_SIZE,
-                  height: TILE_SIZE,
-                }}
-              >
-                <div className={`absolute inset-0 border border-gray-700 bg-gray-800`} />
-                {renderTileContent(x, y)}
-              </div>
-            ))}
-          </div>
+          Array.from({ length: board.width }, (_, x) => (
+            <div
+              key={`${x}-${y}`}
+              className="absolute"
+              style={{
+                left: x * TILE_SIZE,
+                top: y * TILE_SIZE,
+                width: TILE_SIZE,
+                height: TILE_SIZE
+              }}
+            >
+              {getTileContent(x, y)}
+            </div>
+          ))
         ))}
       </div>
+
+      {/* Legend */}
+      <div className="mt-4 p-4 bg-gray-800 rounded">
+        <h3 className="font-bold mb-2">Legend:</h3>
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-white rounded-full border-2 border-black" />
+            <span>Checkpoint</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-green-800" />
+            <span>Starting Position</span>
+          </div>
+          {/* Future elements will be shown here when implemented */}
+          {/*
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-yellow-800" />
+            <span>Conveyor Belt</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-yellow-600" />
+            <span>Express Belt</span>
+          </div>
+          */}
+        </div>
+      </div>
+
+      {/* Current phase indicator */}
+      {/* @ts-ignore - gameState might be passed through parent */}
+      {(board as any).phase === 'executing' && (
+        <div className="mt-4 p-2 bg-yellow-600 text-black rounded">
+          Executing Register {((board as any).currentRegister || 0) + 1} of 5
+        </div>
+      )}
     </div>
   );
 }

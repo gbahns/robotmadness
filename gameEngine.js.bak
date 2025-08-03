@@ -44,7 +44,7 @@ class GameEngine {
       });
 
       // Small delay for visual effect
-      await this.delay(500);
+      await this.delay(800);
     }
 
     // After all cards, execute board elements

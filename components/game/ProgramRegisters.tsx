@@ -1,7 +1,10 @@
-import React, { useRef, useEffect } from 'react';
-import { useDrop } from 'react-dnd';
+// components/game/ProgramRegisters.tsx
+
+import React from 'react';
 import { ProgramCard } from '@/lib/game/types';
 import Card from './Card';
+import { useDrop } from 'react-dnd';
+import { CARD_TYPE, DragItem } from './Card';
 
 interface ProgramRegistersProps {
   selectedCards: (ProgramCard | null)[];
@@ -9,62 +12,42 @@ interface ProgramRegistersProps {
   onCardDrop: (card: ProgramCard, registerIndex: number) => void;
   onCardRemove: (registerIndex: number) => void;
   isSubmitted: boolean;
-  selectedSlot: number;
-  onRegisterClick: (index: number) => void;
 }
 
 interface RegisterSlotProps {
   card: ProgramCard | null;
   index: number;
   isLocked: boolean;
-  isSelected: boolean;
   onDrop: (card: ProgramCard) => void;
   onRemove: () => void;
-  onClick: () => void;
   isSubmitted: boolean;
 }
 
-function RegisterSlot({
-  card,
-  index,
-  isLocked,
-  isSelected,
-  onDrop,
-  onRemove,
-  onClick,
-  isSubmitted
-}: RegisterSlotProps) {
-  const dropRef = useRef<HTMLDivElement>(null);
-
-  const [{ isOver, canDrop }, drop] = useDrop({
-    accept: 'card',
-    canDrop: () => !isLocked && !card && !isSubmitted,
-    drop: (item: { card: ProgramCard }) => onDrop(item.card),
+function RegisterSlot({ card, index, isLocked, onDrop, onRemove, isSubmitted }: RegisterSlotProps) {
+  const [{ isOver, canDrop }, drop] = useDrop<DragItem, unknown, { isOver: boolean; canDrop: boolean }>(() => ({
+    accept: CARD_TYPE,
+    drop: (item: DragItem) => {
+      if (!isLocked && !isSubmitted) {
+        onDrop(item.card);
+      }
+    },
+    canDrop: () => !isLocked && !isSubmitted && !card,
     collect: (monitor) => ({
-      isOver: monitor.isOver(),
-      canDrop: monitor.canDrop(),
+      isOver: !!monitor.isOver(),
+      canDrop: !!monitor.canDrop(),
     }),
-  });
-
-  useEffect(() => {
-    if (dropRef.current) {
-      drop(dropRef.current);
-    }
-  }, [drop]);
-
-  const borderColor = isSelected && !isSubmitted ? 'border-yellow-400' : 'border-gray-600';
-  const bgColor = isLocked ? 'bg-gray-900' : isOver && canDrop ? 'bg-gray-700' : 'bg-gray-800';
+  }), [card, isLocked, isSubmitted]);
 
   return (
     <div className="flex flex-col items-center">
-      <div className="text-xs text-gray-400 mb-1">#{index + 1}</div>
+      <div className="text-sm text-gray-400 mb-1">Register {index + 1}</div>
       <div
-        ref={dropRef}
-        onClick={onClick}
+        ref={drop as unknown as React.Ref<HTMLDivElement>}
         className={`
-          relative w-20 h-28 border-2 rounded-lg transition-all cursor-pointer
-          ${bgColor} ${borderColor}
-          ${isLocked ? 'cursor-not-allowed' : 'hover:border-gray-400'}
+          relative w-28 h-36 rounded-lg border-2 transition-all
+          ${isLocked ? 'border-red-600 bg-red-900 bg-opacity-20' : 'border-gray-600'}
+          ${isOver && canDrop ? 'border-green-400 bg-green-900 bg-opacity-20' : ''}
+          ${!card && !isLocked ? 'border-dashed' : ''}
         `}
       >
         {card ? (
@@ -78,8 +61,8 @@ function RegisterSlot({
           </div>
         ) : (
           <div className="h-full flex items-center justify-center">
-            <span className="text-gray-500 text-xs text-center px-2">
-              {isLocked ? '🔒' : ''}
+            <span className="text-gray-500 text-xs">
+              {isLocked ? '🔒 Locked' : 'Drop card here'}
             </span>
           </div>
         )}
@@ -94,33 +77,37 @@ export default function ProgramRegisters({
   onCardDrop,
   onCardRemove,
   isSubmitted,
-  selectedSlot,
-  onRegisterClick,
 }: ProgramRegistersProps) {
   const totalLocked = Math.min(lockedRegisters, 5);
-
+  
   return (
-    <div className="flex gap-3">
-      {selectedCards.map((card, index) => {
-        const isLocked = index >= (5 - totalLocked);
-        return (
-          <RegisterSlot
-            key={index}
-            card={card}
-            index={index}
-            isLocked={isLocked}
-            isSelected={selectedSlot === index}
-            onDrop={(card) => onCardDrop(card, index)}
-            onRemove={() => onCardRemove(index)}
-            onClick={() => onRegisterClick(index)}
-            isSubmitted={isSubmitted}
-          />
-        );
-      })}
-
+    <div>
+      {totalLocked > 0 && (
+        <div className="text-sm text-red-400 text-center mb-2">
+          {totalLocked} register{totalLocked > 1 ? 's' : ''} locked due to damage
+        </div>
+      )}
+      
+      <div className="flex gap-3 justify-center">
+        {selectedCards.map((card, index) => {
+          const isLocked = index >= (5 - totalLocked);
+          return (
+            <RegisterSlot
+              key={index}
+              card={card}
+              index={index}
+              isLocked={isLocked}
+              onDrop={(card) => onCardDrop(card, index)}
+              onRemove={() => onCardRemove(index)}
+              isSubmitted={isSubmitted}
+            />
+          );
+        })}
+      </div>
+      
       {isSubmitted && (
-        <div className="flex items-center ml-4 text-green-400">
-          <span className="text-sm">✓ Submitted</span>
+        <div className="mt-4 text-center text-green-400">
+          ✓ Program submitted! Waiting for other players...
         </div>
       )}
     </div>
