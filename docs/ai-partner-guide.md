@@ -1,5 +1,19 @@
 # AI Partner Guide
 
+## CRITICAL RULES - ALWAYS FOLLOW
+
+### 🚨 FILE PATH REQUIREMENT 🚨
+**EVERY code block or file update MUST start with the file path comment:**
+```
+// File: /path/to/file.ext
+```
+or for non-code files:
+```
+# File: /path/to/file.md
+```
+
+**NO EXCEPTIONS. This prevents ambiguity about which file to update.**
+
 ## Purpose
 This guide defines how I should interact with you to effectively build the RoboRally game. It establishes clear patterns for communication, code delivery, and progress tracking.
 
