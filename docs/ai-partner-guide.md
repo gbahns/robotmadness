@@ -5,12 +5,14 @@
 ### 🚨 FILE PATH REQUIREMENT 🚨
 **EVERY code block or file update MUST start with the file path comment:**
 ```
-// File: /path/to/file.ext
+// path/to/file.ext
 ```
 or for non-code files:
 ```
-# File: /path/to/file.md
+# path/to/file.md
 ```
+
+and in the documents referenced in our chats, specify the path/filename in the title/description
 
 **NO EXCEPTIONS. This prevents ambiguity about which file to update.**
 
