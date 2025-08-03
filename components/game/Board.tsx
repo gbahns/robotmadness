@@ -1,54 +1,63 @@
-// File: /components/game/Board.tsx
-
 import React from 'react';
-import { Board as BoardType, Player, Checkpoint, TileType, Direction } from '@/lib/game/types';
+import { Board as BoardType, Player, Tile, TileType, Direction, Checkpoint } from '@/lib/game/types';
 import Robot from './Robot';
 
 interface BoardProps {
-  board: BoardType;
+  board: BoardType | null;
   players: Record<string, Player>;
   currentPlayerId: string;
 }
 
 const TILE_SIZE = 50;
-const ROBOT_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FD79A8', '#FDCB6E', '#6C5CE7', '#A29BFE', '#74B9FF'];
+
+const ROBOT_COLORS = [
+  '#FF6B6B', // Red
+  '#4ECDC4', // Teal
+  '#45B7D1', // Blue
+  '#F7DC6F', // Yellow
+  '#BB8FCE', // Purple
+  '#52C75A', // Green
+  '#F39C12', // Orange
+  '#E74C3C', // Crimson
+];
 
 export default function Board({ board, players, currentPlayerId }: BoardProps) {
-  // Get player index for consistent colors
+  if (!board) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-gray-500">Loading board...</div>
+      </div>
+    );
+  }
+
+  // Helper function to get consistent player color
   const getPlayerIndex = (playerId: string) => {
-    return Object.keys(players).findIndex(id => id === playerId);
+    const playerIds = Object.keys(players).sort();
+    return playerIds.indexOf(playerId);
   };
 
-  // Get laser positions (placeholder for now)
-  const getLaserAt = (x: number, y: number) => {
-    // This will be implemented when we add laser tiles
-    return null;
-  };
-
-  // Render tile content
-  const getTileContent = (x: number, y: number) => {
+  // Function to render tile content
+  const renderTileContent = (x: number, y: number) => {
+    const tile: Tile = board.tiles[y]?.[x] || { type: TileType.EMPTY, walls: [] };
     const elements: React.ReactElement[] = [];
 
-    // Base tile background
-    elements.push(
-      <div key="base" className="absolute inset-0 bg-gray-800 border border-gray-700" />
-    );
+    // Base tile appearance
+    let tileClass = 'border border-gray-700';
 
-    // Get tile type if there's special tile data
-    const tile = board.tiles?.[y]?.[x];
-    if (tile) {
-      // Render based on tile type
-      if (tile.type === TileType.PIT) {
-        elements.push(
-          <div key="pit" className="absolute inset-1 bg-black rounded-full" />
-        );
-      } else if (tile.type === TileType.REPAIR) {
-        elements.push(
-          <div key="repair" className="absolute inset-0 bg-green-900 flex items-center justify-center">
-            <span className="text-2xl">🔧</span>
-          </div>
-        );
-      } else if (tile.type === TileType.CONVEYOR || tile.type === TileType.EXPRESS_CONVEYOR) {
+    if (tile.type === TileType.PIT) {
+      tileClass += ' bg-black';
+    } else if (tile.type === TileType.REPAIR) {
+      tileClass += ' bg-blue-900';
+    } else if (tile.type === TileType.OPTION) {
+      tileClass += ' bg-purple-900';
+    } else {
+      tileClass += ' bg-gray-800';
+    }
+
+    // Special tile elements
+    if (tile.type !== TileType.EMPTY && tile.type !== TileType.PIT) {
+      // Conveyor belts
+      if (tile.type === TileType.CONVEYOR || tile.type === TileType.EXPRESS_CONVEYOR) {
         const color = tile.type === TileType.EXPRESS_CONVEYOR ? 'bg-yellow-600' : 'bg-yellow-800';
         const arrowRotation = 0; // Will be based on tile direction when implemented
 
@@ -132,56 +141,32 @@ export default function Board({ board, players, currentPlayerId }: BoardProps) {
   };
 
   return (
-    <div className="flex flex-col items-center p-4">
-      <h2 className="text-2xl font-bold mb-4">Game Board</h2>
-
+    <div className="flex flex-col items-center">
       {/* Board grid */}
       <div
         className="relative bg-gray-900 border-4 border-gray-700 shadow-2xl"
         style={{
           width: board.width * TILE_SIZE,
-          height: board.height * TILE_SIZE
+          height: board.height * TILE_SIZE,
         }}
       >
         {Array.from({ length: board.height }, (_, y) => (
-          Array.from({ length: board.width }, (_, x) => (
-            <div
-              key={`${x}-${y}`}
-              className="absolute"
-              style={{
-                left: x * TILE_SIZE,
-                top: y * TILE_SIZE,
-                width: TILE_SIZE,
-                height: TILE_SIZE
-              }}
-            >
-              {getTileContent(x, y)}
-            </div>
-          ))
+          <div key={y} className="flex">
+            {Array.from({ length: board.width }, (_, x) => (
+              <div
+                key={`${x}-${y}`}
+                className="relative"
+                style={{
+                  width: TILE_SIZE,
+                  height: TILE_SIZE,
+                }}
+              >
+                <div className={`absolute inset-0 border border-gray-700 bg-gray-800`} />
+                {renderTileContent(x, y)}
+              </div>
+            ))}
+          </div>
         ))}
-      </div>
-
-      {/* Legend */}
-      <div className="mt-4 p-4 bg-gray-800 rounded-lg">
-        <h3 className="font-bold mb-2">Legend:</h3>
-        <div className="grid grid-cols-2 gap-2 text-sm">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-white rounded-full border-2 border-black" />
-            <span>Checkpoint</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-green-800" />
-            <span>Starting Position</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-lg">🔧</span>
-            <span>Repair Site</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-black rounded-full" />
-            <span>Pit</span>
-          </div>
-        </div>
       </div>
     </div>
   );

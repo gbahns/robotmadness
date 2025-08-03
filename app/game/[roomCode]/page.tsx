@@ -21,6 +21,7 @@ export default function GamePage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<number>(0);
   const playerIdRef = useRef<string>('');
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Get player ID from session storage
@@ -44,53 +45,64 @@ export default function GamePage() {
     const handleGameState = (state: GameState) => {
       setGameState(state);
 
-      // Check if player has submitted
-      const player = state.players[playerId];
-      if (player) {
-        setIsSubmitted(player.submitted || false);
-      }
-
       // Reset submission state when new programming phase starts
       if (state.phase === GamePhase.PROGRAMMING && state.cardsDealt) {
         setIsSubmitted(false);
         setSelectedSlot(0);
-        setTimeLeft(30);
+        setTimeLeft(30); // Reset timer for new programming phase
+
+        // Start countdown timer
+        if (timerIntervalRef.current) {
+          clearInterval(timerIntervalRef.current);
+        }
+
+        timerIntervalRef.current = setInterval(() => {
+          setTimeLeft((prev) => {
+            if (prev <= 0) {
+              if (timerIntervalRef.current) {
+                clearInterval(timerIntervalRef.current);
+                timerIntervalRef.current = null;
+              }
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      } else if (state.phase !== GamePhase.PROGRAMMING) {
+        // Clear timer if not in programming phase
+        if (timerIntervalRef.current) {
+          clearInterval(timerIntervalRef.current);
+          timerIntervalRef.current = null;
+        }
+      }
+
+      // Check if current player has already submitted
+      const currentPlayer = state.players[playerId];
+      if (currentPlayer?.submitted) {
+        setIsSubmitted(true);
       }
     };
 
-    const handleCardsDealt = () => {
-      setTimeLeft(30);
-      setIsSubmitted(false);
-      setSelectedSlot(0);
-    };
-
-    const handleGameError = (data: { message: string }) => {
-      console.error('Game error:', data.message);
-      alert(data.message);
-      router.push('/');
-    };
-
     socketClient.onGameState(handleGameState);
-    socketClient.onCardsDealt(handleCardsDealt);
-    socketClient.onGameError(handleGameError);
 
-    // Timer countdown
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 0) return 0;
-        return prev - 1;
-      });
-    }, 1000);
-
+    // Cleanup
     return () => {
-      clearInterval(timer);
-      socketClient.off('game-state', handleGameState);
-      socketClient.off('cards-dealt', handleCardsDealt);
-      socketClient.off('game-error', handleGameError);
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
       socketClient.leaveGame();
       socketClient.disconnect();
     };
   }, [roomCode, router]);
+
+  const handleStartGame = () => {
+    socketClient.startGame();
+  };
+
+  const handleLeaveGame = () => {
+    socketClient.leaveGame();
+    router.push('/');
+  };
 
   const handleCardDrop = (card: ProgramCard, registerIndex: number) => {
     if (!gameState || isSubmitted) return;
@@ -98,14 +110,24 @@ export default function GamePage() {
     const currentPlayer = gameState.players[playerIdRef.current];
     if (!currentPlayer) return;
 
-    // Check if card is already placed
-    const isAlreadyPlaced = currentPlayer.selectedCards.some(c => c?.id === card.id);
-    if (isAlreadyPlaced) return;
+    // Check if register is locked
+    const lockedRegisters = Math.min(currentPlayer.damage, 5);
+    const isLocked = registerIndex >= (5 - lockedRegisters);
+    if (isLocked) return;
 
-    // Update selected cards
+    // Create new selected cards array
     const newSelectedCards = [...currentPlayer.selectedCards];
+
+    // Remove card from its current position if it exists
+    const existingIndex = newSelectedCards.findIndex(c => c?.id === card.id);
+    if (existingIndex !== -1) {
+      newSelectedCards[existingIndex] = null;
+    }
+
+    // Place card in new position
     newSelectedCards[registerIndex] = card;
 
+    // Update server
     socketClient.selectCards(newSelectedCards);
   };
 
@@ -130,36 +152,38 @@ export default function GamePage() {
     const card = currentPlayer.dealtCards[cardIndex];
     if (!card) return;
 
-    // Check if card is already placed
+    // Check if this card is already placed
     const isAlreadyPlaced = currentPlayer.selectedCards.some(c => c?.id === card.id);
     if (isAlreadyPlaced) return;
 
-    // Check if slot is locked
-    const lockedRegisters = Math.min(currentPlayer.damage, 5);
-    const isSlotLocked = selectedSlot >= (5 - lockedRegisters);
-    if (isSlotLocked) return;
-
+    // Place the card in the selected slot
     handleCardDrop(card, selectedSlot);
 
-    // Move to next empty slot
-    const nextSlot = currentPlayer.selectedCards.findIndex((c, i) => {
+    // Auto-advance to next empty slot
+    let nextSlot = -1;
+    for (let i = 0; i < 5; i++) {
+      const lockedRegisters = Math.min(currentPlayer.damage, 5);
       const isLocked = i >= (5 - lockedRegisters);
-      return i > selectedSlot && !c && !isLocked;
-    });
-    setSelectedSlot(nextSlot >= 0 ? nextSlot : -1);
+      if (!isLocked && !currentPlayer.selectedCards[i]) {
+        nextSlot = i;
+        break;
+      }
+    }
+    setSelectedSlot(nextSlot);
   };
 
   const handleRegisterClick = (index: number) => {
-    if (!isSubmitted) {
-      const currentPlayer = gameState?.players[playerIdRef.current];
-      if (currentPlayer) {
-        const lockedRegisters = Math.min(currentPlayer.damage, 5);
-        const isSlotLocked = index >= (5 - lockedRegisters);
-        if (!isSlotLocked) {
-          setSelectedSlot(index);
-        }
-      }
-    }
+    if (!gameState || isSubmitted) return;
+
+    const currentPlayer = gameState.players[playerIdRef.current];
+    if (!currentPlayer) return;
+
+    // Check if register is locked
+    const lockedRegisters = Math.min(currentPlayer.damage, 5);
+    const isLocked = index >= (5 - lockedRegisters);
+    if (isLocked) return;
+
+    setSelectedSlot(index);
   };
 
   const handleSubmitProgram = () => {
@@ -170,65 +194,55 @@ export default function GamePage() {
 
     // Check if all non-locked registers are filled
     const lockedRegisters = Math.min(currentPlayer.damage, 5);
-    const requiredCards = 5 - lockedRegisters;
-    const filledCards = currentPlayer.selectedCards.slice(0, requiredCards).filter(c => c !== null).length;
+    const requiredRegisters = 5 - lockedRegisters;
+    const filledRegisters = currentPlayer.selectedCards
+      .slice(0, requiredRegisters)
+      .filter(card => card !== null).length;
 
-    if (filledCards < requiredCards) {
-      alert(`Please fill all ${requiredCards} program registers before submitting!`);
+    if (filledRegisters < requiredRegisters) {
+      alert(`Please fill all ${requiredRegisters} program registers before submitting!`);
       return;
     }
 
     socketClient.submitCards();
     setIsSubmitted(true);
-    setSelectedSlot(-1);
-  };
-
-  const handleLeaveGame = () => {
-    if (confirm('Are you sure you want to leave the game?')) {
-      socketClient.leaveGame();
-      router.push('/');
-    }
   };
 
   if (!gameState) {
     return (
       <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4" />
-          <p>Loading game...</p>
-        </div>
+        <div className="text-2xl">Connecting to game...</div>
       </div>
     );
   }
 
   const currentPlayer = gameState.players[playerIdRef.current];
-  if (!currentPlayer) {
-    return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-500">Error: Player not found in game</p>
-          <button
-            onClick={() => router.push('/')}
-            className="mt-4 px-4 py-2 bg-blue-600 rounded hover:bg-blue-700"
-          >
-            Return to Home
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const isHost = gameState.hostId === playerIdRef.current;
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="min-h-screen bg-gray-900 text-white">
-        <div className="container mx-auto px-4 py-4">
-          {/* Header */}
-          <div className="bg-gray-800 rounded-lg p-4 mb-4">
-            <div className="flex justify-between items-center">
-              <h1 className="text-2xl font-bold">{gameState.name}</h1>
-              <span className="text-lg">
-                Phase: <span className="text-green-400">{gameState.phase}</span>
+      <div className="min-h-screen bg-gray-900 text-white p-4">
+        <div className="max-w-7xl mx-auto">
+          {/* Game Header */}
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center gap-4">
+              <h1 className="text-3xl font-bold">{gameState.name}</h1>
+              <span className="text-sm bg-gray-800 px-3 py-1 rounded">
+                Room: {roomCode}
               </span>
+              <span className="text-sm bg-gray-800 px-3 py-1 rounded">
+                Phase: {gameState.phase}
+              </span>
+            </div>
+            <div className="flex items-center gap-4">
+              {gameState.phase === GamePhase.WAITING && isHost && (
+                <button
+                  onClick={handleStartGame}
+                  className="px-6 py-2 bg-green-600 rounded hover:bg-green-700 transition-colors font-semibold"
+                >
+                  Start Game
+                </button>
+              )}
               {gameState.phase === GamePhase.PROGRAMMING && (
                 <Timer timeLeft={timeLeft} totalTime={30} />
               )}
@@ -241,21 +255,10 @@ export default function GamePage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
-            {/* Left Panel - Player Status */}
-            <div className="xl:col-span-1 space-y-3">
-              <h2 className="text-xl font-semibold mb-2">Players</h2>
-              {Object.values(gameState.players).map((player) => (
-                <PlayerStatus
-                  key={player.id}
-                  player={player}
-                  isCurrentPlayer={player.id === playerIdRef.current}
-                />
-              ))}
-            </div>
-
-            {/* Center - Game Board */}
-            <div className="xl:col-span-2">
+          {/* Main Game Layout */}
+          <div className="flex gap-5">
+            {/* Left Side - Game Board */}
+            <div className="flex-shrink-0">
               <Board
                 board={gameState.board}
                 players={gameState.players}
@@ -263,126 +266,102 @@ export default function GamePage() {
               />
             </div>
 
-            {/* Right Panel - Cards and Controls */}
-            <div className="xl:col-span-1 space-y-4">
-              {gameState.phase === GamePhase.PROGRAMMING && currentPlayer.dealtCards.length > 0 && (
-                <>
-                  {/* Program Registers */}
-                  <div className="bg-gray-800 rounded-lg p-4">
-                    <h2 className="text-xl font-semibold mb-3">Program Registers</h2>
-                    <ProgramRegisters
-                      selectedCards={currentPlayer.selectedCards}
-                      lockedRegisters={Math.min(currentPlayer.damage, 5)}
-                      onCardDrop={handleCardDrop}
-                      onCardRemove={handleCardRemove}
-                      isSubmitted={isSubmitted}
-                      selectedSlot={selectedSlot}
-                      onRegisterClick={handleRegisterClick}
-                    />
+            {/* Right Side - Player List */}
+            <div className="w-64 space-y-2">
+              {Object.values(gameState.players).map((player) => (
+                <PlayerStatus
+                  key={player.id}
+                  player={player}
+                  isCurrentPlayer={player.id === playerIdRef.current}
+                  compact={true}
+                />
+              ))}
+            </div>
+          </div>
 
-                    {!isSubmitted && (
-                      <button
-                        onClick={handleSubmitProgram}
-                        className="w-full mt-4 px-4 py-2 bg-green-600 rounded hover:bg-green-700 transition-colors font-semibold"
+          {/* Bottom Section - Cards and Controls */}
+          {gameState.phase === GamePhase.PROGRAMMING && currentPlayer && currentPlayer.dealtCards.length > 0 && (
+            <div className="mt-6 space-y-4">
+              {/* Player's Hand */}
+              <div className="bg-gray-800 rounded-lg p-4">
+                <div className="grid grid-cols-9 gap-2">
+                  {currentPlayer.dealtCards.map((card, index) => {
+                    const isAlreadySelected = currentPlayer.selectedCards.some(
+                      c => c?.id === card.id
+                    );
+                    return (
+                      <div
+                        key={card.id}
+                        onClick={() => !isAlreadySelected && handleCardClick(index)}
+                        className={`
+                          cursor-pointer transition-all
+                          ${isAlreadySelected ? 'opacity-30 cursor-not-allowed' : 'hover:scale-105'}
+                        `}
                       >
-                        Submit Program
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Dealt Cards */}
-                  <div className="bg-gray-800 rounded-lg p-4">
-                    <h2 className="text-xl font-semibold mb-3">Your Hand</h2>
-                    <div className="grid grid-cols-3 gap-2">
-                      {currentPlayer.dealtCards.map((card, index) => {
-                        const isAlreadySelected = currentPlayer.selectedCards.some(
-                          c => c?.id === card.id
-                        );
-                        return (
-                          <div
-                            key={card.id}
-                            onClick={() => !isAlreadySelected && handleCardClick(index)}
-                            className={`
-                              cursor-pointer transition-all
-                              ${isAlreadySelected ? 'opacity-30 cursor-not-allowed' : 'hover:scale-105'}
-                            `}
-                          >
-                            <Card
-                              card={card}
-                              index={index}
-                              isSelected={false}
-                              isDraggable={!isAlreadySelected && !isSubmitted}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {gameState.phase === GamePhase.EXECUTING && (
-                <div className="bg-gray-800 rounded-lg p-4">
-                  <h2 className="text-xl font-semibold mb-3">Executing Programs</h2>
-                  <div className="text-center">
-                    <p className="text-2xl mb-2">Register {gameState.currentRegister + 1} of 5</p>
-                    <div className="flex justify-center gap-2 mt-4">
-                      {[0, 1, 2, 3, 4].map((i) => (
-                        <div
-                          key={i}
-                          className={`
-                            w-12 h-12 rounded-full flex items-center justify-center font-bold
-                            ${i < gameState.currentRegister
-                              ? 'bg-green-600'
-                              : i === gameState.currentRegister
-                                ? 'bg-yellow-500 animate-pulse'
-                                : 'bg-gray-600'
-                            }
-                          `}
-                        >
-                          {i + 1}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                        <Card
+                          card={card}
+                          index={index}
+                          isSelected={false}
+                          isDraggable={!isAlreadySelected && !isSubmitted}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
-              )}
+              </div>
 
-              {gameState.phase === GamePhase.WAITING && (
-                <div className="bg-gray-800 rounded-lg p-4">
-                  <h2 className="text-xl font-semibold mb-3">Waiting to Start</h2>
-                  <p className="text-gray-400">
-                    Waiting for the host to start the game...
-                  </p>
-                  {gameState.hostId === playerIdRef.current && (
+              {/* Program Registers */}
+              <div className="bg-gray-800 rounded-lg p-4">
+                <div className="flex items-center gap-4">
+                  <ProgramRegisters
+                    selectedCards={currentPlayer.selectedCards}
+                    lockedRegisters={Math.min(currentPlayer.damage, 5)}
+                    onCardDrop={handleCardDrop}
+                    onCardRemove={handleCardRemove}
+                    isSubmitted={isSubmitted}
+                    selectedSlot={selectedSlot}
+                    onRegisterClick={handleRegisterClick}
+                  />
+
+                  {!isSubmitted && (
                     <button
-                      onClick={() => socketClient.startGame()}
-                      className="w-full mt-4 px-4 py-2 bg-green-600 rounded hover:bg-green-700 transition-colors font-semibold"
+                      onClick={handleSubmitProgram}
+                      className="px-6 py-3 bg-green-600 rounded hover:bg-green-700 transition-colors font-semibold"
                     >
-                      Start Game
+                      Submit Program
                     </button>
                   )}
                 </div>
-              )}
-
-              {gameState.phase === GamePhase.ENDED && (
-                <div className="bg-gray-800 rounded-lg p-4">
-                  <h2 className="text-xl font-semibold mb-3">Game Over</h2>
-                  <p className="text-2xl text-center mb-4">
-                    Winner: <span className="text-green-400 font-bold">
-                      {Object.values(gameState.players).find(p => p.checkpointsVisited === 4)?.name || 'Unknown'}
-                    </span>
-                  </p>
-                  <button
-                    onClick={handleLeaveGame}
-                    className="w-full px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 transition-colors font-semibold"
-                  >
-                    Return to Lobby
-                  </button>
-                </div>
-              )}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Execution Phase Display */}
+          {gameState.phase === GamePhase.EXECUTING && (
+            <div className="mt-6 bg-gray-800 rounded-lg p-6">
+              <div className="text-center">
+                <p className="text-2xl mb-2">Executing Register {gameState.currentRegister + 1} of 5</p>
+                <div className="flex justify-center gap-2 mt-4">
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <div
+                      key={i}
+                      className={`
+                        w-12 h-12 rounded-full flex items-center justify-center font-bold
+                        ${i < gameState.currentRegister
+                          ? 'bg-green-600 text-white'
+                          : i === gameState.currentRegister
+                            ? 'bg-yellow-500 text-black animate-pulse'
+                            : 'bg-gray-700 text-gray-400'
+                        }
+                      `}
+                    >
+                      {i + 1}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </DndProvider>

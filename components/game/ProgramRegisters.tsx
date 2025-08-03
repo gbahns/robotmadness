@@ -1,10 +1,7 @@
-// components/game/ProgramRegisters.tsx - Updated with selected slot highlighting
-
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
+import { useDrop } from 'react-dnd';
 import { ProgramCard } from '@/lib/game/types';
 import Card from './Card';
-import { useDrop } from 'react-dnd';
-import { CARD_TYPE, DragItem } from './Card';
 
 interface ProgramRegistersProps {
   selectedCards: (ProgramCard | null)[];
@@ -37,36 +34,37 @@ function RegisterSlot({
   onClick,
   isSubmitted
 }: RegisterSlotProps) {
-  const [{ isOver, canDrop }, drop] = useDrop<DragItem, unknown, { isOver: boolean; canDrop: boolean }>(() => ({
-    accept: CARD_TYPE,
-    drop: (item: DragItem) => {
-      if (!isLocked && !isSubmitted) {
-        onDrop(item.card);
-      }
-    },
-    canDrop: () => !isLocked && !isSubmitted && !card,
+  const dropRef = useRef<HTMLDivElement>(null);
+
+  const [{ isOver, canDrop }, drop] = useDrop({
+    accept: 'card',
+    canDrop: () => !isLocked && !card && !isSubmitted,
+    drop: (item: { card: ProgramCard }) => onDrop(item.card),
     collect: (monitor) => ({
-      isOver: !!monitor.isOver(),
-      canDrop: !!monitor.canDrop(),
+      isOver: monitor.isOver(),
+      canDrop: monitor.canDrop(),
     }),
-  }), [card, isLocked, isSubmitted]);
+  });
+
+  useEffect(() => {
+    if (dropRef.current) {
+      drop(dropRef.current);
+    }
+  }, [drop]);
+
+  const borderColor = isSelected && !isSubmitted ? 'border-yellow-400' : 'border-gray-600';
+  const bgColor = isLocked ? 'bg-gray-900' : isOver && canDrop ? 'bg-gray-700' : 'bg-gray-800';
 
   return (
     <div className="flex flex-col items-center">
-      <div className="text-sm text-gray-400 mb-1">
-        Register {index + 1}
-        {isSelected && !isLocked && <span className="text-green-400"> ◄</span>}
-      </div>
+      <div className="text-xs text-gray-400 mb-1">#{index + 1}</div>
       <div
-        ref={drop as unknown as React.Ref<HTMLDivElement>}
+        ref={dropRef}
         onClick={onClick}
         className={`
-          relative w-28 h-36 rounded-lg border-2 transition-all cursor-pointer
-          ${isLocked ? 'border-red-600 bg-red-900 bg-opacity-20' : 'border-gray-600'}
-          ${isSelected && !isLocked ? 'border-green-400 border-4 shadow-lg shadow-green-400/50' : ''}
-          ${isOver && canDrop ? 'border-green-400 bg-green-900 bg-opacity-20' : ''}
-          ${!card && !isLocked ? 'border-dashed' : ''}
-          ${!isLocked && !isSubmitted ? 'hover:border-gray-400' : ''}
+          relative w-20 h-28 border-2 rounded-lg transition-all cursor-pointer
+          ${bgColor} ${borderColor}
+          ${isLocked ? 'cursor-not-allowed' : 'hover:border-gray-400'}
         `}
       >
         {card ? (
@@ -81,7 +79,7 @@ function RegisterSlot({
         ) : (
           <div className="h-full flex items-center justify-center">
             <span className="text-gray-500 text-xs text-center px-2">
-              {isLocked ? '🔒 Locked' : isSelected ? 'Click a card\nto place here' : 'Click to select'}
+              {isLocked ? '🔒' : ''}
             </span>
           </div>
         )}
@@ -102,44 +100,29 @@ export default function ProgramRegisters({
   const totalLocked = Math.min(lockedRegisters, 5);
 
   return (
-    <div>
-      {totalLocked > 0 && (
-        <div className="text-sm text-red-400 text-center mb-2">
-          {totalLocked} register{totalLocked > 1 ? 's' : ''} locked due to damage
+    <div className="flex gap-3">
+      {selectedCards.map((card, index) => {
+        const isLocked = index >= (5 - totalLocked);
+        return (
+          <RegisterSlot
+            key={index}
+            card={card}
+            index={index}
+            isLocked={isLocked}
+            isSelected={selectedSlot === index}
+            onDrop={(card) => onCardDrop(card, index)}
+            onRemove={() => onCardRemove(index)}
+            onClick={() => onRegisterClick(index)}
+            isSubmitted={isSubmitted}
+          />
+        );
+      })}
+
+      {isSubmitted && (
+        <div className="flex items-center ml-4 text-green-400">
+          <span className="text-sm">✓ Submitted</span>
         </div>
       )}
-
-      <div className="flex gap-3 justify-center">
-        {selectedCards.map((card, index) => {
-          const isLocked = index >= (5 - totalLocked);
-          return (
-            <RegisterSlot
-              key={index}
-              card={card}
-              index={index}
-              isLocked={isLocked}
-              isSelected={selectedSlot === index}
-              onDrop={(card) => onCardDrop(card, index)}
-              onRemove={() => onCardRemove(index)}
-              onClick={() => onRegisterClick(index)}
-              isSubmitted={isSubmitted}
-            />
-          );
-        })}
-      </div>
-
-      <div className="mt-4 text-center">
-        {!isSubmitted && (
-          <p className="text-sm text-gray-400">
-            Click a register slot to select it, then click a card to place it there
-          </p>
-        )}
-        {isSubmitted && (
-          <div className="text-green-400">
-            ✓ Program submitted! Waiting for other players...
-          </div>
-        )}
-      </div>
     </div>
   );
 }
