@@ -12,6 +12,8 @@
 * hammers
 * starting space mini boards
 * risky exchange board
+* Prevent further changes after timer expires
+* When timer hits 0, randomly fill empty registers
 
 ## Done
 * robots pushing each other
