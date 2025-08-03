@@ -16,11 +16,11 @@ This document tracks the implementation status of all RoboRally game requirement
 
 | ID | Requirement | Status | Location | Tests | Notes |
 |----|-------------|--------|----------|-------|-------|
-| REQ-PLAYERS-1 | Support 2-8 players | ❌ | - | - | Need lobby system |
+| REQ-PLAYERS-1 | Support 2-8 players | ✅ | - | - | Need lobby system |
 | REQ-PLAYERS-2 | Each player selects unique robot | ❌ | - | - | |
-| REQ-PLAYERS-3 | Players start with 3 lives | ❌ | - | - | 4 lives for 5+ players |
-| REQ-PLAYERS-4 | Starting positions on docking bay | ❌ | - | - | |
-| REQ-SETUP-1 | Place numbered checkpoints | ❌ | - | - | Based on course |
+| REQ-PLAYERS-3 | Players start with 3 lives | ✅ | - | - | 4 lives for 5+ players |
+| REQ-PLAYERS-4 | Starting positions on docking bay | ✅ | - | - | |
+| REQ-SETUP-1 | Place numbered checkpoints | ✅ | - | - | Based on course |
 | REQ-SETUP-2 | Shuffle program deck (84 cards) | ⚠️ | `/lib/game/cards.ts` | ❌ | Cards defined, shuffle not implemented |
 
 ## Programming Phase
@@ -28,8 +28,8 @@ This document tracks the implementation status of all RoboRally game requirement
 | ID | Requirement | Status | Location | Tests | Notes |
 |----|-------------|--------|----------|-------|-------|
 | REQ-PROG-1 | 30-second timer | 🚧 | `/components/game/Timer.tsx` | ❌ | UI done, needs integration |
-| REQ-PROG-2 | Deal 9 cards minus damage | ❌ | - | - | |
-| REQ-PROG-3 | Select 5 cards for registers | ❌ | - | - | |
+| REQ-PROG-2 | Deal 9 cards minus damage | ✅ | - | - | |
+| REQ-PROG-3 | Select 5 cards for registers | 🚧 | - | - | |
 | REQ-PROG-4 | Register locking (5+ damage) | ❌ | - | - | See damage table |
 | REQ-PROG-5 | Auto-fill on timer expiry | ❌ | - | - | Random assignment |
 | REQ-PROG-6 | Power down announcement | ❌ | - | - | |

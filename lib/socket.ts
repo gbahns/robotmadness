@@ -1,7 +1,5 @@
-// lib/socket.ts
-
 import { io, Socket } from 'socket.io-client';
-import { GameState, Player, SocketEvent } from './game/types';
+import { GameState, Player, SocketEvent, ProgramCard } from './game/types';
 
 class SocketClient {
   private socket: Socket | null = null;
@@ -71,14 +69,28 @@ class SocketClient {
     this.emit(SocketEvent.JOIN_GAME, { roomCode, playerName, playerId });
   }
 
-  startGame(roomCode: string): void {
-    this.emit(SocketEvent.START_GAME, roomCode);
+  startGame(): void {
+    this.emit(SocketEvent.START_GAME);
   }
 
   leaveGame(): void {
     this.emit(SocketEvent.LEAVE_GAME);
   }
 
+  // Card selection methods
+  selectCards(selectedCards: (ProgramCard | null)[]): void {
+    this.emit(SocketEvent.SELECT_CARDS, { selectedCards });
+  }
+
+  submitCards(): void {
+    this.emit(SocketEvent.SUBMIT_CARDS);
+  }
+
+  powerDown(isPoweredDown: boolean): void {
+    this.emit(SocketEvent.POWER_DOWN, { isPoweredDown });
+  }
+
+  // Event listeners
   onGameState(callback: (gameState: GameState) => void): void {
     this.on(SocketEvent.GAME_STATE, callback);
   }
@@ -93,6 +105,14 @@ class SocketClient {
 
   onGameError(callback: (data: { message: string }) => void): void {
     this.on(SocketEvent.GAME_ERROR, callback);
+  }
+
+  onCardsDealt(callback: () => void): void {
+    this.on(SocketEvent.CARDS_DEALT, callback);
+  }
+
+  onRegisterExecuted(callback: (data: any) => void): void {
+    this.on(SocketEvent.REGISTER_EXECUTED, callback);
   }
 }
 
