@@ -51,3 +51,15 @@ npm run build
 
 :: Run production build locally
 npm start
+
+## Other Instructions
+
+:: spin up a new branch
+1. create new branch from desired point in GitHub Desktop
+2. publish branch to GitHub
+3. open cmd prompt in parent folder where you want the branch folder
+4. git clone https://github.com/gbahns/robotmadness <branch-folder>
+5. cd <branch-folder>
+6. checkout <branch-name>
+7. npx prisma generate (to create the database)
+8. npm run dev (to start up the web server)
