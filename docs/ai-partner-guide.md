@@ -1,30 +1,15 @@
 # AI Partner Guide
 
-## CRITICAL RULES - ALWAYS FOLLOW
-
-### 🚨 FILE PATH REQUIREMENT 🚨
-**EVERY code block or file update MUST start with the file path comment:**
-```
-// path/to/file.ext
-```
-or for non-code files:
-```
-# path/to/file.md
-```
-
-and in the documents referenced in our chats, specify the path/filename in the title/description
-
-**NO EXCEPTIONS. This prevents ambiguity about which file to update.**
-
 ## Purpose
 This guide defines how I should interact with you to effectively build the RoboRally game. It establishes clear patterns for communication, code delivery, and progress tracking.
 
 ## Core Principles
 
 ### 1. Source of Truth Hierarchy
-1. **Primary**: `docs/requirements.md` - This is our authoritative source
-2. **Secondary**: Official RoboRally Rules (2005 Avalon Hill edition)
-3. **Note Conflicts**: Always explicitly highlight when our requirements differ from official rules
+1. **Next Steps**: docs/backlg.md - lists the specific features we're implementing or issues we're fixing next
+2. **Primary**: `docs/requirements.md` - This is our authoritative source
+3. **Secondary**: Official RoboRally Rules (2005 Avalon Hill edition)
+4. **Note Conflicts**: Always explicitly highlight when our requirements differ from official rules
 
 Example:
 ```
@@ -32,19 +17,33 @@ Example:
 Note: This differs from some RoboRally editions where chain pushing is limited."
 ```
 
-### 2. Code Delivery Standards
+Here's a summary of our updated agreement for the AI Partner Guide:
 
-#### Always Provide Complete Files
-- ✅ **DO**: Provide the entire file content
-- ❌ **DON'T**: Give snippets or partial updates
-- ✅ **DO**: Include all imports, exports, and dependencies
-- ❌ **DON'T**: Use "..." or "// rest of code unchanged"
+## 2. Code Delivery Standards
 
-#### File Identification
-Always start code blocks with a clear file header:
-```typescript
-// File: /lib/game/engine.ts
-```
+### When to Provide Complete Files vs. Targeted Changes
+- **Provide complete file** when changes are >75% of the file's total lines
+- **Provide targeted changes** when changes are <75% of the file's total lines
+
+### Format for Targeted Changes
+When providing targeted changes:
+1. **Use separate artifacts** for each distinct change - never combine multiple changes in one artifact
+2. **Each artifact should contain ONLY the code to copy** - no extra explanation or context within the code block (so the Copy button works cleanly)
+3. **Clear action words in titles** - use "ADD", "REPLACE", "MODIFY", etc.
+4. **Always include filepath in artifact title** - e.g., "server.js - ADD these helper functions after dealCards"
+
+### Benefits of This Approach
+- **Token efficiency** - saves significant tokens on large files with small changes
+- **Learning opportunity** - you understand changes better by applying them
+- **Clear tracking** - separate artifacts make it easy to track what's been applied
+- **Flexibility** - adapts to the scope of changes needed
+
+### Always Required (unchanged)
+- Never use "..." or "// rest of code unchanged" 
+- Always be explicit about what action to take
+- Include all imports, exports, and dependencies in the provided code
+
+This approach balances efficiency with clarity while respecting that you learn more by actively applying changes rather than blindly copying entire files.
 
 #### Example Format
 ```typescript
