@@ -48,26 +48,26 @@ export default function Board({ board, players, currentPlayerId }: BoardProps) {
   };
 
   // Get tile element at position (for future enhanced boards)
-    const getTileAt = (x: number, y: number): TileElement | undefined => {
+  const getTileAt = (x: number, y: number): TileElement | undefined => {
     // Check if board has the enhanced tiles array
     if (board.tiles && Array.isArray(board.tiles) && board.tiles.length > 0) {
-        // Check if it's a flat array of tile elements (enhanced board)
-        if ('position' in board.tiles[0]) {
+      // Check if it's a flat array of tile elements (enhanced board)
+      if ('position' in board.tiles[0]) {
         return (board.tiles as any[]).find(
-            (tile: any) => tile.position?.x === x && tile.position?.y === y
+          (tile: any) => tile.position?.x === x && tile.position?.y === y
         );
-        }
+      }
     }
     return undefined;
-    };
+  };
 
-    // Get laser at position (for enhanced boards)
-    const getLaserAt = (x: number, y: number): Laser | undefined => {
+  // Get laser at position (for enhanced boards)
+  const getLaserAt = (x: number, y: number): Laser | undefined => {
     // if (board.lasers && Array.isArray(board.lasers)) {
     //     return (board.lasers as any[]).find((laser: any) => laser.position?.x === x && laser.position?.y === y);
     // }
     return undefined;
-    };
+  };
 
   // Get the visual representation of a tile
   const getTileContent = (x: number, y: number): React.ReactElement[] => {
@@ -86,7 +86,7 @@ export default function Board({ board, players, currentPlayerId }: BoardProps) {
         const isExpress = tile.type === 'conveyor_express';
         const color = isExpress ? 'bg-yellow-600' : 'bg-yellow-800';
         const arrowRotation = (tile.direction || 0) * 90;
-        
+
         elements.push(
           <div key="conveyor" className={`absolute inset-1 ${color} rounded-sm flex items-center justify-center`}>
             <svg
@@ -174,10 +174,8 @@ export default function Board({ board, players, currentPlayerId }: BoardProps) {
 
   return (
     <div className="flex flex-col items-center p-4">
-      <h2 className="text-2xl font-bold mb-4">Game Board</h2>
-      
       {/* Board grid */}
-      <div 
+      <div
         className="relative bg-gray-900 border-4 border-gray-700"
         style={{
           width: board.width * TILE_SIZE,
