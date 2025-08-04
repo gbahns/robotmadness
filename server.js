@@ -94,6 +94,106 @@ function dealCards(gameState) {
     gameState.cardsDealt = true;
 }
 
+async function executeRegister(io, gameState, registerIndex) {
+    console.log(`Executing register ${registerIndex + 1}`);
+
+    // Get all players' cards for this register
+    const cardsToExecute = [];
+    Object.entries(gameState.players).forEach(([playerId, player]) => {
+        if (player.lives > 0 && player.selectedCards && player.selectedCards[registerIndex]) {
+            cardsToExecute.push({
+                playerId,
+                player,
+                card: player.selectedCards[registerIndex]
+            });
+        }
+    });
+
+    // Sort by priority (highest first)
+    cardsToExecute.sort((a, b) => b.card.priority - a.card.priority);
+
+    // Execute each card
+    for (const { playerId, player, card } of cardsToExecute) {
+        console.log(`${player.name} executes ${card.type} (priority ${card.priority})`);
+
+        // Simple movement logic for now
+        switch (card.type) {
+            case 'MOVE_1':
+                moveForward(gameState, player, 1);
+                break;
+            case 'MOVE_2':
+                moveForward(gameState, player, 2);
+                break;
+            case 'MOVE_3':
+                moveForward(gameState, player, 3);
+                break;
+            case 'BACK_UP':
+                moveForward(gameState, player, -1);
+                break;
+            case 'ROTATE_LEFT':
+                player.direction = (player.direction + 3) % 4;
+                break;
+            case 'ROTATE_RIGHT':
+                player.direction = (player.direction + 1) % 4;
+                break;
+            case 'U_TURN':
+                player.direction = (player.direction + 2) % 4;
+                break;
+        }
+
+        // Emit update after each card
+        io.to(gameState.roomCode).emit('card-executed', {
+            playerId,
+            card,
+            register: registerIndex
+        });
+
+        io.to(gameState.roomCode).emit('game-state', gameState);
+
+        // Small delay for visual effect
+        await new Promise(resolve => setTimeout(resolve, 500));
+    }
+}
+
+function moveForward(gameState, player, spaces) {
+    const directions = [
+        { x: 0, y: -1 }, // North
+        { x: 1, y: 0 },  // East
+        { x: 0, y: 1 },  // South
+        { x: -1, y: 0 }  // West
+    ];
+
+    const steps = Math.abs(spaces);
+    const direction = spaces < 0 ? (player.direction + 2) % 4 : player.direction;
+
+    for (let i = 0; i < steps; i++) {
+        const dir = directions[direction];
+        const newX = player.position.x + dir.x;
+        const newY = player.position.y + dir.y;
+
+        // Check boundaries
+        if (newX >= 0 && newX < 12 && newY >= 0 && newY < 12) {
+            // Simple collision check - don't move if space occupied
+            const occupied = Object.values(gameState.players).some(
+                p => p !== player && p.position.x === newX && p.position.y === newY && p.lives > 0
+            );
+
+            if (!occupied) {
+                player.position.x = newX;
+                player.position.y = newY;
+            } else {
+                break; // Stop if blocked
+            }
+        } else {
+            // Fell off board
+            player.lives--;
+            player.position = { x: 0, y: 0 }; // Reset to start
+            console.log(`${player.name} fell off the board!`);
+            break;
+        }
+    }
+}
+
 app.prepare().then(() => {
     const server = createServer((req, res) => {
         const parsedUrl = parse(req.url, true);
@@ -251,9 +351,27 @@ app.prepare().then(() => {
 
                 io.to(roomCode).emit('game-state', gameState);
 
-                // Start executing registers
-                console.log('All players submitted! Starting execution...');
-                executeRegisters(gameState);
+                // Execute all 5 registers
+                (async () => {
+                    for (let register = 0; register < 5; register++) {
+                        gameState.currentRegister = register;
+                        io.to(roomCode).emit('register-started', {
+                            register,
+                            registerNumber: register + 1
+                        });
+
+                        await executeRegister(io, gameState, register);
+
+                        // Delay between registers
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+
+                    // Return to programming phase
+                    gameState.phase = 'programming';
+                    gameState.currentRegister = 0;
+                    dealCards(gameState); // Deal new cards for next round
+                    io.to(roomCode).emit('game-state', gameState);
+                })();
             } else {
                 // Just update this player's status
                 io.to(roomCode).emit('player-submitted', { playerId });
