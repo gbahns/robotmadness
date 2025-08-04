@@ -119,16 +119,16 @@ async function executeRegister(io, gameState, registerIndex) {
         // Simple movement logic for now
         switch (card.type) {
             case 'MOVE_1':
-                moveForward(gameState, player, 1);
+                moveForward(gameState, player, 1, io);
                 break;
             case 'MOVE_2':
-                moveForward(gameState, player, 2);
+                moveForward(gameState, player, 2, io);
                 break;
             case 'MOVE_3':
-                moveForward(gameState, player, 3);
+                moveForward(gameState, player, 3, io);
                 break;
             case 'BACK_UP':
-                moveForward(gameState, player, -1);
+                moveForward(gameState, player, -1, io);
                 break;
             case 'ROTATE_LEFT':
                 player.direction = (player.direction + 3) % 4;
@@ -144,6 +144,7 @@ async function executeRegister(io, gameState, registerIndex) {
         // Emit update after each card
         io.to(gameState.roomCode).emit('card-executed', {
             playerId,
+            playerName: player.name,
             card,
             register: registerIndex
         });
@@ -155,7 +156,7 @@ async function executeRegister(io, gameState, registerIndex) {
     }
 }
 
-function moveForward(gameState, player, spaces) {
+function moveForward(gameState, player, spaces, io) {  // ADD io parameter
     const directions = [
         { x: 0, y: -1 }, // North
         { x: 1, y: 0 },  // East
@@ -181,6 +182,18 @@ function moveForward(gameState, player, spaces) {
             if (!occupied) {
                 player.position.x = newX;
                 player.position.y = newY;
+
+                // Check for checkpoints
+                const checkpoint = gameState.board.checkpoints.find(
+                    cp => cp.position.x === newX && cp.position.y === newY
+                );
+                if (checkpoint && checkpoint.number === player.checkpointsVisited + 1) {
+                    player.checkpointsVisited++;
+                    io.to(gameState.roomCode).emit('checkpoint-reached', {
+                        playerName: player.name,
+                        checkpointNumber: checkpoint.number
+                    });
+                }
             } else {
                 break; // Stop if blocked
             }
@@ -189,6 +202,11 @@ function moveForward(gameState, player, spaces) {
             player.lives--;
             player.position = { x: 0, y: 0 }; // Reset to start
             console.log(`${player.name} fell off the board!`);
+
+            // Emit event for log
+            io.to(gameState.roomCode).emit('robot-fell-off-board', {
+                playerName: player.name
+            });
             break;
         }
     }

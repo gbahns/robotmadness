@@ -8,6 +8,7 @@ import Board from '@/components/game/Board';
 import Hand from '@/components/game/Hand';
 import ProgramRegisters from '@/components/game/ProgramRegisters';
 import GameContent from '@/components/game/GameContent';
+import ExecutionLog from '@/components/game/ExecutionLog';
 
 export default function GamePage() {
   const params = useParams();
@@ -19,13 +20,21 @@ export default function GamePage() {
   const [playerName, setPlayerName] = useState('');
   const [showNameModal, setShowNameModal] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const playerIdRef = useRef<string>('');
+  const [logEntries, setLogEntries] = useState<any[]>([]); const playerIdRef = useRef<string>('');
+  const [executionMessage, setExecutionMessage] = useState<string>('');
+
+  useEffect(() => {
+    console.log('GamePage component mounted');
+    return () => {
+      console.log('GamePage component unmounted');
+    };
+  }, []);
 
   useEffect(() => {
     // Check if we have a player name in localStorage
     const storedName = localStorage.getItem('playerName');
     const storedPlayerId = localStorage.getItem('playerId');
-    
+
     if (storedName) {
       setPlayerName(storedName);
       playerIdRef.current = storedPlayerId || '';
@@ -35,9 +44,76 @@ export default function GamePage() {
       setLoading(false);
     }
 
+    const handleCardExecuted = (data: any) => {
+      const { playerId: executingPlayerId, card, register } = data;
+      const executingPlayer = gameState?.players[executingPlayerId];
+      if (executingPlayer) {
+        const message = `${executingPlayer.name} executes ${card.type.replace(/_/g, ' ')} (Priority: ${card.priority})`;
+        setExecutionMessage(message);
+
+        // Add to log
+        setLogEntries(prev => [...prev, {
+          id: Date.now() + Math.random(), // Add random to ensure uniqueness
+          message,
+          type: 'action',
+          timestamp: new Date()
+        }]);
+      }
+    };
+
+    const handleRegisterStarted = (data: any) => {
+      const message = `=== Register ${data.registerNumber} ===`;
+      setExecutionMessage(message);
+
+      // Add to log
+      setLogEntries(prev => [...prev, {
+        id: Date.now() + Math.random(),
+        message,
+        type: 'info',
+        timestamp: new Date()
+      }]);
+    };
+
+    const handleRobotDamaged = (data: any) => {
+      const { playerName, damage, reason } = data;
+      setLogEntries(prev => [...prev, {
+        id: Date.now() + Math.random(),
+        message: `${playerName} takes ${damage} damage from ${reason}`,
+        type: 'damage',
+        timestamp: new Date()
+      }]);
+    };
+
+    const handleRobotFellOffBoard = (data: any) => {
+      const { playerName } = data;
+      setLogEntries(prev => [...prev, {
+        id: Date.now() + Math.random(),
+        message: `${playerName} fell off the board!`,
+        type: 'damage',
+        timestamp: new Date()
+      }]);
+    };
+
+    const handleCheckpointReached = (data: any) => {
+      const { playerName, checkpointNumber } = data;
+      setLogEntries(prev => [...prev, {
+        id: Date.now() + Math.random(),
+        message: `${playerName} reached checkpoint ${checkpointNumber}!`,
+        type: 'checkpoint',
+        timestamp: new Date()
+      }]);
+    };
+
+    socketClient.on('robot-damaged', handleRobotDamaged);
+    socketClient.on('robot-fell-off-board', handleRobotFellOffBoard);
+    socketClient.on('checkpoint-reached', handleCheckpointReached);
+
     return () => {
       socketClient.leaveGame();
       socketClient.disconnect();
+      socketClient.off('robot-damaged', handleRobotDamaged);
+      socketClient.off('robot-fell-off-board', handleRobotFellOffBoard);
+      socketClient.off('checkpoint-reached', handleCheckpointReached);
     };
   }, [roomCode]);
 
@@ -51,10 +127,18 @@ export default function GamePage() {
       console.log('Current player:', state.players[playerIdRef.current]);
       setGameState(state);
       setLoading(false);
-      
-      // Reset submission state when new cards are dealt
+
       if (state.phase === 'programming' && state.players[playerIdRef.current]?.dealtCards?.length > 0) {
         setIsSubmitted(false);
+
+        if (state.roundNumber > (gameState?.roundNumber || 0)) {
+          setLogEntries(prev => [...prev, {
+            id: Date.now() + Math.random(),
+            message: `━━━━━ Round ${state.roundNumber} ━━━━━`,
+            type: 'info',
+            timestamp: new Date()
+          }]);
+        }
       }
     });
 
@@ -129,13 +213,20 @@ export default function GamePage() {
     });
 
     // Handle card execution animations
-    socketClient.on('card-executed', (data: { 
-      playerId: string; 
-      card: ProgramCard; 
-      newPosition: Position; 
-      newDirection: Direction 
+    socketClient.on('card-executed', (data: {
+      playerId: string;
+      playerName: string;
+      card: ProgramCard;
+      newPosition: Position;
+      newDirection: Direction
     }) => {
       console.log('Card executed:', data);
+      setLogEntries(prev => [...prev, {
+        id: Date.now() + Math.random(),
+        message: `${playerName || 'Player'} executes ${data.card.type.replace(/_/g, ' ')} (Priority: ${data.card.priority})`,
+        type: 'action',
+        timestamp: new Date()
+      }]);
       // The game state will be updated separately
     });
 
@@ -176,19 +267,19 @@ export default function GamePage() {
   // Card management functions
   const handleCardClick = (index: number) => {
     if (isSubmitted || !currentPlayer) return;
-    
+
     // Find first empty register slot
     const emptySlotIndex = currentPlayer.selectedCards.findIndex(card => card === null);
     if (emptySlotIndex === -1) return; // All slots full
-    
+
     // Get the card
     const card = currentPlayer.dealtCards[index];
     if (!card) return;
-    
+
     // Place card in first empty slot
     const newSelectedCards = [...currentPlayer.selectedCards];
     newSelectedCards[emptySlotIndex] = card;
-    
+
     // Update game state
     setGameState(prev => {
       if (!prev) return prev;
@@ -207,22 +298,22 @@ export default function GamePage() {
 
   const handleCardDrop = (card: ProgramCard, registerIndex: number) => {
     if (!currentPlayer || isSubmitted) return;
-    
+
     // Check if this card is already in a register
     const existingIndex = currentPlayer.selectedCards.findIndex(
       c => c && c.id === card.id
     );
-    
+
     const newSelectedCards = [...currentPlayer.selectedCards];
-    
+
     // If card exists in another slot, remove it first
     if (existingIndex !== -1 && existingIndex !== registerIndex) {
       newSelectedCards[existingIndex] = null;
     }
-    
+
     // Place card in new slot
     newSelectedCards[registerIndex] = card;
-    
+
     // Update game state
     setGameState(prev => {
       if (!prev) return prev;
@@ -241,10 +332,10 @@ export default function GamePage() {
 
   const handleCardRemove = (registerIndex: number) => {
     if (!currentPlayer || isSubmitted) return;
-    
+
     const newSelectedCards = [...currentPlayer.selectedCards];
     newSelectedCards[registerIndex] = null;
-    
+
     setGameState(prev => {
       if (!prev) return prev;
       return {
@@ -262,13 +353,13 @@ export default function GamePage() {
 
   const handleSubmitCards = () => {
     if (!currentPlayer) return;
-    
+
     const filledSlots = currentPlayer.selectedCards.filter(c => c !== null).length;
     if (filledSlots < 5) {
       alert(`Please select all 5 cards! You have ${filledSlots}/5`);
       return;
     }
-    
+
     setIsSubmitted(true);
     socketClient.emit('submit-cards', {
       roomCode,
@@ -354,7 +445,7 @@ export default function GamePage() {
               {/* Game Board - takes most space */}
               <div className="flex-1 bg-gray-800 rounded-lg p-6">
                 <div className="flex items-center justify-center">
-                  <Board 
+                  <Board
                     board={gameState?.board!}
                     players={gameState?.players || {}}
                     currentPlayerId={playerIdRef.current}
@@ -371,16 +462,14 @@ export default function GamePage() {
                   </h2>
                   <div className="space-y-2">
                     {gameState && Object.values(gameState.players).map((player, index) => (
-                      <div 
+                      <div
                         key={player.id}
-                        className={`flex items-center justify-between p-2 rounded ${
-                          player.id === playerIdRef.current ? 'bg-gray-700' : ''
-                        } ${player.isDisconnected ? 'opacity-50' : ''}`}
+                        className={`flex items-center justify-between p-2 rounded ${player.id === playerIdRef.current ? 'bg-gray-700' : ''
+                          } ${player.isDisconnected ? 'opacity-50' : ''}`}
                       >
                         <div className="flex items-center gap-2">
-                          <div className={`w-8 h-8 rounded-full bg-${
-                            ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan'][index % 8]
-                          }-500 flex items-center justify-center text-sm font-bold`}>
+                          <div className={`w-8 h-8 rounded-full bg-${['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan'][index % 8]
+                            }-500 flex items-center justify-center text-sm font-bold`}>
                             {index + 1}
                           </div>
                           <span className={player.isDisconnected ? 'line-through' : ''}>
@@ -412,13 +501,13 @@ export default function GamePage() {
                   {gameState?.phase === 'waiting' && (
                     <>
                       {isHost ? (
-                        <button 
+                        <button
                           onClick={handleStartGame}
                           disabled={Object.keys(gameState.players).length < 2}
                           className="w-full bg-green-600 hover:bg-green-700 py-2 rounded font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          {Object.keys(gameState.players).length < 2 
-                            ? 'Need at least 2 players' 
+                          {Object.keys(gameState.players).length < 2
+                            ? 'Need at least 2 players'
                             : 'Start Game'}
                         </button>
                       ) : (
@@ -439,11 +528,18 @@ export default function GamePage() {
                     </p>
                   )}
                   {gameState?.phase === 'executing' && (
-                    <p className="text-yellow-400 text-center animate-pulse">
-                      Executing programs...
-                    </p>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div className="bg-yellow-900 p-4 rounded-lg">
+                        <h2 className="text-2xl font-bold mb-2">Execution Phase</h2>
+                        <p className="text-lg">Register {gameState.currentRegister + 1} of 5</p>
+                        {executionMessage && (
+                          <p className="text-xl mt-2 text-yellow-200">{executionMessage}</p>
+                        )}
+                      </div>
+                    </div>
                   )}
                 </div>
+                <ExecutionLog entries={logEntries} />
               </div>
             </div>
 
@@ -460,7 +556,7 @@ export default function GamePage() {
                       isSubmitted={isSubmitted}
                     />
                   </div>
-                  
+
                   {/* Program Registers */}
                   <div className="bg-gray-800 rounded-lg p-6">
                     <div className="flex items-center gap-4">
@@ -473,7 +569,7 @@ export default function GamePage() {
                           isSubmitted={isSubmitted}
                         />
                       </div>
-                      
+
                       {!isSubmitted && (
                         <button
                           onClick={handleSubmitCards}
@@ -487,7 +583,7 @@ export default function GamePage() {
                   </div>
                 </>
               )}
-              
+
               {gameState?.phase === 'waiting' && (
                 <div className="bg-gray-800 rounded-lg p-6">
                   <h2 className="text-xl font-semibold mb-4">Your Cards</h2>
