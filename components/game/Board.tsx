@@ -2,11 +2,15 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Board as BoardType, Player, Direction, Position } from '@/lib/game/types';
 import Robot from './Robot';
+import { socketClient } from '@/lib/socket';
 
 interface BoardProps {
   board: BoardType;
   players: Record<string, Player>;
   currentPlayerId?: string;
+  isHost?: boolean; // Add isHost prop
+  gameState?: any; // Add gameState prop
+  roomCode?: string; // Add roomCode prop
 }
 
 // These interfaces will be used when you add enhanced board features
@@ -32,7 +36,7 @@ interface Laser {
 
 const ROBOT_COLORS = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan'];
 
-export default function Board({ board, players, currentPlayerId }: BoardProps) {
+export default function Board({ board, players, currentPlayerId, isHost, gameState, roomCode }: BoardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [tileSize, setTileSize] = useState(50);
 
@@ -70,10 +74,55 @@ export default function Board({ board, players, currentPlayerId }: BoardProps) {
     };
   }, [board]);
 
-  if (!board) {
+  // Show pre-game controls when game hasn't started
+  if (!board || gameState?.phase === 'waiting') {
+    // Use players from gameState if available, as it's more up-to-date
+    const currentPlayers = gameState?.players || players || {};
+    const playerCount = Object.keys(currentPlayers).length;
+    //const isHost = gameState?.host === currentPlayerId;
+
+    console.log('Board waiting state:', {
+      board: !!board,
+      phase: gameState?.phase,
+      playerCount,
+      isHost,
+      currentPlayerId,
+      host: gameState?.host,
+      players: Object.keys(currentPlayers),
+      gameStateExists: !!gameState,
+      roomCodeExists: !!roomCode
+    });
+
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-gray-400">Waiting for game to start...</p>
+        <div className="text-center space-y-4">
+          <p className="text-xl text-gray-300">
+            Waiting for players to join...
+          </p>
+          <p className="text-lg text-gray-400">
+            {playerCount} / 8 players in lobby
+          </p>
+
+          {isHost ? (
+            <>
+              <button
+                onClick={() => {
+                  console.log('Start game clicked, roomCode:', roomCode);
+                  socketClient.emit('start-game', roomCode);
+                }}
+                disabled={playerCount < 2}
+                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-8 py-3 rounded font-semibold text-lg"
+              >
+                Start Game
+              </button>
+              {playerCount < 2 && (
+                <p className="text-sm text-gray-500">Need at least 2 players to start</p>
+              )}
+            </>
+          ) : (
+            <p className="text-gray-400">Waiting for host to start game...</p>
+          )}
+        </div>
       </div>
     );
   }
