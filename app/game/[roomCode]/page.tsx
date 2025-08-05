@@ -114,6 +114,7 @@ export default function GamePage() {
       socketClient.off('robot-damaged', handleRobotDamaged);
       socketClient.off('robot-fell-off-board', handleRobotFellOffBoard);
       socketClient.off('checkpoint-reached', handleCheckpointReached);
+      socketClient.off('player-submitted', () => { });
     };
   }, [roomCode]);
 
@@ -210,6 +211,17 @@ export default function GamePage() {
           }
         };
       });
+    });
+
+    // Handle player submitted
+    socketClient.on('player-submitted', (data: { playerId: string, playerName: string }) => {
+      console.log('Player submitted:', data.playerId);
+      setLogEntries(prev => [...prev, {
+        id: Date.now() + Math.random(),
+        message: `${data.playerName} submitted their program`,
+        type: 'info',
+        timestamp: new Date()
+      }]);
     });
 
     // // Handle card execution animations
@@ -380,12 +392,27 @@ export default function GamePage() {
       return;
     }
 
-    setIsSubmitted(true);
+    console.log('Submitting cards for player:', {
+      playerId: playerIdRef.current,
+      playerName: currentPlayer.name,
+      cards: currentPlayer.selectedCards
+    });
+
     socketClient.emit('submit-cards', {
       roomCode,
       playerId: playerIdRef.current,
       cards: currentPlayer.selectedCards,
     });
+
+    // Add to log
+    setLogEntries(prev => [...prev, {
+      id: Date.now() + Math.random(),
+      message: `You submitted your program`,
+      type: 'info',
+      timestamp: new Date()
+    }]);
+
+    setIsSubmitted(true);
   };
 
   if (loading) {
@@ -547,8 +574,8 @@ export default function GamePage() {
                       Program your robot!
                     </p>
                   )}
-                  {gameState?.phase === 'executing' && (
-                    <div className="grid grid-cols-2 gap-4 mb-4">
+                  {/* {gameState?.phase === 'executing' && (
+                    <div className="grid grid-cols-4 gap-4 mb-4">
                       <div className="bg-yellow-900 p-4 rounded-lg">
                         <h2 className="text-2xl font-bold mb-2">Execution Phase</h2>
                         <p className="text-lg">Register {gameState.currentRegister + 1} of 5</p>
@@ -557,7 +584,7 @@ export default function GamePage() {
                         )}
                       </div>
                     </div>
-                  )}
+                  )} */}
                 </div>
                 <ExecutionLog entries={logEntries} />
               </div>

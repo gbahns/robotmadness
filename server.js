@@ -95,12 +95,12 @@ function dealCards(gameState) {
 }
 
 async function executeRegister(io, gameState, registerIndex) {
-    console.log(`Executing register ${registerIndex + 1}`);
+    console.log(`\n=== Executing Register ${registerIndex + 1} ===`);
 
-    // Get all players' cards for this register
+    // Collect all cards for this register
     const cardsToExecute = [];
     Object.entries(gameState.players).forEach(([playerId, player]) => {
-        if (player.lives > 0 && player.selectedCards && player.selectedCards[registerIndex]) {
+        if (player.selectedCards[registerIndex]) {
             cardsToExecute.push({
                 playerId,
                 player,
@@ -111,6 +111,10 @@ async function executeRegister(io, gameState, registerIndex) {
 
     // Sort by priority (highest first)
     cardsToExecute.sort((a, b) => b.card.priority - a.card.priority);
+
+    console.log('Cards to execute this register:', cardsToExecute.map(c =>
+        `${c.player.name}: ${c.card.type}(${c.card.priority})`
+    ));
 
     // Execute each card
     for (const { playerId, player, card } of cardsToExecute) {
@@ -149,11 +153,15 @@ async function executeRegister(io, gameState, registerIndex) {
             register: registerIndex
         });
 
+        console.log(`Emitted card-executed event for ${player.name}`);
+
         io.to(gameState.roomCode).emit('game-state', gameState);
 
         // Small delay for visual effect
         await new Promise(resolve => setTimeout(resolve, 500));
     }
+
+    console.log(`Register ${registerIndex + 1} complete\n`);
 }
 
 function moveForward(gameState, player, spaces, io) {  // ADD io parameter
@@ -352,14 +360,19 @@ app.prepare().then(() => {
 
             if (!gameState || !gameState.players[playerId]) return;
 
+            console.log(`Player ${gameState.players[playerId].name} (${playerId}) submitted cards:`, cards.map(c => c ? `${c.type}(${c.priority})` : 'null'));
+
             // Store the submitted cards
             gameState.players[playerId].selectedCards = cards;
             gameState.players[playerId].submitted = true;
 
             // Check if all players have submitted
             const allSubmitted = Object.values(gameState.players).every(p => p.submitted);
+            console.log(`Players submitted: ${Object.values(gameState.players).filter(p => p.submitted).length}/${Object.keys(gameState.players).length}`);
 
             if (allSubmitted) {
+                console.log('All players submitted! Starting execution phase...');
+
                 // Move to execution phase
                 gameState.phase = 'executing';
                 gameState.currentRegister = 0;
@@ -392,7 +405,8 @@ app.prepare().then(() => {
                 })();
             } else {
                 // Just update this player's status
-                io.to(roomCode).emit('player-submitted', { playerId });
+                io.to(roomCode).emit('player-submitted', { playerId, playerName: gameState.players[playerId].name });
+                console.log(`Player ${gameState.players[playerId].name} submitted, waiting for others...`);
             }
         });
 
