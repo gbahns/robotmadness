@@ -44,22 +44,22 @@ export default function GamePage() {
       setLoading(false);
     }
 
-    const handleCardExecuted = (data: any) => {
-      const { playerId: executingPlayerId, card, register } = data;
-      const executingPlayer = gameState?.players[executingPlayerId];
-      if (executingPlayer) {
-        const message = `${executingPlayer.name} executes ${card.type.replace(/_/g, ' ')} (Priority: ${card.priority})`;
-        setExecutionMessage(message);
+    // const handleCardExecuted = (data: any) => {
+    //   const { playerId: executingPlayerId, card, register } = data;
+    //   const executingPlayer = gameState?.players[executingPlayerId];
+    //   if (executingPlayer) {
+    //     const message = `HCE ${executingPlayer.name} ${card.type.replace(/_/g, ' ')} (Priority: ${card.priority})`;
+    //     setExecutionMessage(message);
 
-        // Add to log
-        setLogEntries(prev => [...prev, {
-          id: Date.now() + Math.random(), // Add random to ensure uniqueness
-          message,
-          type: 'action',
-          timestamp: new Date()
-        }]);
-      }
-    };
+    //     // Add to log
+    //     setLogEntries(prev => [...prev, {
+    //       id: Date.now() + Math.random(), // Add random to ensure uniqueness
+    //       message,
+    //       type: 'action',
+    //       timestamp: new Date()
+    //     }]);
+    //   }
+    // };
 
     const handleRegisterStarted = (data: any) => {
       const message = `=== Register ${data.registerNumber} ===`;
@@ -212,23 +212,43 @@ export default function GamePage() {
       });
     });
 
+    // // Handle card execution animations
+    // socketClient.on('card-executed', (data: {
+    //   playerId: string;
+    //   playerName: string;
+    //   card: ProgramCard;
+    //   newPosition: Position;
+    //   newDirection: Direction
+    // }) => {
+    //   console.log('Card executed:', data);
+    //   setLogEntries(prev => [...prev, {
+    //     id: Date.now() + Math.random(),
+    //     message: `${playerName} || 'Player' executes ${data.card.type.replace(/_/g, ' ')} (Priority: ${data.card.priority})`,
+    //     type: 'action',
+    //     timestamp: new Date()
+    //   }]);
+    //   // The game state will be updated separately
+    // });
     // Handle card execution animations
     socketClient.on('card-executed', (data: {
       playerId: string;
       playerName: string;
       card: ProgramCard;
-      newPosition: Position;
-      newDirection: Direction
+      register: number;
     }) => {
       console.log('Card executed:', data);
+      const message = `${data.playerName} ${data.card.type.replace(/_/g, ' ')} (Priority: ${data.card.priority})`;
+
       setLogEntries(prev => [...prev, {
         id: Date.now() + Math.random(),
-        message: `${playerName || 'Player'} executes ${data.card.type.replace(/_/g, ' ')} (Priority: ${data.card.priority})`,
+        message,
         type: 'action',
         timestamp: new Date()
       }]);
-      // The game state will be updated separately
+
+      //setExecutionMessage(message);
     });
+
 
     // Handle register start
     socketClient.on('register-start', (data: { register: number }) => {
