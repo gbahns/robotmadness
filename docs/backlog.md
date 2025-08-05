@@ -1,4 +1,5 @@
 ## Backlog
+
 * lasers
 * walls
 * conveyor belts
@@ -25,7 +26,11 @@
 * get the execution log turn separator to work (tried to get this working but the roundNumber logic still doesn't work; not sure we really need this anyway, so putting it on hold)
 
 ## In Progress
-
+* improve the game page layout
+    * eliminate the box around the board
+    * eliminate the padding around the board
+    * reduce the spacing between the cards in the hand
+    * make use of the Game Controls or get rid of it
 
 ## Done
 * robots pushing each other
