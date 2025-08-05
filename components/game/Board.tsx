@@ -30,7 +30,7 @@ interface Laser {
   damage: number;
 }
 
-const TILE_SIZE = 48;
+const TILE_SIZE = 60; // Increased from 48 to 60
 const ROBOT_COLORS = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan'];
 
 export default function Board({ board, players, currentPlayerId }: BoardProps) {
@@ -90,7 +90,7 @@ export default function Board({ board, players, currentPlayerId }: BoardProps) {
         elements.push(
           <div key="conveyor" className={`absolute inset-1 ${color} rounded-sm flex items-center justify-center`}>
             <svg
-              className="w-6 h-6 text-gray-900"
+              className="w-8 h-8 text-gray-900"
               style={{ transform: `rotate(${arrowRotation}deg)` }}
               fill="currentColor"
               viewBox="0 0 20 20"
@@ -116,7 +116,7 @@ export default function Board({ board, players, currentPlayerId }: BoardProps) {
     if (checkpoint) {
       elements.push(
         <div key="checkpoint" className="absolute inset-0 flex items-center justify-center">
-          <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-black font-bold text-lg border-4 border-black">
+          <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-black font-bold text-xl border-4 border-black">
             {checkpoint.number}
           </div>
         </div>
@@ -144,7 +144,7 @@ export default function Board({ board, players, currentPlayerId }: BoardProps) {
         <div key="laser" className="absolute inset-0 flex items-center justify-center">
           <div
             style={{ transform: `rotate(${rotation}deg)` }}
-            className={`text-2xl ${color}`}
+            className={`text-3xl ${color}`}
           >
             ⚡
           </div>
@@ -162,7 +162,7 @@ export default function Board({ board, players, currentPlayerId }: BoardProps) {
               player={player}
               color={ROBOT_COLORS[getPlayerIndex(player.id) % ROBOT_COLORS.length]}
               isCurrentPlayer={isCurrentPlayer}
-              size={36}
+              size={48} // Increased from 36
             />
           </div>
         );
@@ -173,10 +173,10 @@ export default function Board({ board, players, currentPlayerId }: BoardProps) {
   };
 
   return (
-    <div className="flex flex-col items-center p-4">
-      {/* Board grid */}
+    <div className="flex flex-col items-center">
+      {/* Board grid - removed all padding and containers */}
       <div
-        className="relative bg-gray-900 border-4 border-gray-700"
+        className="relative bg-gray-900"
         style={{
           width: board.width * TILE_SIZE,
           height: board.height * TILE_SIZE
