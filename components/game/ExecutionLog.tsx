@@ -2,7 +2,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 
 interface LogEntry {
     id: number;
@@ -16,6 +16,15 @@ interface ExecutionLogProps {
 }
 
 export default function ExecutionLog({ entries }: ExecutionLogProps) {
+    const scrollRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        // Auto-scroll to bottom when new entries are added
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }, [entries]);
+
     const getColorClass = (type: string) => {
         switch (type) {
             case 'action':
@@ -43,24 +52,20 @@ export default function ExecutionLog({ entries }: ExecutionLogProps) {
     };
 
     return (
-        <div className="bg-gray-800 rounded-lg p-4 h-99overflow-y-auto">
-            {/* <h3 className="text-lg font-bold mb-2 text-white">Game Log</h3> */}
+        <div ref={scrollRef} className="bg-gray-800 rounded-lg p-4 h-[396px] overflow-y-auto">
             <div className="space-y-1">
                 {entries.length === 0 ? (
                     <p className="text-gray-500 italic">No actions yet...</p>
                 ) : (
-                    entries
-                        .slice()
-                        .reverse()
-                        .map((entry) => (
-                            <div
-                                key={entry.id}
-                                className={`text-sm ${getColorClass(entry.type)} flex items-start gap-2`}
-                            >
-                                <span className="flex-shrink-0">{getIcon(entry.type)}</span>
-                                <span className="break-words">{entry.message}</span>
-                            </div>
-                        ))
+                    entries.map((entry) => (
+                        <div
+                            key={entry.id}
+                            className={`text-sm ${getColorClass(entry.type)} flex items-start gap-2`}
+                        >
+                            <span className="flex-shrink-0">{getIcon(entry.type)}</span>
+                            <span className="break-words">{entry.message}</span>
+                        </div>
+                    ))
                 )}
             </div>
         </div>
