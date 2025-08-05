@@ -381,6 +381,13 @@ class GameEngine {
       player.damage += damage;
       console.log(`${player.name} takes ${damage} damage!`);
 
+      // Emit damage event for the execution log
+      this.io.to(gameState.roomCode).emit('robot-damaged', {
+        playerName: player.name,
+        damage: damage,
+        reason: 'laser'
+      });
+
       // Check if robot is destroyed
       if (player.damage >= 10) {
         console.log(`${player.name} is destroyed!`);
