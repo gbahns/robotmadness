@@ -493,15 +493,13 @@ export default function GamePage() {
           <div className="flex flex-col gap-6">
             {/* Top Section - Board and Players/Controls */}
             <div className="flex gap-6">
-              {/* Game Board - takes most space */}
-              <div className="flex-1 bg-gray-800 rounded-lg p-6">
-                <div className="flex items-center justify-center">
-                  <Board
-                    board={gameState?.board!}
-                    players={gameState?.players || {}}
-                    currentPlayerId={playerIdRef.current}
-                  />
-                </div>
+              {/* Game Board - takes most space - removed gray container*/}
+              <div className="flex-1">
+                <Board
+                  board={gameState?.board!}
+                  players={gameState?.players || {}}
+                  currentPlayerId={playerIdRef.current}
+                />
               </div>
 
               {/* Right side - Players and Controls stacked */}
