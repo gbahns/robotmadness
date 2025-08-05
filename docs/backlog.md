@@ -1,6 +1,6 @@
 ## Backlog
-
-* lasers
+* add a "reset" button to clear the programmed registers
+* board lasers
 * walls
 * conveyor belts
 * express conveyor belts
@@ -24,14 +24,12 @@
     * orient the U-Turn arrow like an upside-down U
     * make the turn left and turn right cards thicker and rounded arrows
 * get the execution log turn separator to work (tried to get this working but the roundNumber logic still doesn't work; not sure we really need this anyway, so putting it on hold)
+* make the screen layout adapt correctly to different window sizes and zoom level
+* improve the game page layout
 
 ## In Progress
-* improve the game page layout
-    * eliminate the box around the board
-    * eliminate the padding around the board
-    * reduce the spacing between the cards in the hand
-    * make use of the Game Controls or get rid of it
-
+* robot lasers
+    
 ## Done
 * robots pushing each other
 * during the execution phase move each robot one at a time
@@ -44,3 +42,7 @@
     * log when a player submits their cards
 * remove the legend from the game board (maybe re-add it later, parhaps in a popup or toggleable)
 * don't show the current executing instruction in the 
+* improve the game page layout
+    * eliminate the box around the board
+    * reduce the padding around the board
+    * get rid of the Game Controls box
