@@ -153,8 +153,6 @@ async function executeRegister(io, gameState, registerIndex) {
             register: registerIndex
         });
 
-        console.log(`Emitted card-executed event for ${player.name}`);
-
         io.to(gameState.roomCode).emit('game-state', gameState);
 
         // Small delay for visual effect
