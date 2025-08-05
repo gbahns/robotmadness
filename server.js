@@ -478,6 +478,7 @@ app.prepare().then(() => {
         // After all registers, go back to programming phase
         gameState.phase = 'programming';
         gameState.currentRegister = 0;
+        gameState.roundNumber++;
         dealCards(gameState);
         io.to(gameState.roomCode).emit('game-state', gameState);
     }
