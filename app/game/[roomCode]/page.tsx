@@ -126,6 +126,16 @@ export default function GamePage() {
     socketClient.onGameState((state: GameState) => {
       console.log('Received game state:', state);
       console.log('Current player:', state.players[playerIdRef.current]);
+
+      // add a separator to the execution log when starting a new round
+      if (gameState && state.roundNumber > gameState.roundNumber) {
+        setLogEntries(prev => [...prev, {
+          id: Date.now() + Math.random(),
+          message: `━━━━━ Round ${state.roundNumber} ━━━━━`,
+          type: 'info',
+          timestamp: new Date()
+        }]);
+      }
       setGameState(state);
       setLoading(false);
 
@@ -133,12 +143,6 @@ export default function GamePage() {
         setIsSubmitted(false);
 
         if (state.roundNumber > (gameState?.roundNumber || 0)) {
-          setLogEntries(prev => [...prev, {
-            id: Date.now() + Math.random(),
-            message: `━━━━━ Round ${state.roundNumber} ━━━━━`,
-            type: 'info',
-            timestamp: new Date()
-          }]);
         }
       }
     });

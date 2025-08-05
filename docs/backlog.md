@@ -22,12 +22,10 @@
     * make the U-Turn the same color as the other turns
     * orient the U-Turn arrow like an upside-down U
     * make the turn left and turn right cards thicker and rounded arrows
+* get the execution log turn separator to work (tried to get this working but the roundNumber logic still doesn't work; not sure we really need this anyway, so putting it on hold)
 
 ## In Progress
-* execution log
-    * set a fixed height and add a scrollbar so that it aligns with the bottom of the game board
-    * fix it so the player's name is displayed instead of "Player" for card execution
-    * remove the word "executes" from those messages (superfluous)
+
 
 ## Done
 * robots pushing each other
@@ -35,3 +33,9 @@
 * remove the Game Board title
 * execution log
     * displays key log messages (player executes card, executing board elements, player takes damage)
+    * set a fixed height and add a scrollbar so that it aligns with the bottom of the game board
+    * fix it so the player's name is displayed instead of "Player" for card execution
+    * remove the word "executes" from those messages (superfluous)
+    * log when a player submits their cards
+* remove the legend from the game board (maybe re-add it later, parhaps in a popup or toggleable)
+* don't show the current executing instruction in the 
