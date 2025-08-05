@@ -49,7 +49,7 @@ export interface Player {
   isVirtual?: boolean;
   isDisconnected?: boolean;
   submitted?: boolean;
-  
+
   // Cards
   dealtCards: ProgramCard[];
   selectedCards: (ProgramCard | null)[];
@@ -74,6 +74,13 @@ export interface Board {
   tiles: Tile[][];
   checkpoints: Checkpoint[];
   startingPositions: StartingPosition[];
+  lasers?: Laser[]; // Add this line
+}
+
+export interface Laser {
+  position: Position;
+  direction: number;
+  damage: number;
 }
 
 export interface Tile {
@@ -112,7 +119,7 @@ export enum SocketEvent {
   SELECT_CARDS = 'select-cards',
   SUBMIT_CARDS = 'submit-cards',
   POWER_DOWN = 'power-down',
-  
+
   // Server -> Client
   GAME_STATE = 'game-state',
   PLAYER_JOINED = 'player-joined',

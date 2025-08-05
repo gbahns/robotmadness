@@ -8,9 +8,9 @@ interface BoardProps {
   board: BoardType;
   players: Record<string, Player>;
   currentPlayerId?: string;
-  isHost?: boolean; // Add isHost prop
-  gameState?: any; // Add gameState prop
-  roomCode?: string; // Add roomCode prop
+  isHost?: boolean;
+  gameState?: any;
+  roomCode?: string;
 }
 
 // These interfaces will be used when you add enhanced board features
@@ -79,7 +79,6 @@ export default function Board({ board, players, currentPlayerId, isHost, gameSta
     // Use players from gameState if available, as it's more up-to-date
     const currentPlayers = gameState?.players || players || {};
     const playerCount = Object.keys(currentPlayers).length;
-    //const isHost = gameState?.host === currentPlayerId;
 
     console.log('Board waiting state:', {
       board: !!board,
@@ -109,6 +108,7 @@ export default function Board({ board, players, currentPlayerId, isHost, gameSta
                 onClick={() => {
                   console.log('Start game clicked, roomCode:', roomCode);
                   socketClient.emit('start-game', roomCode);
+                  console.log('Emitted start_game event');
                 }}
                 disabled={playerCount < 2}
                 className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-8 py-3 rounded font-semibold text-lg"
@@ -148,9 +148,9 @@ export default function Board({ board, players, currentPlayerId, isHost, gameSta
 
   // Get laser at position (for enhanced boards)
   const getLaserAt = (x: number, y: number): Laser | undefined => {
-    // if (board.lasers && Array.isArray(board.lasers)) {
-    //     return (board.lasers as any[]).find((laser: any) => laser.position?.x === x && laser.position?.y === y);
-    // }
+    if (board.lasers && Array.isArray(board.lasers)) {
+      return (board.lasers as any[]).find((laser: any) => laser.position?.x === x && laser.position?.y === y);
+    }
     return undefined;
   };
 
