@@ -1,5 +1,5 @@
 // components/game/Board.tsx
-import React from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Board as BoardType, Player, Direction, Position } from '@/lib/game/types';
 import Robot from './Robot';
 
@@ -30,10 +30,46 @@ interface Laser {
   damage: number;
 }
 
-const TILE_SIZE = 60; // Increased from 48 to 60
 const ROBOT_COLORS = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan'];
 
 export default function Board({ board, players, currentPlayerId }: BoardProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [tileSize, setTileSize] = useState(50);
+
+  useEffect(() => {
+    const calculateTileSize = () => {
+      if (!containerRef.current || !board) return;
+
+      const container = containerRef.current;
+      const containerWidth = container.clientWidth;
+      const containerHeight = container.clientHeight;
+
+      // Calculate the maximum tile size that fits in the container
+      // Leave some margin for the phase indicator below
+      const maxWidthTileSize = Math.floor(containerWidth / board.width);
+      const maxHeightTileSize = Math.floor((containerHeight - 60) / board.height); // 60px for phase indicator
+
+      // Use the smaller of the two to ensure the board fits
+      const newTileSize = Math.min(maxWidthTileSize, maxHeightTileSize, 80); // Cap at 80px max
+
+      setTileSize(Math.max(newTileSize, 30)); // Minimum 30px
+    };
+
+    calculateTileSize();
+    window.addEventListener('resize', calculateTileSize);
+
+    // Also recalculate when the container might change size
+    const resizeObserver = new ResizeObserver(calculateTileSize);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    return () => {
+      window.removeEventListener('resize', calculateTileSize);
+      resizeObserver.disconnect();
+    };
+  }, [board]);
+
   if (!board) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -69,6 +105,12 @@ export default function Board({ board, players, currentPlayerId }: BoardProps) {
     return undefined;
   };
 
+  // Calculate responsive sizes based on tile size
+  const robotSize = Math.floor(tileSize * 0.8);
+  const checkpointSize = Math.floor(tileSize * 0.8);
+  const arrowSize = Math.floor(tileSize * 0.5);
+  const fontSize = Math.floor(tileSize * 0.3);
+
   // Get the visual representation of a tile
   const getTileContent = (x: number, y: number): React.ReactElement[] => {
     const tile = getTileAt(x, y);
@@ -90,15 +132,19 @@ export default function Board({ board, players, currentPlayerId }: BoardProps) {
         elements.push(
           <div key="conveyor" className={`absolute inset-1 ${color} rounded-sm flex items-center justify-center`}>
             <svg
-              className="w-8 h-8 text-gray-900"
-              style={{ transform: `rotate(${arrowRotation}deg)` }}
+              className="text-gray-900"
+              style={{
+                transform: `rotate(${arrowRotation}deg)`,
+                width: `${arrowSize}px`,
+                height: `${arrowSize}px`
+              }}
               fill="currentColor"
               viewBox="0 0 20 20"
             >
               <path d="M10 3l7 7-7 7V3z" />
             </svg>
             {tile.rotate && (
-              <div className="absolute bottom-0 right-0 text-xs text-gray-900 p-0.5">
+              <div className="absolute bottom-0 right-0 text-gray-900 p-0.5" style={{ fontSize: `${fontSize * 0.4}px` }}>
                 {tile.rotate === 'clockwise' ? '↻' : '↺'}
               </div>
             )}
@@ -116,7 +162,14 @@ export default function Board({ board, players, currentPlayerId }: BoardProps) {
     if (checkpoint) {
       elements.push(
         <div key="checkpoint" className="absolute inset-0 flex items-center justify-center">
-          <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-black font-bold text-xl border-4 border-black">
+          <div
+            className="bg-white rounded-full flex items-center justify-center text-black font-bold border-4 border-black"
+            style={{
+              width: `${checkpointSize}px`,
+              height: `${checkpointSize}px`,
+              fontSize: `${fontSize}px`
+            }}
+          >
             {checkpoint.number}
           </div>
         </div>
@@ -143,8 +196,11 @@ export default function Board({ board, players, currentPlayerId }: BoardProps) {
       elements.push(
         <div key="laser" className="absolute inset-0 flex items-center justify-center">
           <div
-            style={{ transform: `rotate(${rotation}deg)` }}
-            className={`text-3xl ${color}`}
+            style={{
+              transform: `rotate(${rotation}deg)`,
+              fontSize: `${fontSize * 1.5}px`
+            }}
+            className={color}
           >
             ⚡
           </div>
@@ -162,7 +218,7 @@ export default function Board({ board, players, currentPlayerId }: BoardProps) {
               player={player}
               color={ROBOT_COLORS[getPlayerIndex(player.id) % ROBOT_COLORS.length]}
               isCurrentPlayer={isCurrentPlayer}
-              size={48} // Increased from 36
+              size={robotSize}
             />
           </div>
         );
@@ -173,13 +229,13 @@ export default function Board({ board, players, currentPlayerId }: BoardProps) {
   };
 
   return (
-    <div className="flex flex-col items-center">
-      {/* Board grid - removed all padding and containers */}
+    <div ref={containerRef} className="flex flex-col items-center justify-center h-full w-full">
+      {/* Board grid */}
       <div
         className="relative bg-gray-900"
         style={{
-          width: board.width * TILE_SIZE,
-          height: board.height * TILE_SIZE
+          width: board.width * tileSize,
+          height: board.height * tileSize
         }}
       >
         {Array.from({ length: board.height }, (_, y) => (
@@ -188,10 +244,10 @@ export default function Board({ board, players, currentPlayerId }: BoardProps) {
               key={`${x}-${y}`}
               className="absolute"
               style={{
-                left: x * TILE_SIZE,
-                top: y * TILE_SIZE,
-                width: TILE_SIZE,
-                height: TILE_SIZE
+                left: x * tileSize,
+                top: y * tileSize,
+                width: tileSize,
+                height: tileSize
               }}
             >
               {getTileContent(x, y)}

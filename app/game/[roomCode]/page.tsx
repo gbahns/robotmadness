@@ -470,8 +470,8 @@ export default function GamePage() {
 
   return (
     <GameContent>
-      <div className="min-h-screen bg-gray-900 text-white p-4">
-        <div className="max-w-7xl mx-auto">
+      <div className="min-h-screen bg-gray-900 text-white p-4 flex flex-col">
+        <div className="container mx-auto max-w-7xl flex-1 flex flex-col">
           {/* Header */}
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-bold">RobotMadness</h1>
@@ -490,11 +490,11 @@ export default function GamePage() {
           </div>
 
           {/* Game Area */}
-          <div className="flex flex-col gap-6">
+          <div className="flex-1 flex flex-col gap-6">
             {/* Top Section - Board and Players/Controls */}
-            <div className="flex gap-6">
+            <div className="flex-1 flex gap-6 min-h-0">
               {/* Game Board - takes most space - removed gray container*/}
-              <div className="flex-1">
+              <div className="flex-1 flex items-center justify-center">
                 <Board
                   board={gameState?.board!}
                   players={gameState?.players || {}}
