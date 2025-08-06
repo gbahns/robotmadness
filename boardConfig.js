@@ -47,9 +47,20 @@ const SAMPLE_BOARD = {
   // Board tiles with special elements
   tiles: [
     // Conveyor belts
-    { position: { x: 2, y: 9 }, type: 'conveyor', direction: 1 }, // East
-    { position: { x: 3, y: 9 }, type: 'conveyor', direction: 1 },
-    { position: { x: 4, y: 9 }, type: 'conveyor', direction: 1 },
+    { position: { x: 2, y: 6 }, type: 'conveyor', direction: 1 }, // East
+    { position: { x: 3, y: 7 }, type: 'conveyor', direction: 0 }, // North
+    { position: { x: 4, y: 6 }, type: 'conveyor', direction: 1 },
+    { position: { x: 5, y: 7 }, type: 'conveyor', direction: 0 },
+    { position: { x: 6, y: 8 }, type: 'conveyor', direction: 1 },
+    { position: { x: 7, y: 9 }, type: 'conveyor', direction: 2 }, // South
+    { position: { x: 8, y: 8 }, type: 'conveyor', direction: 3 }, // West
+    { position: { x: 9, y: 7 }, type: 'conveyor', direction: 2 },
+    { position: { x: 10, y: 6 }, type: 'conveyor', direction: 3 },
+    { position: { x: 11, y: 5 }, type: 'conveyor', direction: 0 }, // North
+    { position: { x: 0, y: 4 }, type: 'conveyor', direction: 1 }, // East
+    { position: { x: 1, y: 3 }, type: 'conveyor', direction: 2 }, // South
+    { position: { x: 2, y: 2 }, type: 'conveyor', direction: 3 }, // West
+    { position: { x: 4, y: 8 }, type: 'conveyor', direction: 1 },
     { position: { x: 5, y: 9 }, type: 'conveyor', direction: 2, rotate: 'clockwise' }, // South with rotation
 
     // Express conveyor belts
