@@ -94,73 +94,74 @@ function dealCards(gameState) {
     gameState.cardsDealt = true;
 }
 
-async function executeRegister(io, gameState, registerIndex) {
-    console.log(`\n=== Executing Register ${registerIndex + 1} ===`);
+//executeRegister is now in gameEngine.js
+// async function executeRegister(io, gameState, registerIndex) {
+//     console.log(`\n=== Executing Register ${registerIndex + 1} ===`);
 
-    // Collect all cards for this register
-    const cardsToExecute = [];
-    Object.entries(gameState.players).forEach(([playerId, player]) => {
-        if (player.selectedCards[registerIndex]) {
-            cardsToExecute.push({
-                playerId,
-                player,
-                card: player.selectedCards[registerIndex]
-            });
-        }
-    });
+//     // Collect all cards for this register
+//     const cardsToExecute = [];
+//     Object.entries(gameState.players).forEach(([playerId, player]) => {
+//         if (player.selectedCards[registerIndex]) {
+//             cardsToExecute.push({
+//                 playerId,
+//                 player,
+//                 card: player.selectedCards[registerIndex]
+//             });
+//         }
+//     });
 
-    // Sort by priority (highest first)
-    cardsToExecute.sort((a, b) => b.card.priority - a.card.priority);
+//     // Sort by priority (highest first)
+//     cardsToExecute.sort((a, b) => b.card.priority - a.card.priority);
 
-    console.log('Cards to execute this register:', cardsToExecute.map(c =>
-        `${c.player.name}: ${c.card.type}(${c.card.priority})`
-    ));
+//     console.log('Cards to execute this register:', cardsToExecute.map(c =>
+//         `${c.player.name}: ${c.card.type}(${c.card.priority})`
+//     ));
 
-    // Execute each card
-    for (const { playerId, player, card } of cardsToExecute) {
-        console.log(`${player.name} executes ${card.type} (priority ${card.priority})`);
+//     // Execute each card
+//     for (const { playerId, player, card } of cardsToExecute) {
+//         console.log(`${player.name} executes ${card.type} (priority ${card.priority})`);
 
-        // Simple movement logic for now
-        switch (card.type) {
-            case 'MOVE_1':
-                moveForward(gameState, player, 1, io);
-                break;
-            case 'MOVE_2':
-                moveForward(gameState, player, 2, io);
-                break;
-            case 'MOVE_3':
-                moveForward(gameState, player, 3, io);
-                break;
-            case 'BACK_UP':
-                moveForward(gameState, player, -1, io);
-                break;
-            case 'ROTATE_LEFT':
-                player.direction = (player.direction + 3) % 4;
-                break;
-            case 'ROTATE_RIGHT':
-                player.direction = (player.direction + 1) % 4;
-                break;
-            case 'U_TURN':
-                player.direction = (player.direction + 2) % 4;
-                break;
-        }
+//         // Simple movement logic for now
+//         switch (card.type) {
+//             case 'MOVE_1':
+//                 moveForward(gameState, player, 1, io);
+//                 break;
+//             case 'MOVE_2':
+//                 moveForward(gameState, player, 2, io);
+//                 break;
+//             case 'MOVE_3':
+//                 moveForward(gameState, player, 3, io);
+//                 break;
+//             case 'BACK_UP':
+//                 moveForward(gameState, player, -1, io);
+//                 break;
+//             case 'ROTATE_LEFT':
+//                 player.direction = (player.direction + 3) % 4;
+//                 break;
+//             case 'ROTATE_RIGHT':
+//                 player.direction = (player.direction + 1) % 4;
+//                 break;
+//             case 'U_TURN':
+//                 player.direction = (player.direction + 2) % 4;
+//                 break;
+//         }
 
-        // Emit update after each card
-        io.to(gameState.roomCode).emit('card-executed', {
-            playerId,
-            playerName: player.name,
-            card,
-            register: registerIndex
-        });
+//         // Emit update after each card
+//         io.to(gameState.roomCode).emit('card-executed', {
+//             playerId,
+//             playerName: player.name,
+//             card,
+//             register: registerIndex
+//         });
 
-        io.to(gameState.roomCode).emit('game-state', gameState);
+//         io.to(gameState.roomCode).emit('game-state', gameState);
 
-        // Small delay for visual effect
-        await new Promise(resolve => setTimeout(resolve, 500));
-    }
+//         // Small delay for visual effect
+//         await new Promise(resolve => setTimeout(resolve, 500));
+//     }
 
-    console.log(`Register ${registerIndex + 1} complete\n`);
-}
+//     console.log(`Register ${registerIndex + 1} complete\n`);
+// }
 
 function moveForward(gameState, player, spaces, io) {  // ADD io parameter
     const directions = [
@@ -381,26 +382,8 @@ app.prepare().then(() => {
                 io.to(roomCode).emit('game-state', gameState);
 
                 // Execute all 5 registers
-                (async () => {
-                    for (let register = 0; register < 5; register++) {
-                        gameState.currentRegister = register;
-                        io.to(roomCode).emit('register-started', {
-                            register,
-                            registerNumber: register + 1
-                        });
+                executeRegisters(gameState, roomCode);
 
-                        await executeRegister(io, gameState, register);
-
-                        // Delay between registers
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                    }
-
-                    // Return to programming phase
-                    gameState.phase = 'programming';
-                    gameState.currentRegister = 0;
-                    dealCards(gameState); // Deal new cards for next round
-                    io.to(roomCode).emit('game-state', gameState);
-                })();
             } else {
                 // Just update this player's status
                 io.to(roomCode).emit('player-submitted', { playerId, playerName: gameState.players[playerId].name });
@@ -453,15 +436,21 @@ app.prepare().then(() => {
     });
 
     // Execute all 5 registers
-    async function executeRegisters(gameState) {
+    async function executeRegisters(gameState, roomCode) {
         for (let i = 0; i < 5; i++) {
             gameState.currentRegister = i;
-            io.to(gameState.roomCode).emit('register-start', { register: i });
+            io.to(roomCode).emit('register-start', { register: i });
 
+            io.to(roomCode).emit('register-started', {
+                register: i,
+                registerNumber: i + 1
+            });
+
+            //await executeRegister(io, gameState, i);
             await gameEngine.executeRegister(gameState, i);
 
             // Broadcast updated game state after each register
-            io.to(gameState.roomCode).emit('game-state', gameState);
+            //io.to(gameState.roomCode).emit('game-state', gameState);
 
             // Check if game ended
             if (gameState.phase === 'ended') {
@@ -478,6 +467,6 @@ app.prepare().then(() => {
         gameState.currentRegister = 0;
         gameState.roundNumber++;
         dealCards(gameState);
-        io.to(gameState.roomCode).emit('game-state', gameState);
+        io.to(roomCode).emit('game-state', gameState);
     }
 });

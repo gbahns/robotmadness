@@ -31,24 +31,35 @@ class GameEngine {
     // Sort by priority (highest first)
     programmedCards.sort((a, b) => b.card.priority - a.card.priority);
 
+    console.log('Cards to execute this register:', programmedCards.map(c =>
+      `${c.player.name}: ${c.card.type}(${c.card.priority})`
+    ));
+
     // Execute each card in priority order
     for (const { playerId, card, player } of programmedCards) {
-      console.log(`Player ${player.name} executes ${card.type} (priority ${card.priority})`);
+      //console.log(`Player ${player.name} executes ${card.type} (priority ${card.priority})`);
+      console.log(`${player.name} executes ${card.type} (priority ${card.priority})`);
       await this.executeCard(gameState, player, card);
 
       // Emit update after each card
       this.io.to(gameState.roomCode).emit('card-executed', {
         playerId,
+        playerName: player.name,
         card,
         register: registerIndex
       });
 
+      this.io.to(gameState.roomCode).emit('game-state', gameState);
+
       // Small delay for visual effect
+      //await new Promise(resolve => setTimeout(resolve, 500));
       await this.delay(500);
     }
 
     // After all cards, execute board elements
     await this.executeBoardElements(gameState);
+
+    console.log(`Register ${registerIndex + 1} complete\n`);
   }
 
   // Execute a single card
@@ -76,6 +87,31 @@ class GameEngine {
         player.direction = (player.direction + 2) % 4;
         break;
     }
+    // Simple movement logic for now
+    // switch (card.type) {
+    //   case 'MOVE_1':
+    //     moveForward(gameState, player, 1, io);
+    //     break;
+    //   case 'MOVE_2':
+    //     moveForward(gameState, player, 2, io);
+    //     break;
+    //   case 'MOVE_3':
+    //     moveForward(gameState, player, 3, io);
+    //     break;
+    //   case 'BACK_UP':
+    //     moveForward(gameState, player, -1, io);
+    //     break;
+    //   case 'ROTATE_LEFT':
+    //     player.direction = (player.direction + 3) % 4;
+    //     break;
+    //   case 'ROTATE_RIGHT':
+    //     player.direction = (player.direction + 1) % 4;
+    //     break;
+    //   case 'U_TURN':
+    //     player.direction = (player.direction + 2) % 4;
+    //     break;
+    // }
+
   }
 
   // Move a robot
