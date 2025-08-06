@@ -31,8 +31,9 @@ import { Direction } from './types';
 export const CARD_DISPLAY = {
   [CardType.U_TURN]: {
     name: 'U-Turn',
-    symbol: '↩️',
-    color: 'bg-red-600',
+    //symbol: '↩️',
+    symbol: '↷', //⤵⟲↶↷
+    color: 'bg-yellow-800',
   },
   [CardType.ROTATE_LEFT]: {
     name: 'Rotate Left',
@@ -47,12 +48,12 @@ export const CARD_DISPLAY = {
   [CardType.BACK_UP]: {
     name: 'Back Up',
     symbol: '⬇',
-    color: 'bg-purple-600',
+    color: 'bg-blue-900',
   },
   [CardType.MOVE_1]: {
     name: 'Move 1',
     symbol: '➊',
-    color: 'bg-blue-600',
+    color: 'bg-blue-700',
   },
   [CardType.MOVE_2]: {
     name: 'Move 2',
@@ -62,6 +63,6 @@ export const CARD_DISPLAY = {
   [CardType.MOVE_3]: {
     name: 'Move 3',
     symbol: '➌',
-    color: 'bg-blue-600',
+    color: 'bg-blue-500',
   },
 } as const;

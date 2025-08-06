@@ -22,13 +22,13 @@ export interface DragItem {
   source: 'hand' | 'register';
 }
 
-export default function Card({ 
-  card, 
-  index = 0, 
-  isLocked = false, 
+export default function Card({
+  card,
+  index = 0,
+  isLocked = false,
   isSelected = false,
   isDraggable = true,
-  onClick 
+  onClick
 }: CardProps) {
   const [{ isDragging }, drag] = useDrag<DragItem, unknown, { isDragging: boolean }>(() => ({
     type: CARD_TYPE,
@@ -73,19 +73,19 @@ export default function Card({
         <div className="self-end text-xs font-bold bg-black bg-opacity-30 px-1 rounded">
           {card.priority}
         </div>
-        
+
         {/* Card Symbol */}
-        <div className="text-4xl">
+        <div className="text-5xl">
           {display.symbol}
         </div>
-        
+
         {/* Card Name */}
         <div className="text-center">
           <div className="text-xs font-semibold">
             {display.name}
           </div>
         </div>
-        
+
         {/* Locked indicator */}
         {isLocked && (
           <div className="absolute top-1 left-1">
