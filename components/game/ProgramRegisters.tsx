@@ -12,6 +12,8 @@ interface ProgramRegistersProps {
   onCardDrop: (card: ProgramCard, registerIndex: number) => void;
   onCardRemove: (registerIndex: number) => void;
   isSubmitted: boolean;
+  currentRegister?: number;
+  phase?: string;
 }
 
 interface RegisterSlotProps {
@@ -21,9 +23,11 @@ interface RegisterSlotProps {
   onDrop: (card: ProgramCard) => void;
   onRemove: () => void;
   isSubmitted: boolean;
+  currentRegister?: number;
+  phase?: string;
 }
 
-function RegisterSlot({ card, index, isLocked, onDrop, onRemove, isSubmitted }: RegisterSlotProps) {
+function RegisterSlot({ card, index, isLocked, onDrop, onRemove, isSubmitted, currentRegister, phase }: RegisterSlotProps) {
   const [{ isOver, canDrop }, drop] = useDrop<DragItem, unknown, { isOver: boolean; canDrop: boolean }>(() => ({
     accept: CARD_TYPE,
     drop: (item: DragItem) => {
@@ -45,6 +49,7 @@ function RegisterSlot({ card, index, isLocked, onDrop, onRemove, isSubmitted }: 
         ref={drop as unknown as React.Ref<HTMLDivElement>}
         className={`
           relative w-28 h-36 rounded-lg border-2 transition-all
+          ${phase === 'executing' && currentRegister === index ? 'border-yellow-400 bg-yellow-900 bg-opacity-50 ring-2 ring-yellow-400' : ''}
           ${isLocked ? 'border-red-600 bg-red-900 bg-opacity-20' : 'border-gray-600'}
           ${isOver && canDrop ? 'border-green-400 bg-green-900 bg-opacity-20' : ''}
           ${!card && !isLocked ? 'border-dashed' : ''}
@@ -77,9 +82,11 @@ export default function ProgramRegisters({
   onCardDrop,
   onCardRemove,
   isSubmitted,
+  currentRegister,
+  phase,
 }: ProgramRegistersProps) {
   const totalLocked = Math.min(lockedRegisters, 5);
-  
+
   return (
     <div>
       {totalLocked > 0 && (
@@ -87,7 +94,7 @@ export default function ProgramRegisters({
           {totalLocked} register{totalLocked > 1 ? 's' : ''} locked due to damage
         </div>
       )}
-      
+
       <div className="flex gap-3 justify-center">
         {selectedCards.map((card, index) => {
           const isLocked = index >= (5 - totalLocked);
@@ -100,11 +107,13 @@ export default function ProgramRegisters({
               onDrop={(card) => onCardDrop(card, index)}
               onRemove={() => onCardRemove(index)}
               isSubmitted={isSubmitted}
+              currentRegister={currentRegister}
+              phase={phase}
             />
           );
         })}
       </div>
-      
+
       {isSubmitted && (
         <div className="mt-4 text-center text-green-400">
           ✓ Program submitted! Waiting for other players...

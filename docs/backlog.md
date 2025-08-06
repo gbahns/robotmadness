@@ -34,7 +34,6 @@
 * delete the code for the game start modal (unless we think of a reason to reinstate it; board selection needs to be either here or on the game screen)
 
 ## In Progress
-# make the conveyors move robots in the same direction they're visually pointing
   
 ## Done
 * robots pushing each other
@@ -55,3 +54,5 @@
 * board lasers
 * robot lasers
 * make the start game button go directly to the game
+* show in ExecutionLog when a robot is moved by a conveyor belt
+# make the conveyors move robots in the same direction they're visually pointing
