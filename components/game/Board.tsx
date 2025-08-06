@@ -176,7 +176,7 @@ export default function Board({ board, players, currentPlayerId, isHost, gameSta
       if (tile.type === 'conveyor' || tile.type === 'conveyor_express') {
         const isExpress = tile.type === 'conveyor_express';
         const color = isExpress ? 'bg-yellow-600' : 'bg-yellow-800';
-        const arrowRotation = (tile.direction || 0) * 90;
+        const arrowRotation = ((tile.direction || 0) - 1) * 90;
 
         elements.push(
           <div key="conveyor" className={`absolute inset-1 ${color} rounded-sm flex items-center justify-center`}>
