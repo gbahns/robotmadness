@@ -193,7 +193,7 @@ export default function Board({ board, players, currentPlayerId, isHost, gameSta
               <path d="M10 3l7 7-7 7V3z" />
             </svg>
             {tile.rotate && (
-              <div className="absolute bottom-0 right-0 text-gray-900 p-0.5" style={{ fontSize: `${fontSize * 0.4}px` }}>
+              <div className="absolute bottom-0 right-0 text-gray-900 p-0.5" style={{ fontSize: `${fontSize * 0.9}px` }}>
                 {tile.rotate === 'clockwise' ? '↻' : '↺'}
               </div>
             )}

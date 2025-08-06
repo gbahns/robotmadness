@@ -1,5 +1,6 @@
 ## Backlog
 * detect when someone has won the race
+* draw 2 arrows for an express conveyor belt
 * when a robot shoots another robot, say "<player 1> shot by <player 2>" in the ExecutionLog
 * draw a momentary red line when robot lasers fire
 * add a "reset" button to clear the programmed registers
@@ -11,6 +12,7 @@
 * wrenches
 * hammers
 * starting space mini boards
+* ability to select board when starting game
 * risky exchange board
 * Prevent further changes after timer expires
 * When timer hits 0, randomly fill empty registers
@@ -29,10 +31,11 @@
 * get the execution log turn separator to work (tried to get this working but the roundNumber logic still doesn't work; not sure we really need this anyway, so putting it on hold)
 * make the screen layout adapt correctly to different window sizes and zoom level
 * improve the game page layout
+* delete the code for the game start modal (unless we think of a reason to reinstate it; board selection needs to be either here or on the game screen)
 
 ## In Progress
-* make the start game button go directly to the game
-    
+# make the conveyors move robots in the same direction they're visually pointing
+  
 ## Done
 * robots pushing each other
 * during the execution phase move each robot one at a time
@@ -51,3 +54,4 @@
     * get rid of the Game Controls box
 * board lasers
 * robot lasers
+* make the start game button go directly to the game
