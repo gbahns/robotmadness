@@ -32,7 +32,7 @@ export default function Home() {
 
     // Fetch open games
     fetchOpenGames();
-    
+
     // Refresh open games every 5 seconds
     const interval = setInterval(fetchOpenGames, 5000);
     return () => clearInterval(interval);
@@ -59,16 +59,16 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: gameName || 'RobotMadness Game', playerName }),
       });
-      
+
       if (!response.ok) throw new Error('Failed to create game');
-      
+
       const { roomCode } = await response.json();
-      
+
       // Save player name
       if (playerName.trim()) {
         localStorage.setItem('playerName', playerName);
       }
-      
+
       router.push(`/game/${roomCode}`);
     } catch (err) {
       setError('Failed to create game. Please try again.');
@@ -80,11 +80,11 @@ export default function Home() {
     if (!playerName.trim()) {
       const name = prompt('Please enter your name:');
       if (!name || !name.trim()) return;
-      
+
       setPlayerName(name.trim());
       localStorage.setItem('playerName', name.trim());
     }
-    
+
     // Navigate directly to the game
     router.push(`/game/${gameCode}`);
   };
@@ -125,7 +125,8 @@ export default function Home() {
 
       <div className="flex gap-6 mb-8">
         <button
-          onClick={() => setShowCreateModal(true)}
+          //onClick={() => setShowCreateModal(true)}
+          onClick={createGame}
           className="bg-blue-600 hover:bg-blue-700 px-8 py-4 rounded-lg font-semibold text-lg transition transform hover:scale-105"
         >
           Create Game

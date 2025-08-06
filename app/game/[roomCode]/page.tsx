@@ -291,10 +291,10 @@ export default function GamePage() {
   };
 
   const handleLeaveGame = () => {
-    if (confirm('Are you sure you want to leave the game?')) {
-      socketClient.leaveGame();
-      router.push('/');
-    }
+    //if (confirm('Are you sure you want to leave the game?')) {
+    socketClient.leaveGame();
+    router.push('/');
+    //}
   };
 
   const currentPlayer = gameState?.players[playerIdRef.current];
