@@ -513,7 +513,7 @@ export default function GamePage() {
                     Players ({Object.keys(gameState?.players || {}).length}/8)
                     {gameState?.phase === 'programming' && (
                       <span className="text-sm font-normal text-gray-400 ml-2">
-                        {isSubmitted ? '- Waiting for others...' : '- Select your cards!'}
+                        {isSubmitted ? '- Waiting for others...' : ''}
                       </span>
                     )}
                   </h2>

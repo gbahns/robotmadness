@@ -87,31 +87,6 @@ class GameEngine {
         player.direction = (player.direction + 2) % 4;
         break;
     }
-    // Simple movement logic for now
-    // switch (card.type) {
-    //   case 'MOVE_1':
-    //     moveForward(gameState, player, 1, io);
-    //     break;
-    //   case 'MOVE_2':
-    //     moveForward(gameState, player, 2, io);
-    //     break;
-    //   case 'MOVE_3':
-    //     moveForward(gameState, player, 3, io);
-    //     break;
-    //   case 'BACK_UP':
-    //     moveForward(gameState, player, -1, io);
-    //     break;
-    //   case 'ROTATE_LEFT':
-    //     player.direction = (player.direction + 3) % 4;
-    //     break;
-    //   case 'ROTATE_RIGHT':
-    //     player.direction = (player.direction + 1) % 4;
-    //     break;
-    //   case 'U_TURN':
-    //     player.direction = (player.direction + 2) % 4;
-    //     break;
-    // }
-
   }
 
   // Move a robot
@@ -147,9 +122,28 @@ class GameEngine {
         }
       }
 
-      // Move is valid
-      player.position.x = newX;
-      player.position.y = newY;
+      if (newX >= 0 && newX < 12 && newY >= 0 && newY < 12) {
+
+
+        // Move is valid
+        player.position.x = newX;
+        player.position.y = newY;
+
+        // Check for checkpoints
+        const checkpoint = gameState.board.checkpoints.find(
+          cp => cp.position.x === newX && cp.position.y === newY
+        );
+        if (checkpoint && checkpoint.number === player.checkpointsVisited + 1) {
+          player.checkpointsVisited++;
+          this.io.to(gameState.roomCode).emit('checkpoint-reached', {
+            playerName: player.name,
+            checkpointNumber: checkpoint.number
+          });
+        }
+      } else {
+        this.respawnPlayer(gameState, robot);
+        break; // dead, movement stops
+      }
     }
   }
 
@@ -200,6 +194,11 @@ class GameEngine {
       console.log(`${player.name} is out of lives!`);
       return;
     }
+
+    // Emit event for log
+    this.io.to(gameState.roomCode).emit('robot-fell-off-board', {
+      playerName: player.name
+    });
 
     // Find their starting position
     const playerIndex = Object.keys(gameState.players).indexOf(player.id);

@@ -8,6 +8,7 @@ const { Server } = require('socket.io');
 const GameEngine = require('./gameEngine');
 const { SAMPLE_BOARD } = require('./boardConfig');
 
+
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });
 const handle = app.getRequestHandler();
@@ -16,48 +17,62 @@ const handle = app.getRequestHandler();
 const games = new Map();
 const playerSockets = new Map(); // socket.id -> { gameId, playerId }
 
-// Card deck (simplified for now - we'll import from constants later)
+const U_TURN = 'U_TURN';
+const ROTATE_LEFT = 'ROTATE_LEFT';
+const ROTATE_RIGHT = 'ROTATE_RIGHT';
+const BACK_UP = 'BACK_UP';
+const MOVE_1 = 'MOVE_1';
+const MOVE_2 = 'MOVE_2';
+const MOVE_3 = 'MOVE_3';
+
+// Card deck configuration based on RoboRally rules
 const CARD_DECK = [
-    // U-Turn cards (6 total)
+    // U-Turn cards (6 total, priority 10-60)
     ...Array.from({ length: 6 }, (_, i) => ({
-        id: i,
-        type: 'U_TURN',
+        id: i + 1,
+        type: U_TURN,
         priority: 10 + (i * 10)
     })),
-    // Rotate Left cards (18 total)
+
+    // Rotate Left cards (18 total, priority 70-410, increment by 20)
     ...Array.from({ length: 18 }, (_, i) => ({
         id: 6 + i,
-        type: 'ROTATE_LEFT',
+        type: ROTATE_LEFT,
         priority: 70 + (i * 20)
     })),
-    // Rotate Right cards (18 total)
+
+    // Rotate Right cards (18 total, priority 80-420, increment by 20)
     ...Array.from({ length: 18 }, (_, i) => ({
         id: 24 + i,
-        type: 'ROTATE_RIGHT',
+        type: ROTATE_RIGHT,
         priority: 80 + (i * 20)
     })),
-    // Back Up cards (6 total)
+
+    // Back Up cards (6 total, priority 430-480, increment by 10)
     ...Array.from({ length: 6 }, (_, i) => ({
         id: 42 + i,
-        type: 'BACK_UP',
+        type: BACK_UP,
         priority: 430 + (i * 10)
     })),
-    // Move 1 cards (18 total)
+
+    // Move 1 cards (18 total, priority 490-650, increment by 10)
     ...Array.from({ length: 18 }, (_, i) => ({
         id: 48 + i,
-        type: 'MOVE_1',
+        type: MOVE_1,
         priority: 490 + (i * 10)
     })),
-    // Move 2 cards (12 total)
+
+    // Move 2 cards (12 total, priority 670-780, increment by 10)
     ...Array.from({ length: 12 }, (_, i) => ({
         id: 66 + i,
-        type: 'MOVE_2',
+        type: MOVE_2,
         priority: 670 + (i * 10)
     })),
-    // Move 3 cards (6 total)
+
+    // Move 3 cards (6 total, priority 790-840, increment by 10)
     ...Array.from({ length: 6 }, (_, i) => ({
         id: 78 + i,
-        type: 'MOVE_3',
+        type: MOVE_3,
         priority: 790 + (i * 10)
     })),
 ];
@@ -92,131 +107,6 @@ function dealCards(gameState) {
 
     gameState.phase = 'programming';
     gameState.cardsDealt = true;
-}
-
-//executeRegister is now in gameEngine.js
-// async function executeRegister(io, gameState, registerIndex) {
-//     console.log(`\n=== Executing Register ${registerIndex + 1} ===`);
-
-//     // Collect all cards for this register
-//     const cardsToExecute = [];
-//     Object.entries(gameState.players).forEach(([playerId, player]) => {
-//         if (player.selectedCards[registerIndex]) {
-//             cardsToExecute.push({
-//                 playerId,
-//                 player,
-//                 card: player.selectedCards[registerIndex]
-//             });
-//         }
-//     });
-
-//     // Sort by priority (highest first)
-//     cardsToExecute.sort((a, b) => b.card.priority - a.card.priority);
-
-//     console.log('Cards to execute this register:', cardsToExecute.map(c =>
-//         `${c.player.name}: ${c.card.type}(${c.card.priority})`
-//     ));
-
-//     // Execute each card
-//     for (const { playerId, player, card } of cardsToExecute) {
-//         console.log(`${player.name} executes ${card.type} (priority ${card.priority})`);
-
-//         // Simple movement logic for now
-//         switch (card.type) {
-//             case 'MOVE_1':
-//                 moveForward(gameState, player, 1, io);
-//                 break;
-//             case 'MOVE_2':
-//                 moveForward(gameState, player, 2, io);
-//                 break;
-//             case 'MOVE_3':
-//                 moveForward(gameState, player, 3, io);
-//                 break;
-//             case 'BACK_UP':
-//                 moveForward(gameState, player, -1, io);
-//                 break;
-//             case 'ROTATE_LEFT':
-//                 player.direction = (player.direction + 3) % 4;
-//                 break;
-//             case 'ROTATE_RIGHT':
-//                 player.direction = (player.direction + 1) % 4;
-//                 break;
-//             case 'U_TURN':
-//                 player.direction = (player.direction + 2) % 4;
-//                 break;
-//         }
-
-//         // Emit update after each card
-//         io.to(gameState.roomCode).emit('card-executed', {
-//             playerId,
-//             playerName: player.name,
-//             card,
-//             register: registerIndex
-//         });
-
-//         io.to(gameState.roomCode).emit('game-state', gameState);
-
-//         // Small delay for visual effect
-//         await new Promise(resolve => setTimeout(resolve, 500));
-//     }
-
-//     console.log(`Register ${registerIndex + 1} complete\n`);
-// }
-
-function moveForward(gameState, player, spaces, io) {  // ADD io parameter
-    const directions = [
-        { x: 0, y: -1 }, // North
-        { x: 1, y: 0 },  // East
-        { x: 0, y: 1 },  // South
-        { x: -1, y: 0 }  // West
-    ];
-
-    const steps = Math.abs(spaces);
-    const direction = spaces < 0 ? (player.direction + 2) % 4 : player.direction;
-
-    for (let i = 0; i < steps; i++) {
-        const dir = directions[direction];
-        const newX = player.position.x + dir.x;
-        const newY = player.position.y + dir.y;
-
-        // Check boundaries
-        if (newX >= 0 && newX < 12 && newY >= 0 && newY < 12) {
-            // Simple collision check - don't move if space occupied
-            const occupied = Object.values(gameState.players).some(
-                p => p !== player && p.position.x === newX && p.position.y === newY && p.lives > 0
-            );
-
-            if (!occupied) {
-                player.position.x = newX;
-                player.position.y = newY;
-
-                // Check for checkpoints
-                const checkpoint = gameState.board.checkpoints.find(
-                    cp => cp.position.x === newX && cp.position.y === newY
-                );
-                if (checkpoint && checkpoint.number === player.checkpointsVisited + 1) {
-                    player.checkpointsVisited++;
-                    io.to(gameState.roomCode).emit('checkpoint-reached', {
-                        playerName: player.name,
-                        checkpointNumber: checkpoint.number
-                    });
-                }
-            } else {
-                break; // Stop if blocked
-            }
-        } else {
-            // Fell off board
-            player.lives--;
-            player.position = { x: 0, y: 0 }; // Reset to start
-            console.log(`${player.name} fell off the board!`);
-
-            // Emit event for log
-            io.to(gameState.roomCode).emit('robot-fell-off-board', {
-                playerName: player.name
-            });
-            break;
-        }
-    }
 }
 
 app.prepare().then(() => {
