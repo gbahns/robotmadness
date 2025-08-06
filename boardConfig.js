@@ -47,6 +47,9 @@ const SAMPLE_BOARD = {
   // Board tiles with special elements
   tiles: [
     // Conveyor belts
+    { position: { x: 1, y: 9 }, type: 'conveyor', direction: 2 }, // South
+    { position: { x: 3, y: 9 }, type: 'conveyor', direction: 2 }, // South
+    { position: { x: 2, y: 8 }, type: 'conveyor', direction: 3 }, // East
     { position: { x: 2, y: 6 }, type: 'conveyor', direction: 1 }, // East
     { position: { x: 3, y: 7 }, type: 'conveyor', direction: 0 }, // North
     { position: { x: 4, y: 6 }, type: 'conveyor', direction: 1 },
@@ -69,8 +72,8 @@ const SAMPLE_BOARD = {
     { position: { x: 6, y: 4 }, type: 'conveyor_express', direction: 0 },
 
     // Gears
-    { position: { x: 3, y: 6 }, type: 'gear', rotate: 'clockwise' },
-    { position: { x: 9, y: 6 }, type: 'gear', rotate: 'counterclockwise' },
+    // { position: { x: 3, y: 6 }, type: 'gear', rotate: 'clockwise' },
+    // { position: { x: 9, y: 6 }, type: 'gear', rotate: 'counterclockwise' },
 
     // Pushers (active on registers 1, 3, 5)
     { position: { x: 0, y: 5 }, type: 'pusher', direction: 1, registers: [1, 3, 5] },
