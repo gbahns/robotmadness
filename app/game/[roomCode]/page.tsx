@@ -583,6 +583,8 @@ export default function GamePage() {
                           onCardDrop={handleCardDrop}
                           onCardRemove={handleCardRemove}
                           isSubmitted={isSubmitted}
+                          currentRegister={gameState?.currentRegister}
+                          phase={gameState?.phase}
                         />
                       </div>
 
