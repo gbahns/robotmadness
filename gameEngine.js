@@ -10,6 +10,9 @@ class GameEngine {
       2: { x: 0, y: 1 },  // South
       3: { x: -1, y: 0 }  // West
     };
+
+    this.registerExecutionDelay = 1000; // Delay for register execution  
+    this.boardElementDelay = 1000; // Delay for board element execution
   }
 
   // Execute a single register (all players' cards for that register)
@@ -52,8 +55,7 @@ class GameEngine {
       this.io.to(gameState.roomCode).emit('game-state', gameState);
 
       // Small delay for visual effect
-      //await new Promise(resolve => setTimeout(resolve, 500));
-      await this.delay(500);
+      await this.delay(this.registerExecutionDelay);
     }
 
     // After all cards, execute board elements
@@ -119,12 +121,13 @@ class GameEngine {
         if (!pushed) {
           // Can't push, movement stops
           break;
+        } else {
+          // Successfully pushed, continue moving
+          this.executionLog(gameState, `${player.name} pushed ${occupant.name}`);
         }
       }
 
       if (newX >= 0 && newX < 12 && newY >= 0 && newY < 12) {
-
-
         // Move is valid
         player.position.x = newX;
         player.position.y = newY;
@@ -208,6 +211,15 @@ class GameEngine {
     player.direction = startPos.direction;
   }
 
+  executionLog(gameState, msg) {
+    console.log(msg);
+    this.io.to(gameState.roomCode).emit('execution-log', {
+      message: msg,
+      type: 'board-element'
+    });
+  }
+
+
   // Execute board elements
   async executeBoardElements(gameState) {
     console.log('Executing board elements...');
@@ -229,10 +241,14 @@ class GameEngine {
 
     // 6. Check checkpoints
     await this.checkCheckpoints(gameState);
+
+    // Add delay at the end to let players see the results
   }
 
   // Execute conveyor belts
   async executeConveyorBelts(gameState, includeExpress, includeNormal) {
+    //this.executionLog(gameState, `executing ${includeNormal ? 'normal' : 'express'} conveyor belts`);
+
     const movements = [];
 
     // Find all players on conveyor belts and calculate their movements
@@ -248,6 +264,8 @@ class GameEngine {
         const vector = this.DIRECTION_VECTORS[tile.direction];
         const newX = player.position.x + vector.x;
         const newY = player.position.y + vector.y;
+
+        this.executionLog(gameState, `${player.name} moved by conveyor`);
 
         movements.push({
           player,
@@ -285,8 +303,10 @@ class GameEngine {
         } else if (toTile.rotate === 'counterclockwise') {
           player.direction = (player.direction + 3) % 4;
         }
+        this.executionLog(gameState, `${player.name} rotated by conveyor`);
       }
     });
+    await this.delay(this.boardElementDelay); // Delay to show board element movements
   }
 
   // Resolve conveyor movements (handle conflicts)
@@ -330,6 +350,8 @@ class GameEngine {
 
   // Execute pushers
   async executePushers(gameState) {
+    //this.executionLog(gameState, `executing pushers`);
+
     // Check register phase to see if pushers are active
     const currentRegister = gameState.currentRegister;
 
@@ -342,13 +364,17 @@ class GameEngine {
       // Check if pusher is active this register
       if (tile.registers && tile.registers.includes(currentRegister + 1)) {
         // Push the robot
-        this.pushRobot(gameState, player, tile.direction);
+        if (this.pushRobot(gameState, player, tile.direction)) {
+          this.executionLog(gameState, `${player.name} pushed by pusher`);
+        }
       }
     });
+    await this.delay(this.boardElementDelay); // Delay to show board element movements
   }
 
   // Execute gears
   async executeGears(gameState) {
+    //this.executionLog(gameState, `executing gears`);
     Object.values(gameState.players).forEach(player => {
       if (player.lives <= 0) return;
 
@@ -361,11 +387,15 @@ class GameEngine {
       } else if (tile.rotate === 'counterclockwise') {
         player.direction = (player.direction + 3) % 4;
       }
+      this.executionLog(gameState, `${player.name} rotated by gear`);
     });
+    await this.delay(this.boardElementDelay); // Delay to show board element movements
   }
 
   // Execute lasers
   async executeLasers(gameState) {
+    //this.executionLog(gameState, `executing board lasers`);
+
     const damages = new Map();
 
     // Board lasers
