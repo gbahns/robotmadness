@@ -220,10 +220,22 @@ export default function GamePage() {
     // Handle player submitted
     socketClient.on('player-submitted', (data: { playerId: string, playerName: string }) => {
       console.log('Player submitted:', data.playerId);
+      if (data.playerId != playerIdRef.current) {
+        setLogEntries(prev => [...prev, {
+          id: Date.now() + Math.random(),
+          message: `${data.playerName} submitted their program`,
+          type: 'info',
+          timestamp: new Date()
+        }]);
+      }
+    });
+
+    socketClient.on('execution-log', (data: { message: string, type: string }) => {
+      console.log('Execution log:', data.message, data.type);
       setLogEntries(prev => [...prev, {
         id: Date.now() + Math.random(),
-        message: `${data.playerName} submitted their program`,
-        type: 'info',
+        message: `${data.message}`,
+        type: data.type,
         timestamp: new Date()
       }]);
     });
@@ -558,17 +570,19 @@ export default function GamePage() {
 
             {/* Bottom Section - Cards */}
             <div className="space-y-6">
-              {gameState?.phase === 'programming' && currentPlayer && (
+              {/*gameState?.phase === 'programming' &&*/ currentPlayer && (
                 <>
                   {/* Hand */}
-                  <div className="bg-gray-800 rounded-lg p-6">
-                    <Hand
-                      cards={currentPlayer.dealtCards || []}
-                      selectedCards={currentPlayer.selectedCards}
-                      onCardClick={handleCardClick}
-                      isSubmitted={isSubmitted}
-                    />
-                  </div>
+                  {gameState?.phase === 'programming' && (
+                    <div className="bg-gray-800 rounded-lg p-6">
+                      <Hand
+                        cards={currentPlayer.dealtCards || []}
+                        selectedCards={currentPlayer.selectedCards}
+                        onCardClick={handleCardClick}
+                        isSubmitted={isSubmitted}
+                      />
+                    </div>
+                  )}
 
                   {/* Program Registers */}
                   <div className="bg-gray-800 rounded-lg p-6">
