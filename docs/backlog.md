@@ -1,6 +1,9 @@
 ## Backlog
+* detect when someone has won the race
+* when a robot shoots another robot, say "<player 1> shot by <player 2>" in the ExecutionLog
+* draw a momentary red line when robot lasers fire
 * add a "reset" button to clear the programmed registers
-* board lasers
+* draw a red line for board lasers
 * walls
 * conveyor belts
 * express conveyor belts
@@ -28,7 +31,7 @@
 * improve the game page layout
 
 ## In Progress
-* robot lasers
+* make the start game button go directly to the game
     
 ## Done
 * robots pushing each other
@@ -46,3 +49,5 @@
     * eliminate the box around the board
     * reduce the padding around the board
     * get rid of the Game Controls box
+* board lasers
+* robot lasers
