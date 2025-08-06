@@ -33,6 +33,8 @@ export default function ExecutionLog({ entries }: ExecutionLogProps) {
                 return 'text-red-400';
             case 'checkpoint':
                 return 'text-green-400';
+            case 'board-element':
+                return 'text-yellow-400';
             default:
                 return 'text-gray-400';
         }
@@ -45,7 +47,19 @@ export default function ExecutionLog({ entries }: ExecutionLogProps) {
             case 'damage':
                 return '⚠';
             case 'checkpoint':
-                return '🏁';
+                return '🚩'; //🚩🏁
+            case 'board-element':
+                return '⚙️'; //🛠️🛠
+            case 'geer':
+                return '⚙️';
+            case 'conveyor':
+                return '➡️'; //➡️⬅️
+            case 'pusher':
+                return '🔄'; //🔄🔃
+            case 'rotator':
+                return '🔄'; //🔄🔃
+            case 'express':
+                return '🚀'; //🚀
             default:
                 return '•';
         }
