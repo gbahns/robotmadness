@@ -55,4 +55,5 @@
 * robot lasers
 * make the start game button go directly to the game
 * show in ExecutionLog when a robot is moved by a conveyor belt
-# make the conveyors move robots in the same direction they're visually pointing
+* make the conveyors move robots in the same direction they're visually pointing
+* conveyor belt movement not reflected on the board promptly

@@ -11,8 +11,8 @@ class GameEngine {
       3: { x: -1, y: 0 }  // West
     };
 
-    this.registerExecutionDelay = 1000; // Delay for register execution  
-    this.boardElementDelay = 1000; // Delay for board element execution
+    this.registerExecutionDelay = 500; // Delay for register execution  
+    this.boardElementDelay = 500; // Delay for board element execution
   }
 
   // Execute a single register (all players' cards for that register)
@@ -55,6 +55,7 @@ class GameEngine {
       this.io.to(gameState.roomCode).emit('game-state', gameState);
 
       // Small delay for visual effect
+      this.io.to(gameState.roomCode).emit('game-state', gameState);
       await this.delay(this.registerExecutionDelay);
     }
 
@@ -306,6 +307,7 @@ class GameEngine {
         this.executionLog(gameState, `${player.name} rotated by conveyor`);
       }
     });
+    this.io.to(gameState.roomCode).emit('game-state', gameState);
     await this.delay(this.boardElementDelay); // Delay to show board element movements
   }
 
@@ -369,6 +371,7 @@ class GameEngine {
         }
       }
     });
+    this.io.to(gameState.roomCode).emit('game-state', gameState);
     await this.delay(this.boardElementDelay); // Delay to show board element movements
   }
 
@@ -389,6 +392,7 @@ class GameEngine {
       }
       this.executionLog(gameState, `${player.name} rotated by gear`);
     });
+    this.io.to(gameState.roomCode).emit('game-state', gameState);
     await this.delay(this.boardElementDelay); // Delay to show board element movements
   }
 
