@@ -20,8 +20,10 @@ export default function GamePage() {
   const [playerName, setPlayerName] = useState('');
   const [showNameModal, setShowNameModal] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [logEntries, setLogEntries] = useState<any[]>([]); const playerIdRef = useRef<string>('');
+  const [logEntries, setLogEntries] = useState<any[]>([]);
+  const playerIdRef = useRef<string>('');
   const [executionMessage, setExecutionMessage] = useState<string>('');
+  const [winner, setWinner] = useState<string | null>(null);
 
   useEffect(() => {
     console.log('GamePage component mounted');
@@ -44,22 +46,9 @@ export default function GamePage() {
       setLoading(false);
     }
 
-    // const handleCardExecuted = (data: any) => {
-    //   const { playerId: executingPlayerId, card, register } = data;
-    //   const executingPlayer = gameState?.players[executingPlayerId];
-    //   if (executingPlayer) {
-    //     const message = `HCE ${executingPlayer.name} ${card.type.replace(/_/g, ' ')} (Priority: ${card.priority})`;
-    //     setExecutionMessage(message);
-
-    //     // Add to log
-    //     setLogEntries(prev => [...prev, {
-    //       id: Date.now() + Math.random(), // Add random to ensure uniqueness
-    //       message,
-    //       type: 'action',
-    //       timestamp: new Date()
-    //     }]);
-    //   }
-    // };
+    const handleGameOver = (data: { winner: string }) => {
+      setWinner(data.winner);
+    };
 
     const handleRegisterStarted = (data: any) => {
       const message = `=== Register ${data.registerNumber} ===`;
@@ -104,6 +93,7 @@ export default function GamePage() {
       }]);
     };
 
+    socketClient.on('game-over', handleGameOver);
     socketClient.on('robot-damaged', handleRobotDamaged);
     socketClient.on('robot-fell-off-board', handleRobotFellOffBoard);
     socketClient.on('checkpoint-reached', handleCheckpointReached);
@@ -111,6 +101,7 @@ export default function GamePage() {
     return () => {
       socketClient.leaveGame();
       socketClient.disconnect();
+      socketClient.off('game-over', handleGameOver);
       socketClient.off('robot-damaged', handleRobotDamaged);
       socketClient.off('robot-fell-off-board', handleRobotFellOffBoard);
       socketClient.off('checkpoint-reached', handleCheckpointReached);
@@ -240,23 +231,6 @@ export default function GamePage() {
       }]);
     });
 
-    // // Handle card execution animations
-    // socketClient.on('card-executed', (data: {
-    //   playerId: string;
-    //   playerName: string;
-    //   card: ProgramCard;
-    //   newPosition: Position;
-    //   newDirection: Direction
-    // }) => {
-    //   console.log('Card executed:', data);
-    //   setLogEntries(prev => [...prev, {
-    //     id: Date.now() + Math.random(),
-    //     message: `${playerName} || 'Player' executes ${data.card.type.replace(/_/g, ' ')} (Priority: ${data.card.priority})`,
-    //     type: 'action',
-    //     timestamp: new Date()
-    //   }]);
-    //   // The game state will be updated separately
-    // });
     // Handle card execution animations
     socketClient.on('card-executed', (data: {
       playerId: string;
@@ -483,6 +457,21 @@ export default function GamePage() {
   return (
     <GameContent>
       <div className="min-h-screen bg-gray-900 text-white p-4 flex flex-col">
+        {winner && (
+          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+            <div className="bg-gray-800 p-8 rounded-lg shadow-xl text-center">
+              <h2 className="text-4xl font-bold text-yellow-400 mb-4">Game Over!</h2>
+              <p className="text-2xl mb-6">Winner: <span className="font-bold text-white">{winner}</span></p>
+              <button
+                onClick={() => router.push('/')}
+                className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded text-lg font-semibold"
+              >
+                Back to Home
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="container mx-auto max-w-7xl flex-1 flex flex-col">
           {/* Header */}
           <div className="flex justify-between items-center mb-8">

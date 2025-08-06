@@ -345,6 +345,7 @@ app.prepare().then(() => {
             // Check if game ended
             if (gameState.phase === 'ended') {
                 console.log(`Game ended! Winner: ${gameState.winner}`);
+                io.to(roomCode).emit('game-over', { winner: gameState.winner });
                 return;
             }
 

@@ -1,5 +1,4 @@
 ## Backlog
-* detect when someone has won the race
 * draw 2 arrows for an express conveyor belt
 * when a robot shoots another robot, say "<player 1> shot by <player 2>" in the ExecutionLog
 * draw a momentary red line when robot lasers fire
@@ -11,6 +10,7 @@
 * pushers
 * wrenches
 * hammers
+* handle endgame properly (pop up a modal with the game still visible, celebrate the winner, etc)
 * starting space mini boards
 * ability to select board when starting game
 * risky exchange board
@@ -57,3 +57,4 @@
 * show in ExecutionLog when a robot is moved by a conveyor belt
 * make the conveyors move robots in the same direction they're visually pointing
 * conveyor belt movement not reflected on the board promptly
+* detect when someone has won the race

@@ -132,36 +132,24 @@ class GameEngine {
         // Move is valid
         player.position.x = newX;
         player.position.y = newY;
-
-        // Check for checkpoints
-        const checkpoint = gameState.board.checkpoints.find(
-          cp => cp.position.x === newX && cp.position.y === newY
-        );
-        if (checkpoint && checkpoint.number === player.checkpointsVisited + 1) {
-          player.checkpointsVisited++;
-          this.io.to(gameState.roomCode).emit('checkpoint-reached', {
-            playerName: player.name,
-            checkpointNumber: checkpoint.number
-          });
-        }
       } else {
-        this.respawnPlayer(gameState, robot);
+        this.respawnPlayer(gameState, player);
         break; // dead, movement stops
       }
     }
   }
 
   // Push a robot
-  async pushRobot(gameState, robot, direction) {
+  async pushRobot(gameState, player, direction) {
     const vector = this.DIRECTION_VECTORS[direction];
-    const newX = robot.position.x + vector.x;
-    const newY = robot.position.y + vector.y;
+    const newX = player.position.x + vector.x;
+    const newY = player.position.y + vector.y;
 
     // Check if push is off the board
     if (newX < 0 || newX >= gameState.board.width ||
       newY < 0 || newY >= gameState.board.height) {
       // Robot falls off
-      this.respawnPlayer(gameState, robot);
+      this.respawnPlayer(gameState, player);
       return true;
     }
 
@@ -176,8 +164,8 @@ class GameEngine {
     }
 
     // Push is valid
-    robot.position.x = newX;
-    robot.position.y = newY;
+    player.position.x = newX;
+    player.position.y = newY;
     return true;
   }
 
@@ -518,6 +506,12 @@ class GameEngine {
         player.checkpointsVisited++;
         console.log(`${player.name} reached checkpoint ${checkpoint.number}!`);
 
+        // Emit event for UI
+        this.io.to(gameState.roomCode).emit('checkpoint-reached', {
+          playerName: player.name,
+          checkpointNumber: checkpoint.number
+        });
+
         // Update respawn position
         player.respawnPosition = { ...player.position };
 
@@ -526,6 +520,11 @@ class GameEngine {
           gameState.winner = player.name;
           gameState.phase = 'ended';
           console.log(`${player.name} wins the game!`);
+
+          // Announce winner
+          this.io.to(gameState.roomCode).emit('game-over', {
+            winner: player.name
+          });
         }
       }
 
