@@ -68,8 +68,9 @@ const SAMPLE_BOARD = {
 
     // Express conveyor belts
     { position: { x: 6, y: 6 }, type: 'conveyor_express', direction: 0 }, // North
-    { position: { x: 6, y: 5 }, type: 'conveyor_express', direction: 0 },
-    { position: { x: 6, y: 4 }, type: 'conveyor_express', direction: 0 },
+    { position: { x: 6, y: 5 }, type: 'conveyor_express', direction: 1 }, // East
+    { position: { x: 6, y: 4 }, type: 'conveyor_express', direction: 2 }, // South
+    { position: { x: 6, y: 3 }, type: 'conveyor_express', direction: 3 }, // West
 
     // Gears
     // { position: { x: 3, y: 6 }, type: 'gear', rotate: 'clockwise' },
