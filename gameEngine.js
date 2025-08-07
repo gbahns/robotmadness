@@ -391,11 +391,20 @@ class GameEngine {
 
   // Execute lasers
   async executeLasers(gameState) {
-    //this.executionLog(gameState, `executing board lasers`);
+    const damages = new Map(); // Store damage details
 
-    const damages = new Map();
+    // Helper to initialize damage object for a player
+    const getDamageInfo = (playerId) => {
+      if (!damages.has(playerId)) {
+        damages.set(playerId, {
+          boardDamage: 0,
+          robotHits: [] // Stores { shooterName, damage }
+        });
+      }
+      return damages.get(playerId);
+    };
 
-    // Board lasers
+    // 1. Calculate damage from board lasers
     if (gameState.board.lasers) {
       gameState.board.lasers.forEach(laser => {
         const hits = this.traceLaser(
@@ -405,55 +414,75 @@ class GameEngine {
           laser.direction,
           laser.damage || 1
         );
-
         hits.forEach(hit => {
-          const current = damages.get(hit.player.id) || 0;
-          damages.set(hit.player.id, current + hit.damage);
+          getDamageInfo(hit.player.id).boardDamage += hit.damage;
         });
       });
     }
 
-    // Robot lasers
-    Object.values(gameState.players).forEach(player => {
-      if (player.lives <= 0) return;
+    // 2. Calculate damage from robot lasers
+    Object.values(gameState.players).forEach(shooter => {
+      if (shooter.lives <= 0) return;
 
-      const vector = this.DIRECTION_VECTORS[player.direction];
-      const startX = player.position.x + vector.x;
-      const startY = player.position.y + vector.y;
+      const vector = this.DIRECTION_VECTORS[shooter.direction];
+      const startX = shooter.position.x + vector.x;
+      const startY = shooter.position.y + vector.y;
 
       const hits = this.traceLaser(
         gameState,
         startX,
         startY,
-        player.direction,
-        1
+        shooter.direction,
+        1 // Robot lasers always do 1 damage
       );
 
       hits.forEach(hit => {
-        if (hit.player.id !== player.id) { // Don't shoot yourself
-          const current = damages.get(hit.player.id) || 0;
-          damages.set(hit.player.id, current + hit.damage);
+        if (hit.player.id !== shooter.id) { // Can't shoot yourself
+          getDamageInfo(hit.player.id).robotHits.push({
+            shooterName: shooter.name,
+            damage: hit.damage
+          });
         }
       });
     });
 
-    // Apply damage
-    damages.forEach((damage, playerId) => {
-      const player = gameState.players[playerId];
-      player.damage += damage;
-      console.log(`${player.name} takes ${damage} damage!`);
+    // 3. Apply all damage and emit events
+    damages.forEach((damageInfo, playerId) => {
+      const victim = gameState.players[playerId];
+      const totalDamage = damageInfo.boardDamage + damageInfo.robotHits.reduce((sum, hit) => sum + hit.damage, 0);
 
-      // Emit damage event for the execution log
-      this.io.to(gameState.roomCode).emit('robot-damaged', {
-        playerName: player.name,
-        damage: damage,
-        reason: 'laser'
+      if (totalDamage === 0) return;
+
+      victim.damage += totalDamage;
+
+      // Emit event for board laser damage
+      if (damageInfo.boardDamage > 0) {
+        const message = `${victim.name} takes ${damageInfo.boardDamage} damage from laser`;
+        console.log(message);
+        this.io.to(gameState.roomCode).emit('robot-damaged', {
+          playerName: victim.name,
+          damage: damageInfo.boardDamage,
+          reason: 'laser' // Keep this for client-side handling of board lasers
+        });
+      }
+
+      // Emit event for each robot laser hit
+      damageInfo.robotHits.forEach(hit => {
+        const message = `${victim.name} shot by ${hit.shooterName}`;
+        console.log(message);
+        this.io.to(gameState.roomCode).emit('robot-damaged', {
+          playerName: victim.name,
+          damage: hit.damage,
+          reason: hit.shooterName, // New reason for client
+          shooterName: hit.shooterName,
+          message
+        });
       });
 
-      // Check if robot is destroyed
-      if (player.damage >= 10) {
-        console.log(`${player.name} is destroyed!`);
-        this.respawnPlayer(gameState, player);
+      // Check if robot is destroyed after all damage is applied
+      if (victim.damage >= 10) {
+        console.log(`${victim.name} is destroyed!`);
+        this.respawnPlayer(gameState, victim);
       }
     });
   }
