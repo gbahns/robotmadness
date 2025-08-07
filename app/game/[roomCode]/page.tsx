@@ -86,6 +86,16 @@ export default function GamePage() {
       }]);
     };
 
+    const handleRobotDestroyed = (data: any) => {
+      const { playerName, reason } = data;
+      setLogEntries(prev => [...prev, {
+        id: Date.now() + Math.random(),
+        message: `${playerName} was destroyed (${reason})!`,
+        type: 'damage',
+        timestamp: new Date()
+      }]);
+    };
+
     const handleCheckpointReached = (data: any) => {
       const { playerName, checkpointNumber } = data;
       setLogEntries(prev => [...prev, {
@@ -99,8 +109,12 @@ export default function GamePage() {
     socketClient.on('game-over', handleGameOver);
     socketClient.on('robot-damaged', handleRobotDamaged);
     socketClient.on('robot-fell-off-board', handleRobotFellOffBoard);
+    socketClient.on('robot-destroyed', handleRobotDestroyed);
     socketClient.on('checkpoint-reached', handleCheckpointReached);
-    socketClient.on('robot-lasers-fired', (laserShots: RobotLaserShot[]) => { setActiveLasers(laserShots); });
+    socketClient.on('robot-lasers-fired', (laserShots: RobotLaserShot[]) => {
+      console.log('Received robot-lasers-fired:', laserShots);
+      setActiveLasers(laserShots);
+    });
 
     return () => {
       socketClient.leaveGame();
@@ -108,6 +122,7 @@ export default function GamePage() {
       socketClient.off('game-over', handleGameOver);
       socketClient.off('robot-damaged', handleRobotDamaged);
       socketClient.off('robot-fell-off-board', handleRobotFellOffBoard);
+      socketClient.off('robot-destroyed', handleRobotDestroyed);
       socketClient.off('checkpoint-reached', handleCheckpointReached);
       socketClient.off('player-submitted', () => { });
       socketClient.off('robot-lasers-fired', () => { });

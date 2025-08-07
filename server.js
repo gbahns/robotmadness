@@ -352,6 +352,12 @@ app.prepare().then(() => {
                 return;
             }
 
+            // Check if all players are dead
+            if (gameState.allPlayersDead) {
+                console.log('All players are dead, ending turn early.');
+                break; // Exit the register loop
+            }
+
             // Delay between registers
             await new Promise(resolve => setTimeout(resolve, 1000));
         }
@@ -368,6 +374,7 @@ app.prepare().then(() => {
         gameState.phase = 'programming';
         gameState.currentRegister = 0;
         gameState.roundNumber++;
+        gameState.allPlayersDead = false; // Reset the flag
         dealCards(gameState);
         io.to(roomCode).emit('game-state', gameState);
     }

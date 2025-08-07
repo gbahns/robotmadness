@@ -40,6 +40,8 @@ class GameEngine {
 
     // Execute each card in priority order
     for (const { playerId, card, player } of programmedCards) {
+      if (player.isDead) continue; // Skip dead players
+
       //console.log(`Player ${player.name} executes ${card.type} (priority ${card.priority})`);
       console.log(`${player.name} executes ${card.type} (priority ${card.priority})`);
       await this.executeCard(gameState, player, card);
@@ -53,6 +55,15 @@ class GameEngine {
       });
 
       this.io.to(gameState.roomCode).emit('game-state', gameState);
+
+      // If all players died, log it and stop
+      if (gameState.allPlayersDead) {
+        this.io.to(gameState.roomCode).emit('execution-log', {
+          message: 'All robots destroyed! Ending turn.',
+          type: 'info'
+        });
+        break; // Exit the loop for this register
+      }
 
       // Small delay for visual effect
       this.io.to(gameState.roomCode).emit('game-state', gameState);
@@ -149,7 +160,7 @@ class GameEngine {
     if (newX < 0 || newX >= gameState.board.width ||
       newY < 0 || newY >= gameState.board.height) {
       // Robot falls off
-              // Robot falls off
+      // Robot falls off
       this.destroyRobot(gameState, player, 'fell off board');
       return true;
     }
@@ -185,8 +196,8 @@ class GameEngine {
           console.log(`${player.name} is respawning.`);
 
           // Find a safe respawn location (their last checkpoint or starting position)
-          let respawnPos = player.respawnPosition || 
-                         gameState.board.startingPositions[Object.keys(gameState.players).indexOf(player.id) % gameState.board.startingPositions.length];
+          let respawnPos = player.respawnPosition ||
+            gameState.board.startingPositions[Object.keys(gameState.players).indexOf(player.id) % gameState.board.startingPositions.length];
 
           // TODO: Check if the respawn point is occupied and find a new one if it is
 
@@ -232,26 +243,13 @@ class GameEngine {
       });
     }
 
-  }
-
-  respawnRobot(gameState, player) {
-    if (player.lives <= 0) {
-      // Player is out
-      console.log(`${player.name} is out of lives!`);
-      return;
+    // Check if all players are now dead
+    const allPlayers = Object.values(gameState.players);
+    const allDead = allPlayers.every(p => p.isDead || p.lives <= 0);
+    if (allDead) {
+      gameState.allPlayersDead = true;
+      console.log('All players are destroyed. Turn will end early.');
     }
-
-    // Emit event for log
-    this.io.to(gameState.roomCode).emit('robot-respawned', {
-      playerName: player.name
-    });
-
-    // Find their starting position
-    const playerIndex = Object.keys(gameState.players).indexOf(player.id);
-    const startPos = gameState.board.startingPositions[playerIndex % gameState.board.startingPositions.length];
-
-    player.position = { ...startPos.position };
-    player.direction = startPos.direction;
   }
 
   executionLog(gameState, msg) {
@@ -539,6 +537,7 @@ class GameEngine {
 
     // Emit robot laser animation event
     if (robotLaserShots.length > 0) {
+      console.log('Emitting robot-lasers-fired with:', robotLaserShots);
       this.io.to(gameState.roomCode).emit('robot-lasers-fired', robotLaserShots);
     }
 
@@ -643,9 +642,9 @@ class GameEngine {
         });
 
         // Update respawn position
-        player.respawnPosition = { 
-            position: { ...player.position },
-            direction: player.direction
+        player.respawnPosition = {
+          position: { ...player.position },
+          direction: player.direction
         };
 
         // Check for winner
@@ -666,8 +665,8 @@ class GameEngine {
       if (tile && (tile.type === 'repair' || tile.type === 'upgrade')) {
         // Update respawn position
         player.respawnPosition = {
-            position: { ...player.position },
-            direction: player.direction
+          position: { ...player.position },
+          direction: player.direction
         };
 
         // Repair damage at end of turn (handled elsewhere)
