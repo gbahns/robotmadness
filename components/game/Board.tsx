@@ -36,13 +36,6 @@ interface Laser {
 
 const ROBOT_COLORS = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan'];
 
-const DIRECTION_VECTORS = {
-  0: { x: 0, y: -1 }, // North
-  1: { x: 1, y: 0 },  // East
-  2: { x: 0, y: 1 },  // South
-  3: { x: -1, y: 0 }  // West
-};
-
 export default function Board({ board, players, currentPlayerId, isHost, gameState, roomCode }: BoardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [tileSize, setTileSize] = useState(50);
@@ -159,6 +152,64 @@ export default function Board({ board, players, currentPlayerId, isHost, gameSta
       return (board.lasers as any[]).find((laser: any) => laser.position?.x === x && laser.position?.y === y);
     }
     return undefined;
+  };
+
+  // Check if a position is blocked by a robot
+  const isBlockedByRobot = (x: number, y: number): boolean => {
+    return Object.values(players).some(player =>
+      player.position.x === x && player.position.y === y && player.lives > 0
+    );
+  };
+
+  // Calculate laser beam path from a laser source
+  const calculateLaserBeamPath = (laser: Laser): Position[] => {
+    const path: Position[] = [];
+    let currentX = laser.position.x;
+    let currentY = laser.position.y;
+
+    // Direction vectors: 0=North, 1=East, 2=South, 3=West
+    const dx = [0, 1, 0, -1];
+    const dy = [-1, 0, 1, 0];
+
+    // Start from the laser source tile itself
+    path.push({ x: currentX, y: currentY });
+
+    // Move to next tile
+    currentX += dx[laser.direction];
+    currentY += dy[laser.direction];
+
+    // Trace the full path until hitting board edge or wall
+    while (
+      currentX >= 0 &&
+      currentX < board.width &&
+      currentY >= 0 &&
+      currentY < board.height
+    ) {
+      path.push({ x: currentX, y: currentY });
+
+      // TODO: Check if blocked by wall when wall system is implemented
+      // Walls would stop the beam, but robots don't
+
+      // Continue to next position
+      currentX += dx[laser.direction];
+      currentY += dy[laser.direction];
+    }
+
+    return path;
+  };
+
+  // Get all laser beams that should be rendered
+  const getAllLaserBeams = (): { laser: Laser; path: Position[] }[] => {
+    const beams: { laser: Laser; path: Position[] }[] = [];
+
+    if (board.lasers && Array.isArray(board.lasers)) {
+      board.lasers.forEach((laser: any) => {
+        const path = calculateLaserBeamPath(laser);
+        beams.push({ laser, path });
+      });
+    }
+
+    return beams;
   };
 
   // Calculate responsive sizes based on tile size
@@ -278,25 +329,7 @@ export default function Board({ board, players, currentPlayerId, isHost, gameSta
       }
     }
 
-    // Lasers (when implemented)
-    const laser = getLaserAt(x, y);
-    if (laser) {
-      const rotation = laser.direction * 90;
-      const color = laser.damage > 1 ? 'text-red-400' : 'text-red-600';
-      elements.push(
-        <div key="laser" className="absolute inset-0 flex items-center justify-center">
-          <div
-            style={{
-              transform: `rotate(${rotation}deg)`,
-              fontSize: `${fontSize * 1.5}px`
-            }}
-            className={color}
-          >
-            ⚡
-          </div>
-        </div>
-      );
-    }
+    // No laser source indicator needed - beams will pass through the tile
 
     // Players
     Object.values(players).forEach((player: Player) => {
@@ -318,69 +351,107 @@ export default function Board({ board, players, currentPlayerId, isHost, gameSta
     return elements;
   };
 
+  // Render laser beams
   const renderLaserBeams = () => {
-    if (!board.lasers) return null;
+    const beams = getAllLaserBeams();
+    return beams.map((beam, index) => {
+      // Create beam segments for each position in the path
+      return beam.path.map((pos, pathIndex) => {
+        const isHorizontal = beam.laser.direction === 1 || beam.laser.direction === 3;
+        const isDoubleLaser = beam.laser.damage > 1;
 
-    return board.lasers.map((laser, index) => {
-      const startX = laser.position.x;
-      const startY = laser.position.y;
+        // Calculate beam position and size
+        const beamWidth = isDoubleLaser ? 6 : 4;
+        const beamLength = tileSize;
 
-      const vector = DIRECTION_VECTORS[laser.direction as keyof typeof DIRECTION_VECTORS];
-      if (!vector) return null;
+        // Position calculations
+        let left = pos.x * tileSize;
+        let top = pos.y * tileSize;
 
-      let endX = startX;
-      let endY = startY;
-
-      // Trace the laser path tile by tile
-      while (true) {
-        // 1. Check for a wall on the current tile blocking the exit path
-        const currentTile = getTileAt(endX, endY);
-        if (currentTile?.walls?.includes(laser.direction)) {
-          break;
+        if (isHorizontal) {
+          // Center vertically
+          top += (tileSize - beamWidth) / 2;
+        } else {
+          // Center horizontally
+          left += (tileSize - beamWidth) / 2;
         }
 
-        const nextX = endX + vector.x;
-        const nextY = endY + vector.y;
+        // Create gradient based on direction
+        const gradientId = `laser-gradient-${index}-${pathIndex}`;
+        const gradientStops = isDoubleLaser ? (
+          <>
+            <stop offset="0%" stopColor="#ef4444" stopOpacity="0.3" />
+            <stop offset="50%" stopColor="#dc2626" stopOpacity="0.8" />
+            <stop offset="100%" stopColor="#ef4444" stopOpacity="0.3" />
+          </>
+        ) : (
+          <>
+            <stop offset="0%" stopColor="#f87171" stopOpacity="0.2" />
+            <stop offset="50%" stopColor="#ef4444" stopOpacity="0.6" />
+            <stop offset="100%" stopColor="#f87171" stopOpacity="0.2" />
+          </>
+        );
 
-        // 2. Check if the next tile is off the board
-        if (nextX < 0 || nextX >= board.width || nextY < 0 || nextY >= board.height) {
-          break;
-        }
+        return (
+          <div key={`laser-${index}-${pathIndex}`}>
+            <svg
+              className="absolute pointer-events-none"
+              style={{
+                left: `${left}px`,
+                top: `${top}px`,
+                width: isHorizontal ? `${beamLength}px` : `${beamWidth}px`,
+                height: isHorizontal ? `${beamWidth}px` : `${beamLength}px`,
+                zIndex: 10
+              }}
+            >
+              <defs>
+                <linearGradient
+                  id={gradientId}
+                  x1="0%"
+                  y1="0%"
+                  x2={isHorizontal ? "100%" : "0%"}
+                  y2={isHorizontal ? "0%" : "100%"}
+                >
+                  {gradientStops}
+                </linearGradient>
+              </defs>
+              <rect
+                width="100%"
+                height="100%"
+                fill={`url(#${gradientId})`}
+                className="animate-pulse"
+              />
+              {isDoubleLaser && (
+                <rect
+                  width="100%"
+                  height="100%"
+                  fill="none"
+                  stroke="#dc2626"
+                  strokeWidth="1"
+                  strokeOpacity="0.5"
+                />
+              )}
+            </svg>
 
-        // 3. Check for a wall on the next tile blocking the entry path
-        const nextTile = getTileAt(nextX, nextY);
-        if (nextTile?.walls?.includes((laser.direction + 2) % 4)) {
-          break;
-        }
-
-        // If no obstructions, the beam extends to the next tile
-        endX = nextX;
-        endY = nextY;
-
-        // 4. Check if the new tile has a robot, which stops the beam
-        if (Object.values(players).some(p => p.position.x === endX && p.position.y === endY && p.lives > 0)) {
-          break;
-        }
-      }
-
-      const x1 = (startX + 0.5) * tileSize;
-      const y1 = (startY + 0.5) * tileSize;
-      const x2 = (endX + 0.5) * tileSize;
-      const y2 = (endY + 0.5) * tileSize;
-
-      return (
-        <line
-          key={`laser-beam-${index}`}
-          x1={x1}
-          y1={y1}
-          x2={x2}
-          y2={y2}
-          stroke="red"
-          strokeWidth={laser.damage > 1 ? 4 : 2}
-          strokeOpacity="0.7"
-        />
-      );
-    });
+            {/* Add glow effect */}
+            <div
+              className="absolute pointer-events-none animate-pulse"
+              style={{
+                left: `${left - 4}px`,
+                top: `${top - 4}px`,
+                width: isHorizontal ? `${beamLength + 8}px` : `${beamWidth + 8}px`,
+                height: isHorizontal ? `${beamWidth + 8}px` : `${beamLength + 8}px`,
+                background: isDoubleLaser
+                  ? 'radial-gradient(ellipse at center, rgba(220, 38, 38, 0.3) 0%, transparent 70%)'
+                  : 'radial-gradient(ellipse at center, rgba(239, 68, 68, 0.2) 0%, transparent 70%)',
+                filter: 'blur(4px)',
+                zIndex: 9
+              }}
+            />
+          </div>
+        );
+      });
+    }).flat();
   };
 
   return (
@@ -393,10 +464,7 @@ export default function Board({ board, players, currentPlayerId, isHost, gameSta
           height: board.height * tileSize
         }}
       >
-        <svg className="absolute top-0 left-0 w-full h-full pointer-events-none">
-          {renderLaserBeams()}
-        </svg>
-
+        {/* Render tiles */}
         {Array.from({ length: board.height }, (_, y) => (
           Array.from({ length: board.width }, (_, x) => (
             <div
@@ -413,6 +481,9 @@ export default function Board({ board, players, currentPlayerId, isHost, gameSta
             </div>
           ))
         ))}
+
+        {/* Render laser beams on top of tiles but below robots */}
+        {renderLaserBeams()}
       </div>
 
       {/* Current phase indicator */}
