@@ -9,6 +9,7 @@ import Hand from '@/components/game/Hand';
 import ProgramRegisters from '@/components/game/ProgramRegisters';
 import GameContent from '@/components/game/GameContent';
 import ExecutionLog from '@/components/game/ExecutionLog';
+import { RobotLaserShot } from '@/components/game/RobotLaserAnimation';
 
 export default function GamePage() {
   const params = useParams();
@@ -25,6 +26,7 @@ export default function GamePage() {
   const [executionMessage, setExecutionMessage] = useState<string>('');
   const [winner, setWinner] = useState<string | null>(null);
   const [boardPhase, setBoardPhase] = useState<string | null>(null);
+  const [activeLasers, setActiveLasers] = useState<RobotLaserShot[]>([]);
 
   useEffect(() => {
     console.log('GamePage component mounted');
@@ -98,6 +100,7 @@ export default function GamePage() {
     socketClient.on('robot-damaged', handleRobotDamaged);
     socketClient.on('robot-fell-off-board', handleRobotFellOffBoard);
     socketClient.on('checkpoint-reached', handleCheckpointReached);
+    socketClient.on('robot-lasers-fired', (laserShots: RobotLaserShot[]) => { setActiveLasers(laserShots); });
 
     return () => {
       socketClient.leaveGame();
@@ -107,6 +110,7 @@ export default function GamePage() {
       socketClient.off('robot-fell-off-board', handleRobotFellOffBoard);
       socketClient.off('checkpoint-reached', handleCheckpointReached);
       socketClient.off('player-submitted', () => { });
+      socketClient.off('robot-lasers-fired', () => { });
     };
   }, [roomCode]);
 
@@ -508,6 +512,7 @@ export default function GamePage() {
                   isHost={isHost}
                   gameState={gameState}
                   roomCode={roomCode}
+                  activeLasers={activeLasers}
                 />
               </div>
 

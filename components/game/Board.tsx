@@ -1,6 +1,7 @@
 // components/game/Board.tsx
 import React, { useEffect, useState, useRef } from 'react';
 import { Board as BoardType, Player, Direction, Position } from '@/lib/game/types';
+import RobotLaserAnimation, { RobotLaserShot } from './RobotLaserAnimation';
 import Robot from './Robot';
 import { socketClient } from '@/lib/socket';
 
@@ -11,6 +12,7 @@ interface BoardProps {
   isHost?: boolean;
   gameState?: any;
   roomCode?: string;
+  activeLasers?: RobotLaserShot[];
 }
 
 // These interfaces will be used when you add enhanced board features
@@ -33,6 +35,9 @@ interface Laser {
   direction: number;
   damage: number;
 }
+
+// Direction mapping for visual arrows
+const DIRECTION_ARROWS = ['↑', '→', '↓', '←'];
 
 const ROBOT_COLORS = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan'];
 

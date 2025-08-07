@@ -421,6 +421,8 @@ class GameEngine {
     }
 
     // 2. Calculate damage from robot lasers
+    const robotLaserShots = []; // Track robot laser shots for animation
+
     Object.values(gameState.players).forEach(shooter => {
       if (shooter.lives <= 0) return;
 
@@ -436,6 +438,41 @@ class GameEngine {
         1 // Robot lasers always do 1 damage
       );
 
+      // Build laser path for animation
+      const path = [];
+      let x = startX;
+      let y = startY;
+
+      while (x >= 0 && x < gameState.board.width &&
+        y >= 0 && y < gameState.board.height) {
+
+        path.push({ x, y });
+
+        // Check if we hit a robot
+        if (this.getPlayerAt(gameState, x, y)) break;
+
+        // Check for walls (same logic as traceLaser)
+        const tile = this.getTileAt(gameState, x, y);
+        if (tile && tile.walls && tile.walls.includes(shooter.direction)) break;
+
+        x += vector.x;
+        y += vector.y;
+
+        const nextTile = this.getTileAt(gameState, x, y);
+        if (nextTile && nextTile.walls &&
+          nextTile.walls.includes((shooter.direction + 2) % 4)) break;
+      }
+
+      // Create laser shot data for animation
+      if (path.length > 0) {
+        robotLaserShots.push({
+          shooterId: shooter.id,
+          path: path,
+          targetId: hits.length > 0 ? hits[0].player.id : undefined,
+          timestamp: Date.now()
+        });
+      }
+
       hits.forEach(hit => {
         if (hit.player.id !== shooter.id) { // Can't shoot yourself
           getDamageInfo(hit.player.id).robotHits.push({
@@ -445,6 +482,11 @@ class GameEngine {
         }
       });
     });
+
+    // Emit robot laser animation event
+    if (robotLaserShots.length > 0) {
+      this.io.to(gameState.roomCode).emit('robot-lasers-fired', robotLaserShots);
+    }
 
     // 3. Apply all damage and emit events
     damages.forEach((damageInfo, playerId) => {
