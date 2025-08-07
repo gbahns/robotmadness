@@ -219,7 +219,7 @@ app.prepare().then(() => {
             }
 
             // Use the enhanced board configuration
-            gameState.board = RISKY_EXCHANGE_BOARD;
+            gameState.board = SAMPLE_BOARD;
 
             // Assign starting positions
             const players = Object.values(gameState.players);
