@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import BoardSelector from '@/components/BoardSelector';
 
 
 interface GameInfo {
@@ -22,6 +23,7 @@ export default function Home() {
   const [error, setError] = useState('');
   const [openGames, setOpenGames] = useState<GameInfo[]>([]);
   const [loadingGames, setLoadingGames] = useState(true);
+  const [selectedBoardId, setSelectedBoardId] = useState('test');
 
   useEffect(() => {
     // Load player name from localStorage

@@ -1,37 +1,71 @@
 import React, { useState } from 'react';
 import { socketClient } from '@/lib/socket';
-import { SAMPLE_BOARD, TEST_BOARD, RISKY_EXCHANGE_BOARD, RISKY_EXCHANGE_BOARD_CLAUDE_1, RISKY_EXCHANGE_BOARD_GEMINI, LASER_TEST_BOARD } from '@/boardConfig';
+import { COURSES, getBoardById, TEST_BOARD } from '@/lib/game/boards/boardDefinitions';
+import BoardPreview from './BoardPreview';
 
 interface GameControlsProps {
   isHost: boolean;
   roomCode: string;
   playerCount: number;
-  gameState: any; // Consider a more specific type if available
+  gameState: any;
+  selectedCourse?: string;
+  onCourseChange?: (courseId: string) => void;
 }
 
+// Build available courses from our board definitions
 const availableCourses = [
-  { id: 'TEST_BOARD', name: 'Test Board' },
-  { id: 'SAMPLE_BOARD', name: 'Factory Floor' },
-  { id: 'RISKY_EXCHANGE_BOARD', name: 'Risky Exchange' },
-  { id: 'RISKY_EXCHANGE_BOARD_CLAUDE_1', name: 'Risky Exchange (Claude)' },
-  { id: 'RISKY_EXCHANGE_BOARD_GEMINI', name: 'Risky Exchange (Gemini)' },
-  { id: 'LASER_TEST_BOARD', name: 'Laser Test Arena' },
+  { id: 'test', name: 'Test Board' },
+  ...COURSES.map(course => ({
+    id: course.boards[0].id, // Use the first board in each course
+    name: course.name,
+    description: course.description,
+    difficulty: course.difficulty,
+    playerRange: `${course.minPlayers}-${course.maxPlayers} players`
+  }))
 ];
 
-export default function GameControls({ isHost, roomCode, playerCount, gameState }: GameControlsProps) {
-  const [selectedCourse, setSelectedCourse] = useState<string>(availableCourses[0].id);
+export default function GameControls({ isHost, roomCode, playerCount, gameState, selectedCourse: externalSelectedCourse, onCourseChange }: GameControlsProps) {
+  const [internalSelectedCourse, setInternalSelectedCourse] = useState<string>('test');
 
-  const handleStartGame = () => {
-    socketClient.startGame(roomCode, selectedCourse);
+  // Use external course if provided, otherwise use internal state
+  const selectedCourse = externalSelectedCourse || internalSelectedCourse;
+  const setSelectedCourse = (courseId: string) => {
+    setInternalSelectedCourse(courseId);
+    onCourseChange?.(courseId);
+    if (isHost) {
+      socketClient.emit('select-board', { roomCode, boardId: courseId });
+    }
   };
 
   if (!isHost || gameState?.phase !== 'waiting') {
+    // Show selected board info for non-hosts in waiting phase
+    if (gameState?.phase === 'waiting' && selectedCourse) {
+      const courseInfo = COURSES.find(c => c.boards.some(b => b.id === selectedCourse));
+      const boardName = selectedCourse === 'test' ? 'Test Board' : courseInfo?.name || 'Unknown Board';
+
+      return (
+        <div className="bg-gray-800 rounded-lg p-6 text-center space-y-2">
+          <p className="text-gray-400">Waiting for host to start the game...</p>
+          <p className="text-sm text-gray-500">
+            Selected course: <span className="text-white font-semibold">{boardName}</span>
+          </p>
+          {courseInfo && (
+            <p className="text-xs text-gray-600">{courseInfo.description}</p>
+          )}
+        </div>
+      );
+    }
+
     return (
       <div className="bg-gray-800 rounded-lg p-6 text-center">
         <p className="text-gray-400">Waiting for host to start the game...</p>
       </div>
     );
   }
+
+  // Find the selected course details
+  const selectedBoard = getBoardById(selectedCourse) || TEST_BOARD;
+  const courseInfo = COURSES.find(c => c.boards.some(b => b.id === selectedCourse));
 
   return (
     <div className="bg-gray-800 rounded-lg p-6 space-y-4">
@@ -43,16 +77,38 @@ export default function GameControls({ isHost, roomCode, playerCount, gameState 
           onChange={(e) => setSelectedCourse(e.target.value)}
           className="p-2 rounded bg-gray-700 text-white border border-gray-600"
         >
-          {availableCourses.map((course) => (
-            <option key={course.id} value={course.id}>
-              {course.name}
-            </option>
-          ))}
+          <option value="test">Test Board</option>
+          <optgroup label="Beginner Courses">
+            {COURSES.filter(c => c.difficulty === 'beginner').map(course => (
+              <option key={course.boards[0].id} value={course.boards[0].id}>
+                {course.name}
+              </option>
+            ))}
+          </optgroup>
         </select>
+
+        {/* Show course details */}
+        {selectedCourse !== 'test' && courseInfo && (
+          <div className="mt-2 text-sm text-gray-400">
+            <p>{courseInfo.description}</p>
+            <p className="text-xs mt-1">
+              {courseInfo.minPlayers}-{courseInfo.maxPlayers} players •
+              {' '}{courseInfo.boards[0].checkpoints.length} checkpoints
+            </p>
+          </div>
+        )}
       </div>
+
+      {/* Board Preview */}
+      {selectedBoard && (
+        <div className="mt-4">
+          <h3 className="text-sm font-semibold text-gray-300 mb-2">Board Preview:</h3>
+          <BoardPreview board={selectedBoard} size={250} />
+        </div>
+      )}
+
       <button
         onClick={() => {
-          //this.emit(SocketEvent.START_GAME, { roomCode, selectedCourse });
           console.log('Start game clicked ', { roomCode, selectedCourse });
           socketClient.emit('start-game', { roomCode, selectedCourse });
           console.log('Emitted start_game event', { roomCode, selectedCourse });
@@ -62,13 +118,7 @@ export default function GameControls({ isHost, roomCode, playerCount, gameState 
       >
         Start Game
       </button>
-      {/* <button
-        onClick={handleStartGame}
-        disabled={playerCount < 2}
-        className="w-full bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {playerCount < 2 ? 'Need at least 2 players' : 'Start Game'}
-      </button> */}
+
       {playerCount < 2 && (
         <p className="text-sm text-gray-500">Need at least 2 players to start</p>
       )}

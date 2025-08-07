@@ -17,7 +17,7 @@ interface BoardProps {
 
 // These interfaces will be used when you add enhanced board features
 interface TileElement {
-  type: 'conveyor' | 'conveyor_express' | 'gear' | 'pusher' | 'repair' | 'pit';
+  type: 'conveyor' | 'conveyor_express' | 'gear' | 'pusher' | 'repair' | 'pit' | 'option' | 'gear_cw' | 'gear_ccw';
   position: { x: number; y: number };
   direction?: number;
   rotate?: 'clockwise' | 'counterclockwise';
@@ -97,30 +97,45 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
       roomCodeExists: !!roomCode
     });
 
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center space-y-4">
-          <p className="text-xl text-gray-300">
-            Waiting for players to join...
-          </p>
-          <p className="text-lg text-gray-400">
-            {playerCount} / 8 players in lobby
-          </p>
+    // If we have a board (preview mode), show it instead of the waiting message
+    if (board) {
+      // Continue to render the board normally - it will show the selected course layout
+      // Just without any robots on it yet
+    } else {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center space-y-4">
+            <p className="text-xl text-gray-300">
+              Waiting for players to join...
+            </p>
+            <p className="text-lg text-gray-400">
+              {playerCount} / 8 players in lobby
+            </p>
 
-          {isHost ? (
-            <>
-              <p>Select Course</p>
-
-              {playerCount < 2 && (
-                <p className="text-sm text-gray-500">Need at least 2 players to start</p>
-              )}
-            </>
-          ) : (
-            <p className="text-gray-400">Waiting for host to start game...</p>
-          )}
+            {isHost ? (
+              <>
+                <button
+                  onClick={() => {
+                    console.log('Start game clicked, roomCode:', roomCode);
+                    socketClient.emit('start-game', roomCode);
+                    console.log('Emitted start_game event');
+                  }}
+                  disabled={playerCount < 2}
+                  className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-8 py-3 rounded font-semibold text-lg"
+                >
+                  Start Game
+                </button>
+                {playerCount < 2 && (
+                  <p className="text-sm text-gray-500">Need at least 2 players to start</p>
+                )}
+              </>
+            ) : (
+              <p className="text-gray-400">Waiting for host to start game...</p>
+            )}
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
   }
 
   // Get player index for color assignment
@@ -289,6 +304,66 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
         );
       }
 
+      // ADD this after the existing conveyor belt rendering code (around line 215):
+
+      // Pits
+      if (tile.type === 'pit') {
+        elements.push(
+          <div key="pit" className="absolute inset-0 bg-black opacity-80 flex items-center justify-center">
+            <div className="text-gray-600" style={{ fontSize: `${fontSize * 1.5}px` }}>⚫</div>
+          </div>
+        );
+      }
+
+      // Repair sites
+      if (tile.type === 'repair') {
+        elements.push(
+          <div key="repair" className="absolute inset-0 flex items-center justify-center">
+            <div className="bg-yellow-600 rounded-full p-1" style={{ width: `${tileSize * 0.6}px`, height: `${tileSize * 0.6}px` }}>
+              <div className="bg-yellow-500 rounded-full w-full h-full flex items-center justify-center">
+                <span style={{ fontSize: `${fontSize * 0.8}px` }}>🔧</span>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // Option sites
+      if (tile.type === 'option') {
+        elements.push(
+          <div key="option" className="absolute inset-0 flex items-center justify-center">
+            <div className="bg-purple-600 rounded-full p-1" style={{ width: `${tileSize * 0.6}px`, height: `${tileSize * 0.6}px` }}>
+              <div className="bg-purple-500 rounded-full w-full h-full flex items-center justify-center">
+                <span style={{ fontSize: `${fontSize * 0.8}px` }}>⚙️</span>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // Gears
+      if (tile.type === 'gear_cw' || tile.type === 'gear_ccw') {
+        const isClockwise = tile.type === 'gear_cw';
+        elements.push(
+          <div key="gear" className="absolute inset-0 flex items-center justify-center">
+            <div
+              className="text-gray-500"
+              style={{
+                fontSize: `${tileSize * 0.8}px`,
+                transform: `rotate(${isClockwise ? '0deg' : '180deg'})`
+              }}
+            >
+              ⚙
+            </div>
+            <div
+              className="absolute text-white font-bold"
+              style={{ fontSize: `${fontSize * 0.6}px` }}
+            >
+              {isClockwise ? '↻' : '↺'}
+            </div>
+          </div>
+        );
+      }
       // Other tile types can be added here...
     }
 

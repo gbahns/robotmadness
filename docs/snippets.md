@@ -36,3 +36,45 @@
   const handleStartGame = () => {
     socketClient.startGame(roomCode);
   };
+
+
+
+              <BoardSelector 
+              selectedBoardId={selectedBoardId}
+              onSelectBoard={setSelectedBoardId}
+            />
+
+
+            {/* REPLACE the entire Create Game card (Card component) with this: */}
+        <Card className="bg-gray-800 border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-xl text-white">Create Game</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Your Name
+              </label>
+              <input
+                type="text"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                placeholder="Enter your name"
+              />
+            </div>
+
+            <BoardSelector 
+              selectedBoardId={selectedBoardId}
+              onSelectBoard={setSelectedBoardId}
+            />
+
+            <button
+              onClick={handleCreateGame}
+              disabled={!playerName.trim()}
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+            >
+              Create Game
+            </button>
+          </CardContent>
+        </Card>

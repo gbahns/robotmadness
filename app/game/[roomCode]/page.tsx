@@ -11,6 +11,8 @@ import GameContent from '@/components/game/GameContent';
 import ExecutionLog from '@/components/game/ExecutionLog';
 import { RobotLaserShot } from '@/components/game/RobotLaserAnimation';
 import GameControls from '@/components/game/GameControls';
+import { getBoardById, TEST_BOARD } from '@/lib/game/boards/boardDefinitions';
+import { buildBoard } from '@/lib/game/boards/boardBuilder';
 
 export default function GamePage() {
   const params = useParams();
@@ -28,6 +30,17 @@ export default function GamePage() {
   const [winner, setWinner] = useState<string | null>(null);
   const [boardPhase, setBoardPhase] = useState<string | null>(null);
   const [activeLasers, setActiveLasers] = useState<RobotLaserShot[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState<string>('test');
+  const [previewBoard, setPreviewBoard] = useState<any>(null);
+
+  useEffect(() => {
+    // Build preview board when course is selected
+    const boardDef = getBoardById(selectedCourse) || TEST_BOARD;
+    if (boardDef) {
+      const board = buildBoard(boardDef);
+      setPreviewBoard(board);
+    }
+  }, [selectedCourse]);
 
   useEffect(() => {
     console.log('GamePage component mounted');
@@ -127,6 +140,7 @@ export default function GamePage() {
       socketClient.off('checkpoint-reached', handleCheckpointReached);
       socketClient.off('player-submitted', () => { });
       socketClient.off('robot-lasers-fired', () => { });
+      socketClient.off('board-selected', () => { });
     };
   }, [roomCode]);
 
@@ -136,6 +150,14 @@ export default function GamePage() {
 
     socketClient.on('board-phase', (data: { phase: string | null }) => {
       setBoardPhase(data.phase);
+    });
+
+    socketClient.on('board-selected', (data: { boardId: string; previewBoard: any }) => {
+      console.log('Board selected by host:', data.boardId);
+      setSelectedCourse(data.boardId);
+      if (data.previewBoard) {
+        setPreviewBoard(data.previewBoard);
+      }
     });
 
     // Set up event listeners
@@ -564,7 +586,7 @@ export default function GamePage() {
               {/* Game Board - takes most space - removed gray container - responsive container*/}
               <div className="flex-1 flex items-center justify-center">
                 <Board
-                  board={gameState?.board!}
+                  board={gameState?.board || previewBoard}
                   players={gameState?.players || {}}
                   currentPlayerId={playerIdRef.current}
                   isHost={isHost}
@@ -626,6 +648,8 @@ export default function GamePage() {
                   roomCode={roomCode}
                   playerCount={Object.keys(gameState?.players || {}).length}
                   gameState={gameState}
+                  selectedCourse={selectedCourse}
+                  onCourseChange={setSelectedCourse}
                 />
 
                 <ExecutionLog entries={logEntries} />
@@ -649,40 +673,42 @@ export default function GamePage() {
                   )}
 
                   {/* Program Registers */}
-                  <div className="bg-gray-800 rounded-lg p-6">
-                    <div className="flex items-center gap-4">
-                      <div className="flex-1">
-                        <ProgramRegisters
-                          selectedCards={currentPlayer.selectedCards}
-                          lockedRegisters={currentPlayer.lockedRegisters}
-                          onCardDrop={handleCardDrop}
-                          onCardRemove={handleCardRemove}
-                          isSubmitted={isSubmitted}
-                          currentRegister={gameState?.currentRegister}
-                          phase={gameState?.phase}
-                          boardPhase={boardPhase}
-                        />
-                      </div>
+                  {(gameState?.phase === 'programming' || gameState?.phase === 'executing') && (
+                    <div className="bg-gray-800 rounded-lg p-6">
+                      <div className="flex items-center gap-4">
+                        <div className="flex-1">
+                          <ProgramRegisters
+                            selectedCards={currentPlayer.selectedCards}
+                            lockedRegisters={currentPlayer.lockedRegisters}
+                            onCardDrop={handleCardDrop}
+                            onCardRemove={handleCardRemove}
+                            isSubmitted={isSubmitted}
+                            currentRegister={gameState?.currentRegister}
+                            phase={gameState?.phase}
+                            boardPhase={boardPhase}
+                          />
+                        </div>
 
-                      {!isSubmitted && (
-                        <button
-                          onClick={handleSubmitCards}
-                          disabled={currentPlayer.selectedCards.filter(c => c !== null).length < 5}
-                          className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-8 py-3 rounded font-semibold"
-                        >
-                          Submit
-                        </button>
-                      )}
-                      {(gameState?.phase === 'programming' || isSubmitted) && (
-                        <button
-                          onClick={handleResetCards}
-                          className="bg-red-600 hover:bg-red-700 px-8 py-3 rounded font-semibold"
-                        >
-                          Reset
-                        </button>
-                      )}
+                        {!isSubmitted && (
+                          <button
+                            onClick={handleSubmitCards}
+                            disabled={currentPlayer.selectedCards.filter(c => c !== null).length < 5}
+                            className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-8 py-3 rounded font-semibold"
+                          >
+                            Submit
+                          </button>
+                        )}
+                        {(gameState?.phase === 'programming' || isSubmitted) && (
+                          <button
+                            onClick={handleResetCards}
+                            className="bg-red-600 hover:bg-red-700 px-8 py-3 rounded font-semibold"
+                          >
+                            Reset
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </>
               )}
 

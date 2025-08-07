@@ -7,7 +7,9 @@ const next = require('next');
 const { Server } = require('socket.io');
 const GameEngine = require('./gameEngine');
 const { SAMPLE_BOARD, TEST_BOARD, BOARD_THEMES, RISKY_EXCHANGE_BOARD, RISKY_EXCHANGE_BOARD_CLAUDE_1, RISKY_EXCHANGE_BOARD_GEMINI, LASER_TEST_BOARD } = require('./boardConfig');
-
+const boardBuilder = require('./lib/game/boards/boardBuilder.js');
+const { /*TEST_BOARD, */ COURSES, getBoardById } = require('./lib/game/boards/boardDefinitions');
+//const boardBuilder = require('./lib/game/boards/boardBuilder').default;
 
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });
@@ -109,6 +111,74 @@ function dealCards(gameState) {
     gameState.cardsDealt = true;
 }
 
+// Create board from definition
+function createBoardFromDefinition(boardId = 'test') {
+    console.log('Creating board with ID:', boardId);
+
+    // Get the board definition
+    const boardDef = getBoardById(boardId);
+    if (!boardDef) {
+        console.log('Board definition not found, using test board');
+        return createBoard(); // Fall back to empty board
+    }
+
+    // Build the board
+    const board = boardBuilder.buildBoard(boardDef);
+
+    // Validate the board
+    const validation = boardBuilder.validateBoardConfiguration(board);
+    if (!validation.valid) {
+        console.error('Board validation errors:', validation.errors);
+        // Continue anyway for now, but log the errors
+    }
+
+    console.log('Created board:', boardDef.name, 'with', board.checkpoints.length, 'checkpoints');
+    return board;
+}
+
+// REPLACE the existing createBoard function with this:
+
+function createBoard(boardId = 'test') {
+    // If a boardId is provided, use the new board definition system
+    if (boardId && boardId !== 'empty') {
+        return createBoardFromDefinition(boardId);
+    }
+
+    // Otherwise create an empty board (original behavior)
+    const tiles = [];
+    for (let y = 0; y < 12; y++) {
+        const row = [];
+        for (let x = 0; x < 12; x++) {
+            row.push({
+                type: 'empty',
+                walls: []
+            });
+        }
+        tiles.push(row);
+    }
+
+    return {
+        width: 12,
+        height: 12,
+        tiles: tiles,
+        checkpoints: [
+            { position: { x: 6, y: 3 }, number: 1 },
+            { position: { x: 9, y: 9 }, number: 2 },
+            { position: { x: 3, y: 6 }, number: 3 },
+        ],
+        startingPositions: [
+            { position: { x: 1, y: 1 }, direction: 0 },
+            { position: { x: 10, y: 1 }, direction: 0 },
+            { position: { x: 10, y: 10 }, direction: 0 },
+            { position: { x: 1, y: 10 }, direction: 0 },
+            { position: { x: 5, y: 5 }, direction: 0 },
+            { position: { x: 6, y: 6 }, direction: 0 },
+            { position: { x: 3, y: 3 }, direction: 0 },
+            { position: { x: 8, y: 8 }, direction: 0 },
+        ]
+    };
+}
+
 app.prepare().then(() => {
     const server = createServer((req, res) => {
         const parsedUrl = parse(req.url, true);
@@ -207,6 +277,36 @@ app.prepare().then(() => {
             });
         });
 
+        socket.on('select-board', (data) => {
+            const { roomCode, boardId } = data;
+            console.log('Board selection:', { roomCode, boardId });
+
+            const gameState = games.get(roomCode);
+            if (!gameState) return;
+
+            // Only allow host to change board selection
+            const playerInfo = playerSockets.get(socket.id);
+            if (!playerInfo || gameState.host !== playerInfo.playerId) {
+                console.log('Non-host tried to change board selection');
+                return;
+            }
+
+            // Store the selected board ID in game state
+            gameState.selectedBoardId = boardId;
+
+            // Build preview board
+            const previewBoard = createBoard(boardId);
+            if (previewBoard) {
+                gameState.previewBoard = previewBoard;
+            }
+
+            // Broadcast to all players in the room
+            io.to(roomCode).emit('board-selected', {
+                boardId,
+                previewBoard
+            });
+        });
+
         socket.on('start-game', (data) => {
             const { roomCode, selectedCourse } = data;
             console.log('Received start_game event', { roomCode, selectedCourse });
@@ -221,30 +321,41 @@ app.prepare().then(() => {
             }
 
             // Select the board based on selectedCourse
-            let selectedBoard;
-            switch (selectedCourse) {
-                case 'TEST_BOARD':
-                    selectedBoard = TEST_BOARD;
-                    break;
-                case 'SAMPLE_BOARD':
-                    selectedBoard = SAMPLE_BOARD;
-                    break;
-                case 'RISKY_EXCHANGE_BOARD':
-                    selectedBoard = RISKY_EXCHANGE_BOARD;
-                    break;
-                case 'RISKY_EXCHANGE_BOARD_CLAUDE_1':
-                    selectedBoard = RISKY_EXCHANGE_BOARD_CLAUDE_1;
-                    break;
-                case 'RISKY_EXCHANGE_BOARD_GEMINI':
-                    selectedBoard = RISKY_EXCHANGE_BOARD_GEMINI;
-                    break;
-                case 'LASER_TEST_BOARD':
-                    selectedBoard = LASER_TEST_BOARD;
-                    break;
-                default:
-                    selectedBoard = TEST_BOARD; // Default to TEST_BOARD if not found
+            // First check if it's one of the new board definitions
+            const newBoard = createBoard(selectedCourse);
+            if (newBoard && selectedCourse !== 'test') {
+                // Successfully created board from new definitions
+                gameState.board = newBoard;
+                console.log(`Using new board definition: ${selectedCourse}`);
+            } else {
+                // Fall back to old board configurations for backwards compatibility
+                let selectedBoard;
+                switch (selectedCourse) {
+                    case 'TEST_BOARD':
+                    case 'test':
+                        selectedBoard = TEST_BOARD;
+                        break;
+                    case 'SAMPLE_BOARD':
+                        selectedBoard = SAMPLE_BOARD;
+                        break;
+                    case 'RISKY_EXCHANGE_BOARD':
+                        selectedBoard = RISKY_EXCHANGE_BOARD;
+                        break;
+                    case 'RISKY_EXCHANGE_BOARD_CLAUDE_1':
+                        selectedBoard = RISKY_EXCHANGE_BOARD_CLAUDE_1;
+                        break;
+                    case 'RISKY_EXCHANGE_BOARD_GEMINI':
+                        selectedBoard = RISKY_EXCHANGE_BOARD_GEMINI;
+                        break;
+                    case 'LASER_TEST_BOARD':
+                        selectedBoard = LASER_TEST_BOARD;
+                        break;
+                    default:
+                        selectedBoard = TEST_BOARD; // Default to TEST_BOARD if not found
+                }
+                gameState.board = selectedBoard;
+                console.log(`Using old board configuration: ${selectedCourse}`);
             }
-            gameState.board = selectedBoard;
 
             // Assign starting positions
             const players = Object.values(gameState.players);
@@ -266,6 +377,72 @@ app.prepare().then(() => {
                 console.log('Cards dealt! Game state:', JSON.stringify(gameState.players, null, 2));
                 io.to(roomCode).emit('game-state', gameState);
             }, 2000);
+        });
+
+        // REPLACE the existing create-game handler with this:
+        socket.on('create-game', ({ userId, playerName, boardId }, callback) => {
+            console.log('Create game request:', { userId, playerName, boardId });
+
+            if (!userId || !playerName) {
+                console.log('Missing userId or playerName');
+                return callback({ error: 'userId and playerName are required' });
+            }
+
+            let roomCode;
+            do {
+                roomCode = generateRoomCode();
+            } while (games.has(roomCode));
+
+            console.log('Generated room code:', roomCode);
+
+            const player = {
+                id: userId,
+                userId: userId,
+                name: playerName,
+                position: { x: 0, y: 0 },
+                direction: 0,
+                damage: 0,
+                lives: 3,
+                checkpointsVisited: 0,
+                isPoweredDown: false,
+                cards: [],
+                dealtCards: [],
+                selectedCards: Array(5).fill(null),
+                lockedRegisters: 0
+            };
+
+            const game = {
+                id: roomCode,
+                roomCode: roomCode,
+                host: userId,
+                name: `${playerName}'s Game`,
+                players: {
+                    [userId]: player
+                },
+                board: createBoard(boardId || 'test'), // Use the provided boardId or default to test
+                phase: 'waiting',
+                currentRegister: 0,
+                roundNumber: 0,
+                cardsDealt: false
+            };
+
+            games.set(roomCode, game);
+            socket.join(roomCode);
+
+            console.log('Game created successfully:', roomCode);
+            console.log('Board info:', {
+                boardId: boardId || 'test',
+                checkpoints: game.board.checkpoints.length,
+                startingPositions: game.board.startingPositions.length
+            });
+
+            callback({
+                success: true,
+                roomCode,
+                game: game
+            });
+
+            io.to(roomCode).emit('game-state', game);
         });
 
         socket.on('submit-cards', (data) => {
