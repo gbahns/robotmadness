@@ -356,7 +356,15 @@ app.prepare().then(() => {
             await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
-        // After all registers, go back to programming phase
+        // After all registers, clean up the turn
+        // 1. Respawn any dead robots
+        gameEngine.respawnDeadRobots(gameState);
+
+        // 2. TODO: Handle repairs & upgrades
+
+        // 3. TODO: Handle power downs
+
+        // 4. Go back to programming phase for the next turn
         gameState.phase = 'programming';
         gameState.currentRegister = 0;
         gameState.roundNumber++;

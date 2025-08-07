@@ -149,7 +149,8 @@ class GameEngine {
     if (newX < 0 || newX >= gameState.board.width ||
       newY < 0 || newY >= gameState.board.height) {
       // Robot falls off
-      this.respawnPlayer(gameState, player);
+              // Robot falls off
+      this.destroyRobot(gameState, player, 'fell off board');
       return true;
     }
 
@@ -172,8 +173,38 @@ class GameEngine {
   // Get player at position
   getPlayerAt(gameState, x, y) {
     return Object.values(gameState.players).find(
-      p => p.position.x === x && p.position.y === y && p.lives > 0
+      p => p.position.x === x && p.position.y === y && !p.isDead
     );
+  }
+
+  // Respawn all dead robots at the end of the turn
+  respawnDeadRobots(gameState) {
+    Object.values(gameState.players).forEach(player => {
+      if (player.isDead) {
+        if (player.lives > 0) {
+          console.log(`${player.name} is respawning.`);
+
+          // Find a safe respawn location (their last checkpoint or starting position)
+          let respawnPos = player.respawnPosition || 
+                         gameState.board.startingPositions[Object.keys(gameState.players).indexOf(player.id) % gameState.board.startingPositions.length];
+
+          // TODO: Check if the respawn point is occupied and find a new one if it is
+
+          player.position = { ...respawnPos.position };
+          player.direction = respawnPos.direction;
+          player.isDead = false;
+
+          this.io.to(gameState.roomCode).emit('robot-respawned', {
+            playerName: player.name,
+            position: player.position,
+            direction: player.direction
+          });
+
+        } else {
+          console.log(`${player.name} has no lives left.`);
+        }
+      }
+    });
   }
 
   // Destroy a robot
@@ -612,7 +643,10 @@ class GameEngine {
         });
 
         // Update respawn position
-        player.respawnPosition = { ...player.position };
+        player.respawnPosition = { 
+            position: { ...player.position },
+            direction: player.direction
+        };
 
         // Check for winner
         if (player.checkpointsVisited === gameState.board.checkpoints.length) {
@@ -631,7 +665,10 @@ class GameEngine {
       const tile = this.getTileAt(gameState, player.position.x, player.position.y);
       if (tile && (tile.type === 'repair' || tile.type === 'upgrade')) {
         // Update respawn position
-        player.respawnPosition = { ...player.position };
+        player.respawnPosition = {
+            position: { ...player.position },
+            direction: player.direction
+        };
 
         // Repair damage at end of turn (handled elsewhere)
       }
