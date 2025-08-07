@@ -208,10 +208,158 @@ const RISKY_EXCHANGE_BOARD = {
   ],
 };
 
+// Board configuration with multiple lasers for testing
+const LASER_TEST_BOARD = {
+  name: "Laser Test Arena",
+  width: 12,
+  height: 10,
+
+  // Starting positions
+  startingPositions: [
+    { position: { x: 1, y: 8 }, direction: 0 }, // North
+    { position: { x: 3, y: 8 }, direction: 0 },
+    { position: { x: 5, y: 8 }, direction: 0 },
+    { position: { x: 7, y: 8 }, direction: 0 },
+    { position: { x: 9, y: 8 }, direction: 0 },
+    { position: { x: 10, y: 8 }, direction: 0 }
+  ],
+
+  // Checkpoints
+  checkpoints: [
+    { number: 1, position: { x: 5, y: 5 } },
+    { number: 2, position: { x: 8, y: 2 } },
+    { number: 3, position: { x: 2, y: 1 } }
+  ],
+
+  // Board elements
+  tiles: [
+    // Conveyor belt path through lasers
+    { position: { x: 3, y: 5 }, type: 'conveyor', direction: 1 },
+    { position: { x: 4, y: 5 }, type: 'conveyor', direction: 1 },
+    { position: { x: 5, y: 5 }, type: 'conveyor', direction: 1 },
+    { position: { x: 6, y: 5 }, type: 'conveyor', direction: 1 },
+    { position: { x: 7, y: 5 }, type: 'conveyor', direction: 1 },
+    { position: { x: 8, y: 5 }, type: 'conveyor', direction: 2, rotate: 'clockwise' },
+
+    // Express conveyor dangerous path
+    { position: { x: 1, y: 3 }, type: 'conveyor_express', direction: 1 },
+    { position: { x: 2, y: 3 }, type: 'conveyor_express', direction: 1 },
+    { position: { x: 3, y: 3 }, type: 'conveyor_express', direction: 1 },
+
+    // Gears
+    { position: { x: 6, y: 6 }, type: 'gear', rotate: 'clockwise' },
+    { position: { x: 4, y: 2 }, type: 'gear', rotate: 'counterclockwise' },
+
+    // Pits
+    { position: { x: 10, y: 5 }, type: 'pit' },
+    { position: { x: 11, y: 5 }, type: 'pit' },
+
+    // Repair site
+    { position: { x: 0, y: 0 }, type: 'repair' }
+  ],
+
+  // Laser configuration - demonstrating all directions and damage levels
+  lasers: [
+    // North-facing lasers (shooting up)
+    { position: { x: 2, y: 9 }, direction: 0, damage: 1 },
+    { position: { x: 6, y: 7 }, direction: 0, damage: 2 }, // Double laser
+
+    // East-facing lasers (shooting right)
+    { position: { x: 0, y: 3 }, direction: 1, damage: 1 },
+    { position: { x: 0, y: 5 }, direction: 1, damage: 1 },
+    { position: { x: 0, y: 6 }, direction: 1, damage: 2 }, // Double laser
+
+    // South-facing lasers (shooting down)
+    { position: { x: 5, y: 0 }, direction: 2, damage: 1 },
+    { position: { x: 8, y: 0 }, direction: 2, damage: 2 }, // Double laser
+    { position: { x: 10, y: 1 }, direction: 2, damage: 1 },
+
+    // West-facing lasers (shooting left)
+    { position: { x: 11, y: 2 }, direction: 3, damage: 1 },
+    { position: { x: 11, y: 4 }, direction: 3, damage: 2 }, // Double laser
+    { position: { x: 11, y: 7 }, direction: 3, damage: 1 },
+
+    // Cross-fire zone in the middle
+    { position: { x: 3, y: 4 }, direction: 1, damage: 1 },
+    { position: { x: 7, y: 4 }, direction: 3, damage: 1 }
+  ]
+};
+
+// Board themes including the laser test
+const BOARD_THEMES_WITH_LASERS = {
+  simple: {
+    name: "Training Ground",
+    width: 10,
+    height: 10,
+    startingPositions: [
+      { position: { x: 1, y: 9 }, direction: 0 },
+      { position: { x: 3, y: 9 }, direction: 0 },
+      { position: { x: 5, y: 9 }, direction: 0 },
+      { position: { x: 7, y: 9 }, direction: 0 }
+    ],
+    checkpoints: [
+      { number: 1, position: { x: 5, y: 5 } },
+      { number: 2, position: { x: 8, y: 2 } }
+    ],
+    tiles: [
+      // Simple conveyor loop
+      { position: { x: 4, y: 5 }, type: 'conveyor', direction: 1 },
+      { position: { x: 5, y: 5 }, type: 'conveyor', direction: 1 },
+      { position: { x: 6, y: 5 }, type: 'conveyor', direction: 2, rotate: 'clockwise' },
+      { position: { x: 6, y: 6 }, type: 'conveyor', direction: 3 },
+      { position: { x: 5, y: 6 }, type: 'conveyor', direction: 3 },
+      { position: { x: 4, y: 6 }, type: 'conveyor', direction: 0, rotate: 'clockwise' }
+    ],
+    lasers: [
+      // Simple laser setup
+      { position: { x: 2, y: 0 }, direction: 2, damage: 1 },
+      { position: { x: 7, y: 9 }, direction: 0, damage: 1 }
+    ]
+  },
+
+  laserTest: LASER_TEST_BOARD,
+
+  flagFry: {
+    name: "Flag Fry",
+    width: 10,
+    height: 10,
+    startingPositions: [
+      { position: { x: 2, y: 9 }, direction: 0 },
+      { position: { x: 4, y: 9 }, direction: 0 },
+      { position: { x: 6, y: 9 }, direction: 0 },
+      { position: { x: 8, y: 9 }, direction: 0 }
+    ],
+    checkpoints: [
+      // Checkpoints inside laser crossfire!
+      { number: 1, position: { x: 5, y: 5 } },
+      { number: 2, position: { x: 2, y: 2 } },
+      { number: 3, position: { x: 7, y: 2 } }
+    ],
+    tiles: [],
+    lasers: [
+      // Crossing laser beams over checkpoint 1
+      { position: { x: 0, y: 5 }, direction: 1, damage: 1 },
+      { position: { x: 9, y: 5 }, direction: 3, damage: 1 },
+      { position: { x: 5, y: 0 }, direction: 2, damage: 1 },
+      { position: { x: 5, y: 9 }, direction: 0, damage: 1 },
+
+      // Double lasers guarding checkpoint 2
+      { position: { x: 2, y: 0 }, direction: 2, damage: 2 },
+      { position: { x: 0, y: 2 }, direction: 1, damage: 2 },
+
+      // Regular lasers around checkpoint 3
+      { position: { x: 7, y: 0 }, direction: 2, damage: 1 },
+      { position: { x: 9, y: 2 }, direction: 3, damage: 1 }
+    ]
+  }
+};
+
 // Export for use in server
 module.exports = {
   SAMPLE_BOARD,
   TEST_BOARD,
   BOARD_THEMES,
-  RISKY_EXCHANGE_BOARD
+  RISKY_EXCHANGE_BOARD,
+  LASER_TEST_BOARD,
+  BOARD_THEMES_WITH_LASERS,
 };
