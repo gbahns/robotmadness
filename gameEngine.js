@@ -110,7 +110,7 @@ class GameEngine {
       if (newX < 0 || newX >= gameState.board.width ||
         newY < 0 || newY >= gameState.board.height) {
         // Player falls off
-        this.respawnPlayer(gameState, player);
+        this.destroyRobot(gameState, player);
         break;
       }
 
@@ -133,7 +133,7 @@ class GameEngine {
         player.position.x = newX;
         player.position.y = newY;
       } else {
-        this.respawnPlayer(gameState, player);
+        this.destroyRobot(gameState, player);
         break; // dead, movement stops
       }
     }
@@ -176,11 +176,34 @@ class GameEngine {
     );
   }
 
-  // Respawn a player
-  respawnPlayer(gameState, player) {
+  // Destroy a robot
+  destroyRobot(gameState, player, reason) {
+    if (player.isDead) return; // Already destroyed this turn
+
+    console.log(`${player.name} destroyed: ${reason}`);
+
     player.lives--;
     player.damage = 2; // Respawn with 2 damage
+    player.isDead = true;
+    player.position = { x: -1, y: -1 }; // Move off board visually
 
+    this.io.to(gameState.roomCode).emit('robot-destroyed', {
+      playerName: player.name,
+      reason: reason
+    });
+
+    if (player.lives <= 0) {
+      // Player is out for good
+      console.log(`${player.name} is out of lives!`);
+      this.io.to(gameState.roomCode).emit('robot-destroyed', {
+        playerName: player.name,
+        reason: 'out of lives'
+      });
+    }
+
+  }
+
+  respawnRobot(gameState, player) {
     if (player.lives <= 0) {
       // Player is out
       console.log(`${player.name} is out of lives!`);
@@ -188,7 +211,7 @@ class GameEngine {
     }
 
     // Emit event for log
-    this.io.to(gameState.roomCode).emit('robot-fell-off-board', {
+    this.io.to(gameState.roomCode).emit('robot-respawned', {
       playerName: player.name
     });
 
@@ -280,7 +303,7 @@ class GameEngine {
       // Check if destination is off the board
       if (to.x < 0 || to.x >= gameState.board.width ||
         to.y < 0 || to.y >= gameState.board.height) {
-        this.respawnPlayer(gameState, player);
+        this.destroyRobot(gameState, player);
         return;
       }
 
@@ -524,7 +547,7 @@ class GameEngine {
       // Check if robot is destroyed after all damage is applied
       if (victim.damage >= 10) {
         console.log(`${victim.name} is destroyed!`);
-        this.respawnPlayer(gameState, victim);
+        this.destroyRobot(gameState, victim);
       }
     });
   }
