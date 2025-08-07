@@ -24,6 +24,7 @@ export default function GamePage() {
   const playerIdRef = useRef<string>('');
   const [executionMessage, setExecutionMessage] = useState<string>('');
   const [winner, setWinner] = useState<string | null>(null);
+  const [boardPhase, setBoardPhase] = useState<string | null>(null);
 
   useEffect(() => {
     console.log('GamePage component mounted');
@@ -112,6 +113,10 @@ export default function GamePage() {
   const connectToGame = (name: string, playerId?: string | null) => {
     // Connect to socket server
     socketClient.connect();
+
+    socketClient.on('board-phase', (data: { phase: string | null }) => {
+      setBoardPhase(data.phase);
+    });
 
     // Set up event listeners
     socketClient.onGameState((state: GameState) => {
@@ -585,6 +590,7 @@ export default function GamePage() {
                           isSubmitted={isSubmitted}
                           currentRegister={gameState?.currentRegister}
                           phase={gameState?.phase}
+                          boardPhase={boardPhase}
                         />
                       </div>
 

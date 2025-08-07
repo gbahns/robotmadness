@@ -14,6 +14,7 @@ interface ProgramRegistersProps {
   isSubmitted: boolean;
   currentRegister?: number;
   phase?: string;
+  boardPhase?: string | null;
 }
 
 interface RegisterSlotProps {
@@ -84,6 +85,7 @@ export default function ProgramRegisters({
   isSubmitted,
   currentRegister,
   phase,
+  boardPhase
 }: ProgramRegistersProps) {
   const totalLocked = Math.min(lockedRegisters, 5);
 
@@ -114,9 +116,27 @@ export default function ProgramRegisters({
         })}
       </div>
 
-      {isSubmitted && (
+      {isSubmitted && phase !== 'executing' && (
         <div className="mt-4 text-center text-green-400">
           ✓ Program submitted! Waiting for other players...
+        </div>
+      )}
+
+      {phase === 'executing' && (
+        <div className="mt-4 text-center text-yellow-400">
+          <div className="text-lg font-semibold">
+            Executing Register {(currentRegister || 0) + 1}
+          </div>
+          {boardPhase && (
+            <div className="text-sm text-gray-300 mt-1">
+              {boardPhase}
+            </div>
+          )}
+          {!boardPhase && (
+            <div className="text-sm text-gray-400 mt-1">
+              Watch the chaos unfold!
+            </div>
+          )}
         </div>
       )}
     </div>

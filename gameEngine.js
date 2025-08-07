@@ -214,18 +214,23 @@ class GameEngine {
     console.log('Executing board elements...');
 
     // 1. Express conveyor belts (move 1 space)
+    this.io.to(gameState.roomCode).emit('board-phase', { phase: 'Express Conveyors' });
     await this.executeConveyorBelts(gameState, true, false);
 
     // 2. All conveyor belts (express move again, normal move once)
+    this.io.to(gameState.roomCode).emit('board-phase', { phase: 'All Conveyors' });
     await this.executeConveyorBelts(gameState, true, true);
 
     // 3. Pushers
+    this.io.to(gameState.roomCode).emit('board-phase', { phase: 'Pushers' });
     await this.executePushers(gameState);
 
     // 4. Gears
+    this.io.to(gameState.roomCode).emit('board-phase', { phase: 'Gears' });
     await this.executeGears(gameState);
 
     // 5. Lasers
+    this.io.to(gameState.roomCode).emit('board-phase', { phase: 'Lasers' });
     await this.executeLasers(gameState);
 
     // 6. Check checkpoints

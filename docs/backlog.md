@@ -31,6 +31,7 @@
 * get the execution log turn separator to work (tried to get this working but the roundNumber logic still doesn't work; not sure we really need this anyway, so putting it on hold)
 * make the screen layout adapt correctly to different window sizes and zoom level
 * improve the game page layout
+* display the list phases and sub-phases and highlight the active one
 * delete the code for the game start modal (unless we think of a reason to reinstate it; board selection needs to be either here or on the game screen)
 
 ## In Progress
