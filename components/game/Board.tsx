@@ -41,7 +41,7 @@ const DIRECTION_ARROWS = ['↑', '→', '↓', '←'];
 
 const ROBOT_COLORS = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan'];
 
-export default function Board({ board, players, currentPlayerId, isHost, gameState, roomCode }: BoardProps) {
+export default function Board({ board, players, activeLasers = [], currentPlayerId, isHost, gameState, roomCode }: BoardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [tileSize, setTileSize] = useState(50);
 
@@ -725,6 +725,13 @@ export default function Board({ board, players, currentPlayerId, isHost, gameSta
 
         {/* Render laser beams on top of tiles but below robots */}
         {renderLaserBeams()}
+
+        {/* Render robot laser animations */}
+        <RobotLaserAnimation
+          players={players}
+          activeLasers={activeLasers}
+          tileSize={tileSize}
+        />
       </div>
 
       {/* Current phase indicator */}
