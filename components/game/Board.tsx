@@ -196,9 +196,7 @@ export default function Board({ board, players, currentPlayerId, isHost, gameSta
     }
 
     return path;
-  };
-
-  // Get all laser beams that should be rendered
+  };  // Get all laser beams that should be rendered
   const getAllLaserBeams = (): { laser: Laser; path: Position[] }[] => {
     const beams: { laser: Laser; path: Position[] }[] = [];
 
@@ -332,71 +330,171 @@ export default function Board({ board, players, currentPlayerId, isHost, gameSta
     }
 
     // Laser source wall indicator
+    // Laser source wall indicator
     const laser = getLaserAt(x, y);
     if (laser) {
       // Determine which edge of the tile to place the indicator
       const indicatorSize = Math.floor(tileSize * 0.15);
       const indicatorOffset = 2;
 
-      let indicatorStyle: React.CSSProperties = {
-        position: 'absolute',
-        backgroundColor: '#fde047', // Pale yellow like original game
-        border: '1px solid #a16207',
-        zIndex: 5
-      };
+      // For double lasers, create two separate blocks
+      if (laser.damage > 1) {
+        const spacing = 4;
+        const blockSize = indicatorSize * 0.8;
 
-      // Position the indicator on the appropriate wall based on laser direction
-      // 0=North (bottom wall), 1=East (left wall), 2=South (top wall), 3=West (right wall)
-      switch (laser.direction) {
-        case 0: // North - laser points up, source on bottom wall
-          indicatorStyle = {
-            ...indicatorStyle,
-            bottom: indicatorOffset,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: indicatorSize * 2,
-            height: indicatorSize
-          };
-          break;
-        case 1: // East - laser points right, source on left wall
-          indicatorStyle = {
-            ...indicatorStyle,
-            left: indicatorOffset,
-            top: '50%',
-            transform: 'translateY(-50%)',
-            width: indicatorSize,
-            height: indicatorSize * 2
-          };
-          break;
-        case 2: // South - laser points down, source on top wall
-          indicatorStyle = {
-            ...indicatorStyle,
-            top: indicatorOffset,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: indicatorSize * 2,
-            height: indicatorSize
-          };
-          break;
-        case 3: // West - laser points left, source on right wall
-          indicatorStyle = {
-            ...indicatorStyle,
-            right: indicatorOffset,
-            top: '50%',
-            transform: 'translateY(-50%)',
-            width: indicatorSize,
-            height: indicatorSize * 2
-          };
-          break;
+        elements.push(
+          <React.Fragment key="laser-source">
+            {/* First block */}
+            <div
+              style={{
+                position: 'absolute',
+                backgroundColor: '#fde047',
+                border: '1px solid #a16207',
+                zIndex: 5,
+                ...(() => {
+                  switch (laser.direction) {
+                    case 0: // North
+                      return {
+                        bottom: indicatorOffset,
+                        left: '50%',
+                        transform: `translateX(calc(-50% - ${spacing}px))`,
+                        width: blockSize,
+                        height: indicatorSize
+                      };
+                    case 1: // East
+                      return {
+                        left: indicatorOffset,
+                        top: '50%',
+                        transform: `translateY(calc(-50% - ${spacing}px))`,
+                        width: indicatorSize,
+                        height: blockSize
+                      };
+                    case 2: // South
+                      return {
+                        top: indicatorOffset,
+                        left: '50%',
+                        transform: `translateX(calc(-50% - ${spacing}px))`,
+                        width: blockSize,
+                        height: indicatorSize
+                      };
+                    case 3: // West
+                      return {
+                        right: indicatorOffset,
+                        top: '50%',
+                        transform: `translateY(calc(-50% - ${spacing}px))`,
+                        width: indicatorSize,
+                        height: blockSize
+                      };
+                  }
+                })()
+              }}
+            />
+            {/* Second block */}
+            <div
+              style={{
+                position: 'absolute',
+                backgroundColor: '#fde047',
+                border: '1px solid #a16207',
+                zIndex: 5,
+                ...(() => {
+                  switch (laser.direction) {
+                    case 0: // North
+                      return {
+                        bottom: indicatorOffset,
+                        left: '50%',
+                        transform: `translateX(calc(-50% + ${spacing}px))`,
+                        width: blockSize,
+                        height: indicatorSize
+                      };
+                    case 1: // East
+                      return {
+                        left: indicatorOffset,
+                        top: '50%',
+                        transform: `translateY(calc(-50% + ${spacing}px))`,
+                        width: indicatorSize,
+                        height: blockSize
+                      };
+                    case 2: // South
+                      return {
+                        top: indicatorOffset,
+                        left: '50%',
+                        transform: `translateX(calc(-50% + ${spacing}px))`,
+                        width: blockSize,
+                        height: indicatorSize
+                      };
+                    case 3: // West
+                      return {
+                        right: indicatorOffset,
+                        top: '50%',
+                        transform: `translateY(calc(-50% + ${spacing}px))`,
+                        width: indicatorSize,
+                        height: blockSize
+                      };
+                  }
+                })()
+              }}
+            />
+          </React.Fragment>
+        );
+      } else {
+        // Single laser block
+        let indicatorStyle: React.CSSProperties = {
+          position: 'absolute',
+          backgroundColor: '#fde047',
+          border: '1px solid #a16207',
+          zIndex: 5
+        };
+
+        switch (laser.direction) {
+          case 0: // North
+            indicatorStyle = {
+              ...indicatorStyle,
+              bottom: indicatorOffset,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: indicatorSize * 2,
+              height: indicatorSize
+            };
+            break;
+          case 1: // East
+            indicatorStyle = {
+              ...indicatorStyle,
+              left: indicatorOffset,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: indicatorSize,
+              height: indicatorSize * 2
+            };
+            break;
+          case 2: // South
+            indicatorStyle = {
+              ...indicatorStyle,
+              top: indicatorOffset,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: indicatorSize * 2,
+              height: indicatorSize
+            };
+            break;
+          case 3: // West
+            indicatorStyle = {
+              ...indicatorStyle,
+              right: indicatorOffset,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: indicatorSize,
+              height: indicatorSize * 2
+            };
+            break;
+        }
+
+        elements.push(
+          <div
+            key="laser-source"
+            style={indicatorStyle}
+          />
+        );
       }
-
-      elements.push(
-        <div
-          key="laser-source"
-          style={indicatorStyle}
-          className="animate-pulse"
-        />
-      );
     }
 
     // Players
@@ -436,6 +534,27 @@ export default function Board({ board, players, currentPlayerId, isHost, gameSta
         let left = pos.x * tileSize;
         let top = pos.y * tileSize;
 
+        // Adjust starting position for source tile to emit from edge of block
+        if (pathIndex === 0) {
+          const indicatorSize = Math.floor(tileSize * 0.2);
+          const indicatorOffset = 2;
+
+          switch (beam.laser.direction) {
+            case 0: // North - beam starts from top of block
+              top -= indicatorSize - indicatorOffset;
+              break;
+            case 1: // East - beam starts from right of block  
+              left += indicatorSize - indicatorOffset;
+              break;
+            case 2: // South - beam starts from bottom of block
+              top += indicatorSize - indicatorOffset;
+              break;
+            case 3: // West - beam starts from left of block
+              left -= indicatorSize - indicatorOffset;
+              break;
+          }
+        }
+
         if (isHorizontal) {
           // Center vertically
           top += (tileSize - beamWidth) / 2;
@@ -443,10 +562,9 @@ export default function Board({ board, players, currentPlayerId, isHost, gameSta
           // Center horizontally
           left += (tileSize - beamWidth) / 2;
         }
-
         // For double lasers, create two parallel beams
         if (isDoubleLaser) {
-          const spacing = 3;
+          const spacing = 6;
           const singleBeamWidth = 3;
 
           return (
