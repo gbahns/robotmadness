@@ -36,6 +36,13 @@ interface Laser {
 
 const ROBOT_COLORS = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan'];
 
+const DIRECTION_VECTORS = {
+  0: { x: 0, y: -1 }, // North
+  1: { x: 1, y: 0 },  // East
+  2: { x: 0, y: 1 },  // South
+  3: { x: -1, y: 0 }  // West
+};
+
 export default function Board({ board, players, currentPlayerId, isHost, gameState, roomCode }: BoardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [tileSize, setTileSize] = useState(50);
@@ -277,6 +284,69 @@ export default function Board({ board, players, currentPlayerId, isHost, gameSta
     return elements;
   };
 
+  const renderLaserBeams = () => {
+    if (!board.lasers) return null;
+
+    return board.lasers.map((laser, index) => {
+      const startX = laser.position.x;
+      const startY = laser.position.y;
+      let endX = startX;
+      let endY = startY;
+
+      const vector = DIRECTION_VECTORS[laser.direction as keyof typeof DIRECTION_VECTORS];
+      if (!vector) return null; // Invalid direction
+
+      // Trace the laser path
+      while (
+        endX >= 0 && endX < board.width &&
+        endY >= 0 && endY < board.height
+      ) {
+        const nextX = endX + vector.x;
+        const nextY = endY + vector.y;
+
+        // Check for wall on current tile
+        const currentTile = getTileAt(endX, endY);
+        if (currentTile?.walls?.includes(laser.direction)) {
+          break;
+        }
+
+        // Check for wall on next tile
+        const nextTile = getTileAt(nextX, nextY);
+        if (nextTile?.walls?.includes((laser.direction + 2) % 4)) {
+          break;
+        }
+
+        // Check for robot in path
+        if (Object.values(players).some(p => p.position.x === nextX && p.position.y === nextY)) {
+          endX = nextX;
+          endY = nextY;
+          break;
+        }
+
+        endX = nextX;
+        endY = nextY;
+      }
+
+      const x1 = (startX + 0.5) * tileSize;
+      const y1 = (startY + 0.5) * tileSize;
+      const x2 = (endX + 0.5) * tileSize;
+      const y2 = (endY + 0.5) * tileSize;
+
+      return (
+        <line
+          key={`laser-beam-${index}`}
+          x1={x1}
+          y1={y1}
+          x2={x2}
+          y2={y2}
+          stroke="red"
+          strokeWidth={laser.damage > 1 ? 4 : 2}
+          strokeOpacity="0.7"
+        />
+      );
+    });
+  };
+
   return (
     <div ref={containerRef} className="flex flex-col items-center justify-center h-full w-full">
       {/* Board grid */}
@@ -287,6 +357,10 @@ export default function Board({ board, players, currentPlayerId, isHost, gameSta
           height: board.height * tileSize
         }}
       >
+        <svg className="absolute top-0 left-0 w-full h-full pointer-events-none">
+          {renderLaserBeams()}
+        </svg>
+
         {Array.from({ length: board.height }, (_, y) => (
           Array.from({ length: board.width }, (_, x) => (
             <div

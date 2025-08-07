@@ -96,8 +96,8 @@ const SAMPLE_BOARD = {
   // Board lasers
   lasers: [
     { position: { x: 0, y: 3 }, direction: 1, damage: 1 },   // East-facing laser
-    //{ position: { x: 11, y: 9 }, direction: 3, damage: 1 },  // West-facing laser
-    // { position: { x: 5, y: 0 }, direction: 2, damage: 2 }    // South-facing double laser
+    { position: { x: 11, y: 7 }, direction: 3, damage: 1 },  // West-facing laser
+    { position: { x: 5, y: 0 }, direction: 2, damage: 2 }    // South-facing double laser
   ]
 };
 
