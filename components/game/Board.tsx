@@ -109,17 +109,8 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
 
           {isHost ? (
             <>
-              <button
-                onClick={() => {
-                  console.log('Start game clicked, roomCode:', roomCode);
-                  socketClient.emit('start-game', roomCode);
-                  console.log('Emitted start_game event');
-                }}
-                disabled={playerCount < 2}
-                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-8 py-3 rounded font-semibold text-lg"
-              >
-                Start Game
-              </button>
+              <p>Select Course</p>
+
               {playerCount < 2 && (
                 <p className="text-sm text-gray-500">Need at least 2 players to start</p>
               )}

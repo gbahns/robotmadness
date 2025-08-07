@@ -71,8 +71,8 @@ class SocketClient {
     this.emit(SocketEvent.JOIN_GAME, { roomCode, playerName, playerId });
   }
 
-  startGame(roomCode: string): void {
-    this.emit(SocketEvent.START_GAME, roomCode);
+  startGame(roomCode: string, selectedCourse: string): void {
+    this.emit(SocketEvent.START_GAME, { roomCode, selectedCourse });
   }
 
   leaveGame(): void {

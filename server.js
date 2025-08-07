@@ -6,7 +6,7 @@ const { parse } = require('url');
 const next = require('next');
 const { Server } = require('socket.io');
 const GameEngine = require('./gameEngine');
-const { SAMPLE_BOARD, TEST_BOARD, BOARD_THEMES, RISKY_EXCHANGE_BOARD, RISKY_EXCHANGE_BOARD_GEMINI } = require('./boardConfig');
+const { SAMPLE_BOARD, TEST_BOARD, BOARD_THEMES, RISKY_EXCHANGE_BOARD, RISKY_EXCHANGE_BOARD_CLAUDE_1, RISKY_EXCHANGE_BOARD_GEMINI, LASER_TEST_BOARD } = require('./boardConfig');
 
 
 const dev = process.env.NODE_ENV !== 'production';
@@ -207,7 +207,9 @@ app.prepare().then(() => {
             });
         });
 
-        socket.on('start-game', (roomCode) => {
+        socket.on('start-game', (data) => {
+            const { roomCode, selectedCourse } = data;
+            console.log('Received start_game event', { roomCode, selectedCourse });
             const gameState = games.get(roomCode);
             if (!gameState) return;
 
@@ -218,11 +220,31 @@ app.prepare().then(() => {
                 return;
             }
 
-            // Use the enhanced board configuration
-            gameState.board = RISKY_EXCHANGE_BOARD_GEMINI;
-            gameState.board = RISKY_EXCHANGE_BOARD;
-            gameState.board = SAMPLE_BOARD;
-            gameState.board = TEST_BOARD;
+            // Select the board based on selectedCourse
+            let selectedBoard;
+            switch (selectedCourse) {
+                case 'TEST_BOARD':
+                    selectedBoard = TEST_BOARD;
+                    break;
+                case 'SAMPLE_BOARD':
+                    selectedBoard = SAMPLE_BOARD;
+                    break;
+                case 'RISKY_EXCHANGE_BOARD':
+                    selectedBoard = RISKY_EXCHANGE_BOARD;
+                    break;
+                case 'RISKY_EXCHANGE_BOARD_CLAUDE_1':
+                    selectedBoard = RISKY_EXCHANGE_BOARD_CLAUDE_1;
+                    break;
+                case 'RISKY_EXCHANGE_BOARD_GEMINI':
+                    selectedBoard = RISKY_EXCHANGE_BOARD_GEMINI;
+                    break;
+                case 'LASER_TEST_BOARD':
+                    selectedBoard = LASER_TEST_BOARD;
+                    break;
+                default:
+                    selectedBoard = TEST_BOARD; // Default to TEST_BOARD if not found
+            }
+            gameState.board = selectedBoard;
 
             // Assign starting positions
             const players = Object.values(gameState.players);

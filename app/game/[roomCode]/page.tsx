@@ -10,6 +10,7 @@ import ProgramRegisters from '@/components/game/ProgramRegisters';
 import GameContent from '@/components/game/GameContent';
 import ExecutionLog from '@/components/game/ExecutionLog';
 import { RobotLaserShot } from '@/components/game/RobotLaserAnimation';
+import GameControls from '@/components/game/GameControls';
 
 export default function GamePage() {
   const params = useParams();
@@ -206,7 +207,7 @@ export default function GamePage() {
           players: {
             ...prev.players,
             [data.playerId]: {
-              ...prev.players[data.playerId],
+              ...prev.players[playerIdRef.current],
               isDisconnected: true
             }
           }
@@ -224,7 +225,7 @@ export default function GamePage() {
           players: {
             ...prev.players,
             [data.playerId]: {
-              ...prev.players[data.playerId],
+              ...prev.players[playerIdRef.current],
               isDisconnected: false
             }
           }
@@ -294,10 +295,6 @@ export default function GamePage() {
       setShowNameModal(false);
       connectToGame(playerName);
     }
-  };
-
-  const handleStartGame = () => {
-    socketClient.startGame(roomCode);
   };
 
   const handleLeaveGame = () => {
@@ -578,6 +575,13 @@ export default function GamePage() {
                   </div>
                 </div>
 
+                <GameControls
+                  isHost={isHost}
+                  roomCode={roomCode}
+                  playerCount={Object.keys(gameState?.players || {}).length}
+                  gameState={gameState}
+                />
+
                 <ExecutionLog entries={logEntries} />
               </div>
             </div>
@@ -628,10 +632,8 @@ export default function GamePage() {
                 </>
               )}
 
-              {gameState?.phase === 'waiting' && (
-                <div className="bg-gray-800 rounded-lg p-6">
-                  <h2 className="text-xl font-semibold mb-4">Your Cards</h2>
-                  <p className="text-gray-400">Cards will appear here when the game starts</p>
+              {isHost && gameState?.phase === 'waiting' && (
+                <div className="flex flex-col gap-4">
                 </div>
               )}
             </div>
