@@ -1,6 +1,6 @@
 // components/game/Robot.tsx
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Player, Direction } from '@/lib/game/types';
 
 interface RobotProps {
@@ -11,9 +11,30 @@ interface RobotProps {
 }
 
 export default function Robot({ player, color, isCurrentPlayer, size = 40 }: RobotProps) {
-  const getRotation = (direction: Direction): number => {
-    return direction * 90;
-  };
+  const [visualRotation, setVisualRotation] = useState(player.direction * 90);
+  const prevDirectionRef = useRef(player.direction);
+
+  useEffect(() => {
+    const currentDirection = player.direction;
+    const prevDirection = prevDirectionRef.current;
+
+    if (currentDirection !== prevDirection) {
+      const currentRotation = visualRotation;
+      const targetRotation = currentDirection * 90;
+
+      // Calculate the difference, considering the wrap-around from 3 to 0 and 0 to 3
+      let diff = targetRotation - (currentRotation % 360);
+      if (diff > 180) {
+        diff -= 360; // Prefer counter-clockwise rotation
+      } else if (diff < -180) {
+        diff += 360; // Prefer clockwise rotation
+      }
+
+      const newVisualRotation = currentRotation + diff;
+      setVisualRotation(newVisualRotation);
+      prevDirectionRef.current = currentDirection;
+    }
+  }, [player.direction, visualRotation]);
 
   return (
     <div
@@ -35,7 +56,7 @@ export default function Robot({ player, color, isCurrentPlayer, size = 40 }: Rob
         }`}
         style={{
           backgroundColor: color,
-          transform: `rotate(${getRotation(player.direction)}deg)`,
+          transform: `rotate(${visualRotation}deg)`,
           border: isCurrentPlayer ? '3px solid white' : '2px solid rgba(0,0,0,0.3)',
         }}
       >
