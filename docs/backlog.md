@@ -1,9 +1,7 @@
 ## Backlog
-* draw 2 arrows for an express conveyor belt
 * when a robot shoots another robot, say "<player 1> shot by <player 2>" in the ExecutionLog
 * draw a momentary red line when robot lasers fire
 * add a "reset" button to clear the programmed registers
-* draw a red line for board lasers
 * walls
 * conveyor belts
 * express conveyor belts
@@ -35,6 +33,7 @@
 * delete the code for the game start modal (unless we think of a reason to reinstate it; board selection needs to be either here or on the game screen)
 
 ## In Progress
+* draw a red line for board lasers
   
 ## Done
 * robots pushing each other
@@ -59,3 +58,4 @@
 * make the conveyors move robots in the same direction they're visually pointing
 * conveyor belt movement not reflected on the board promptly
 * detect when someone has won the race
+* draw 2 arrows for an express conveyor belt

@@ -339,8 +339,8 @@ export default function Board({ board, players, currentPlayerId, isHost, gameSta
 
       // For double lasers, create two separate blocks
       if (laser.damage > 1) {
-        const spacing = 4;
-        const blockSize = indicatorSize * 0.8;
+        const spacing = 6; // Match the beam spacing
+        const blockSize = indicatorSize * 1.4; // Make blocks wider
 
         elements.push(
           <React.Fragment key="laser-source">
