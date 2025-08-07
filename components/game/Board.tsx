@@ -181,34 +181,68 @@ export default function Board({ board, players, currentPlayerId, isHost, gameSta
     if (tile) {
       // Conveyor belts
       if (tile.type === 'conveyor' || tile.type === 'conveyor_express') {
-        const isExpress = tile.type === 'conveyor_express';
-        const color = isExpress ? 'bg-yellow-600' : 'bg-yellow-800';
+        const color = tile.type === 'conveyor_express' ? 'bg-blue-400' : 'bg-yellow-600';
         const arrowRotation = ((tile.direction || 0) - 1) * 90;
 
         elements.push(
           <div key="conveyor" className={`absolute inset-1 ${color} rounded-sm flex items-center justify-center`}>
-            <svg
-              className="text-gray-900"
-              style={{
-                transform: `rotate(${arrowRotation}deg)`,
-                width: `${arrowSize}px`,
-                height: `${arrowSize}px`
-              }}
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path d="M10 3l7 7-7 7V3z" />
-            </svg>
+            {tile.type === 'conveyor_express' ? (
+              // Express conveyor with double arrows back-to-back
+              <div
+                className="relative flex items-center justify-center"
+                style={{
+                  transform: `rotate(${arrowRotation}deg)`,
+                  width: '100%',
+                  height: '100%'
+                }}
+              >
+                <svg
+                  className="text-gray-900 absolute"
+                  style={{
+                    width: `${arrowSize}px`,
+                    height: `${arrowSize}px`,
+                    transform: `translate(calc(-${arrowSize * 0.15}px - 2px), 0px)`
+                  }}
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path d="M10 3l7 7-7 7V3z" />
+                </svg>
+                <svg
+                  className="text-gray-900 absolute"
+                  style={{
+                    width: `${arrowSize}px`,
+                    height: `${arrowSize}px`,
+                    transform: `translate(calc(${arrowSize * 0.15}px - 2px), 0px)`
+                  }}
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path d="M10 3l7 7-7 7V3z" />
+                </svg>
+              </div>
+            ) : (
+              // Regular conveyor with single arrow
+              <svg
+                className="text-gray-900"
+                style={{
+                  transform: `rotate(${arrowRotation}deg) translateX(-2px)`,
+                  width: `${arrowSize}px`,
+                  height: `${arrowSize}px`
+                }}
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path d="M10 3l7 7-7 7V3z" />
+              </svg>)}
             {tile.rotate && (
-              <div className="absolute bottom-0 right-0 text-gray-900 p-0.5" style={{ fontSize: `${fontSize * 0.9}px` }}>
+              <div className="absolute bottom-0 right-0 text-gray-900 p-0.5" style={{ fontSize: `${fontSize * 0.4}px` }}>
                 {tile.rotate === 'clockwise' ? '↻' : '↺'}
               </div>
             )}
           </div>
         );
       }
-
-      // Other tile types can be added here...
     }
 
     // Checkpoints
@@ -290,41 +324,43 @@ export default function Board({ board, players, currentPlayerId, isHost, gameSta
     return board.lasers.map((laser, index) => {
       const startX = laser.position.x;
       const startY = laser.position.y;
+
+      const vector = DIRECTION_VECTORS[laser.direction as keyof typeof DIRECTION_VECTORS];
+      if (!vector) return null;
+
       let endX = startX;
       let endY = startY;
 
-      const vector = DIRECTION_VECTORS[laser.direction as keyof typeof DIRECTION_VECTORS];
-      if (!vector) return null; // Invalid direction
-
-      // Trace the laser path
-      while (
-        endX >= 0 && endX < board.width &&
-        endY >= 0 && endY < board.height
-      ) {
-        const nextX = endX + vector.x;
-        const nextY = endY + vector.y;
-
-        // Check for wall on current tile
+      // Trace the laser path tile by tile
+      while (true) {
+        // 1. Check for a wall on the current tile blocking the exit path
         const currentTile = getTileAt(endX, endY);
         if (currentTile?.walls?.includes(laser.direction)) {
           break;
         }
 
-        // Check for wall on next tile
+        const nextX = endX + vector.x;
+        const nextY = endY + vector.y;
+
+        // 2. Check if the next tile is off the board
+        if (nextX < 0 || nextX >= board.width || nextY < 0 || nextY >= board.height) {
+          break;
+        }
+
+        // 3. Check for a wall on the next tile blocking the entry path
         const nextTile = getTileAt(nextX, nextY);
         if (nextTile?.walls?.includes((laser.direction + 2) % 4)) {
           break;
         }
 
-        // Check for robot in path
-        if (Object.values(players).some(p => p.position.x === nextX && p.position.y === nextY)) {
-          endX = nextX;
-          endY = nextY;
-          break;
-        }
-
+        // If no obstructions, the beam extends to the next tile
         endX = nextX;
         endY = nextY;
+
+        // 4. Check if the new tile has a robot, which stops the beam
+        if (Object.values(players).some(p => p.position.x === endX && p.position.y === endY && p.lives > 0)) {
+          break;
+        }
       }
 
       const x1 = (startX + 0.5) * tileSize;
