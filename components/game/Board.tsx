@@ -294,6 +294,8 @@ export default function Board({ board, players, currentPlayerId, isHost, gameSta
           </div>
         );
       }
+
+      // Other tile types can be added here...
     }
 
     // Checkpoints
@@ -329,7 +331,73 @@ export default function Board({ board, players, currentPlayerId, isHost, gameSta
       }
     }
 
-    // No laser source indicator needed - beams will pass through the tile
+    // Laser source wall indicator
+    const laser = getLaserAt(x, y);
+    if (laser) {
+      // Determine which edge of the tile to place the indicator
+      const indicatorSize = Math.floor(tileSize * 0.15);
+      const indicatorOffset = 2;
+
+      let indicatorStyle: React.CSSProperties = {
+        position: 'absolute',
+        backgroundColor: '#fde047', // Pale yellow like original game
+        border: '1px solid #a16207',
+        zIndex: 5
+      };
+
+      // Position the indicator on the appropriate wall based on laser direction
+      // 0=North (bottom wall), 1=East (left wall), 2=South (top wall), 3=West (right wall)
+      switch (laser.direction) {
+        case 0: // North - laser points up, source on bottom wall
+          indicatorStyle = {
+            ...indicatorStyle,
+            bottom: indicatorOffset,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: indicatorSize * 2,
+            height: indicatorSize
+          };
+          break;
+        case 1: // East - laser points right, source on left wall
+          indicatorStyle = {
+            ...indicatorStyle,
+            left: indicatorOffset,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: indicatorSize,
+            height: indicatorSize * 2
+          };
+          break;
+        case 2: // South - laser points down, source on top wall
+          indicatorStyle = {
+            ...indicatorStyle,
+            top: indicatorOffset,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: indicatorSize * 2,
+            height: indicatorSize
+          };
+          break;
+        case 3: // West - laser points left, source on right wall
+          indicatorStyle = {
+            ...indicatorStyle,
+            right: indicatorOffset,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: indicatorSize,
+            height: indicatorSize * 2
+          };
+          break;
+      }
+
+      elements.push(
+        <div
+          key="laser-source"
+          style={indicatorStyle}
+          className="animate-pulse"
+        />
+      );
+    }
 
     // Players
     Object.values(players).forEach((player: Player) => {
@@ -361,7 +429,7 @@ export default function Board({ board, players, currentPlayerId, isHost, gameSta
         const isDoubleLaser = beam.laser.damage > 1;
 
         // Calculate beam position and size
-        const beamWidth = isDoubleLaser ? 6 : 4;
+        const beamWidth = isDoubleLaser ? 8 : 4;
         const beamLength = tileSize;
 
         // Position calculations
@@ -374,6 +442,56 @@ export default function Board({ board, players, currentPlayerId, isHost, gameSta
         } else {
           // Center horizontally
           left += (tileSize - beamWidth) / 2;
+        }
+
+        // For double lasers, create two parallel beams
+        if (isDoubleLaser) {
+          const spacing = 3;
+          const singleBeamWidth = 3;
+
+          return (
+            <div key={`laser-${index}-${pathIndex}`}>
+              {/* First beam */}
+              <div
+                className="absolute animate-pulse"
+                style={{
+                  left: isHorizontal ? `${left}px` : `${left - spacing}px`,
+                  top: isHorizontal ? `${top - spacing}px` : `${top}px`,
+                  width: isHorizontal ? `${beamLength}px` : `${singleBeamWidth}px`,
+                  height: isHorizontal ? `${singleBeamWidth}px` : `${beamLength}px`,
+                  backgroundColor: 'rgba(220, 38, 38, 0.7)',
+                  boxShadow: '0 0 4px rgba(220, 38, 38, 0.8)',
+                  zIndex: 10
+                }}
+              />
+              {/* Second beam */}
+              <div
+                className="absolute animate-pulse"
+                style={{
+                  left: isHorizontal ? `${left}px` : `${left + spacing}px`,
+                  top: isHorizontal ? `${top + spacing}px` : `${top}px`,
+                  width: isHorizontal ? `${beamLength}px` : `${singleBeamWidth}px`,
+                  height: isHorizontal ? `${singleBeamWidth}px` : `${beamLength}px`,
+                  backgroundColor: 'rgba(220, 38, 38, 0.7)',
+                  boxShadow: '0 0 4px rgba(220, 38, 38, 0.8)',
+                  zIndex: 10
+                }}
+              />
+              {/* Glow effect for double laser */}
+              <div
+                className="absolute pointer-events-none"
+                style={{
+                  left: `${left - 6}px`,
+                  top: `${top - 6}px`,
+                  width: isHorizontal ? `${beamLength + 12}px` : `${beamWidth + 12}px`,
+                  height: isHorizontal ? `${beamWidth + 12}px` : `${beamLength + 12}px`,
+                  background: 'radial-gradient(ellipse at center, rgba(220, 38, 38, 0.3) 0%, transparent 70%)',
+                  filter: 'blur(6px)',
+                  zIndex: 9
+                }}
+              />
+            </div>
+          );
         }
 
         // Create gradient based on direction
