@@ -1,17 +1,10 @@
 ## Backlog
-* when a robot shoots another robot, say "<player 1> shot by <player 2>" in the ExecutionLog
-* draw a momentary red line when robot lasers fire
-* add a "reset" button to clear the programmed registers
 * walls
-* conveyor belts
-* express conveyor belts
 * pushers
 * wrenches
 * hammers
 * handle endgame properly (pop up a modal with the game still visible, celebrate the winner, etc)
 * starting space mini boards
-* ability to select board when starting game
-* risky exchange board
 * Prevent further changes after timer expires
 * When timer hits 0, randomly fill empty registers
 * show all players cards for the current register / incremental card reveal
@@ -31,10 +24,13 @@
 * improve the game page layout
 * display the list phases and sub-phases and highlight the active one
 * delete the code for the game start modal (unless we think of a reason to reinstate it; board selection needs to be either here or on the game screen)
+* add the risky exchange board
+* add all standard game boards
+* make it so robot lasers only fire if there's a robot for them to it?
 
 ## In Progress
-* draw a red line for board lasers
-  
+* add a "reset" button to clear the programmed registers
+
 ## Done
 * robots pushing each other
 * during the execution phase move each robot one at a time
@@ -59,3 +55,11 @@
 * conveyor belt movement not reflected on the board promptly
 * detect when someone has won the race
 * draw 2 arrows for an express conveyor belt
+* draw a red line for board lasers
+* when a robot shoots another robot, say "<player 1> takes <n> damage from <player 2>" in the ExecutionLog
+* don't respawn until the end of the turn
+* when all robots are dead end the turn
+* draw a momentary red line when robot lasers fire
+* conveyor belts
+* express conveyor belts
+* ability to select board when starting game
