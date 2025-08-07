@@ -6,7 +6,7 @@ const { parse } = require('url');
 const next = require('next');
 const { Server } = require('socket.io');
 const GameEngine = require('./gameEngine');
-const { SAMPLE_BOARD } = require('./boardConfig');
+const { SAMPLE_BOARD, TEST_BOARD, BOARD_THEMES, RISKY_EXCHANGE_BOARD } = require('./boardConfig');
 
 
 const dev = process.env.NODE_ENV !== 'production';
@@ -219,7 +219,7 @@ app.prepare().then(() => {
             }
 
             // Use the enhanced board configuration
-            gameState.board = SAMPLE_BOARD;
+            gameState.board = RISKY_EXCHANGE_BOARD;
 
             // Assign starting positions
             const players = Object.values(gameState.players);
