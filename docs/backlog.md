@@ -4,22 +4,17 @@
 * wrenches
 * hammers
 * handle endgame properly (pop up a modal with the game still visible, celebrate the winner, etc)
-* starting space mini boards
 * Prevent further changes after timer expires
 * When timer hits 0, randomly fill empty registers
 * show all players cards for the current register / incremental card reveal
 * reduce the padding around the board to make better use of the space
 * make the robot arrow black instead of white when the robot color is light
 * move the legend to a separate component
-* ability to unsubmit
-* change the card colors - needs some thought - e.g. I don't like red for U-Turn
+* improve the card look
     * add an up arrow to the move cards - make it big and lay the number over it in a circle like it is
     * make the back up arrow the same as the move cards, just pointing down instead of up
     * make the move 2 card a slightly darker shade of blue, and the move 3 slightly darker than the move 3
-    * make the U-Turn the same color as the other turns
-    * orient the U-Turn arrow like an upside-down U
     * make the turn left and turn right cards thicker and rounded arrows
-* get the execution log turn separator to work (tried to get this working but the roundNumber logic still doesn't work; not sure we really need this anyway, so putting it on hold)
 * make the screen layout adapt correctly to different window sizes and zoom level
 * improve the game page layout
 * display the list phases and sub-phases and highlight the active one
@@ -29,7 +24,7 @@
 * make it so robot lasers only fire if there's a robot for them to it?
 
 ## In Progress
-* add a "reset" button to clear the programmed registers
+* starting space mini boards
 
 ## Done
 * robots pushing each other
@@ -63,3 +58,8 @@
 * conveyor belts
 * express conveyor belts
 * ability to select board when starting game
+* add a "reset" button to clear the programmed registers
+* ability to unsubmit
+* change the card colors - needs some thought - e.g. I don't like red for U-Turn
+* make the U-Turn the same color as the other turns
+* orient the U-Turn arrow like an upside-down U

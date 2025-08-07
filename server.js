@@ -306,6 +306,37 @@ app.prepare().then(() => {
             }
         });
 
+        socket.on('reset-cards', (data) => {
+            const { roomCode, playerId } = data;
+            const gameState = games.get(roomCode);
+
+            if (!gameState || !gameState.players[playerId]) return;
+
+            // Only allow reset during programming phase and if not everyone has submitted
+            if (gameState.phase !== 'programming') {
+                socket.emit('game-error', { message: 'Can only reset cards during programming phase' });
+                return;
+            }
+
+            const player = gameState.players[playerId];
+            console.log(`Player ${player.name} (${playerId}) is resetting their cards`);
+
+            // Clear selected cards (except locked registers)
+            const lockedCount = player.lockedRegisters;
+            for (let i = 0; i < 5 - lockedCount; i++) {
+                player.selectedCards[i] = null;
+            }
+
+            // Mark as not submitted
+            player.submitted = false;
+
+            // Notify all players of the updated state
+            io.to(roomCode).emit('game-state', gameState);
+            io.to(roomCode).emit('player-reset', { playerId, playerName: player.name });
+
+            console.log(`Player ${player.name} reset their cards and unsubmitted`);
+        });
+
         socket.on('leave-game', () => {
             const socketInfo = playerSockets.get(socket.id);
             if (!socketInfo) return;

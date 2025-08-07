@@ -426,6 +426,52 @@ export default function GamePage() {
     setIsSubmitted(true);
   };
 
+  const handleResetCards = () => {
+    if (!currentPlayer) return;
+
+    // Reset local state immediately
+    const newSelectedCards = [...currentPlayer.selectedCards];
+    const lockedCount = currentPlayer.lockedRegisters;
+
+    // Only clear non-locked registers
+    for (let i = 0; i < 5 - lockedCount; i++) {
+      newSelectedCards[i] = null;
+    }
+
+    // Update local game state
+    setGameState(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        players: {
+          ...prev.players,
+          [playerIdRef.current]: {
+            ...prev.players[playerIdRef.current],
+            selectedCards: newSelectedCards,
+            submitted: false,
+          },
+        },
+      };
+    });
+
+    // Emit reset event to server
+    socketClient.emit('reset-cards', {
+      roomCode,
+      playerId: playerIdRef.current,
+    });
+
+    // Update submitted state
+    setIsSubmitted(false);
+
+    // Add to log
+    setLogEntries(prev => [...prev, {
+      id: Date.now() + Math.random(),
+      message: `You reset your program`,
+      type: 'info',
+      timestamp: new Date()
+    }]);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
@@ -625,6 +671,14 @@ export default function GamePage() {
                           className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-8 py-3 rounded font-semibold"
                         >
                           Submit
+                        </button>
+                      )}
+                      {(gameState?.phase === 'programming' || isSubmitted) && (
+                        <button
+                          onClick={handleResetCards}
+                          className="bg-red-600 hover:bg-red-700 px-8 py-3 rounded font-semibold"
+                        >
+                          Reset
                         </button>
                       )}
                     </div>
