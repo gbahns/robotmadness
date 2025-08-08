@@ -328,6 +328,7 @@ export function createEmptyBoard(width: number = 12, height: number = 12): Board
     const tiles = Array(height).fill(null).map(() =>
         Array(width).fill(null).map(() => ({
             type: TileType.EMPTY,
+            position: { x: 0, y: 0 },
             walls: []
         }))
     );
