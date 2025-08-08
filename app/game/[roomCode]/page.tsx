@@ -1,7 +1,6 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { GameState, ProgramCard } from '@/lib/game/types';
 import { socketClient } from '@/lib/socket';

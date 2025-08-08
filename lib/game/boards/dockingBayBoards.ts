@@ -1,11 +1,6 @@
-// dockingBayBoards.ts
-// Docking Bay boards (4x12 or 6x12) that contain starting positions
-// These are meant to be combined with Factory Floor boards (12x12)
+import { CourseDefinition, BoardDefinition } from './boardDefinitions';
+import { Direction, TileType } from '../types';
 
-import { Board, Checkpoint, StartingPosition, TileType, Direction } from '../types';
-import { BoardDefinition } from './boardDefinitions';
-
-// Standard 4x12 Docking Bay with 4 starting positions
 export const DOCKING_BAY_4P: BoardDefinition = {
     id: 'docking-bay-4p',
     name: 'Docking Bay (4 Players)',
@@ -29,7 +24,6 @@ export const DOCKING_BAY_4P: BoardDefinition = {
     walls: []
 };
 
-// Extended 6x12 Docking Bay with 8 starting positions
 export const DOCKING_BAY_8P: BoardDefinition = {
     id: 'docking-bay-8p',
     name: 'Docking Bay (8 Players)',
@@ -71,7 +65,6 @@ export const DOCKING_BAY_8P: BoardDefinition = {
     walls: []
 };
 
-// Alternative 6x12 Docking Bay with different starting arrangement
 export const DOCKING_BAY_WIDE: BoardDefinition = {
     id: 'docking-bay-wide',
     name: 'Wide Docking Bay',
@@ -105,7 +98,6 @@ export const DOCKING_BAY_WIDE: BoardDefinition = {
     walls: []
 };
 
-// Compact 4x12 Docking Bay similar to the image
 export const DOCKING_BAY_COMPACT: BoardDefinition = {
     id: 'docking-bay-compact',
     name: 'Compact Docking Bay',
@@ -144,18 +136,14 @@ export const DOCKING_BAY_COMPACT: BoardDefinition = {
     ]
 };
 
-// Export all docking bay boards
-export const DOCKING_BAY_BOARDS = [
+export const DOCKING_BAY_BOARDS: BoardDefinition[] = [
     DOCKING_BAY_4P,
     DOCKING_BAY_8P,
     DOCKING_BAY_WIDE,
     DOCKING_BAY_COMPACT
 ];
 
-// Helper function to combine a docking bay with a factory floor board
 export function combineBoardsVertically(dockingBay: BoardDefinition, factoryFloor: BoardDefinition): BoardDefinition {
-    // This would combine the docking bay at the bottom with the factory floor above
-    // For now, we'll use the factory floor's configuration with the docking bay's starting positions
     return {
         ...factoryFloor,
         id: `${factoryFloor.id}-with-${dockingBay.id}`,

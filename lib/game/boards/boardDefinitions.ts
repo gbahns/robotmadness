@@ -1,7 +1,5 @@
-// lib/game/boards/boardDefinitions.ts
-
 import { Board, Checkpoint, StartingPosition, TileType, Direction } from '../types';
-const { DOCKING_BAY_BOARDS } = require('./dockingBayBoards.js');
+import { DOCKING_BAY_BOARDS } from './dockingBayBoards';
 import { LEGACY_COURSES } from './legacyBoards';
 
 export interface CourseDefinition {
@@ -295,6 +293,15 @@ export const COURSES: CourseDefinition[] = [
     CHECKMATE,
     DIZZY_DASH,
     ISLAND_HOP,
+    ...DOCKING_BAY_BOARDS.map(board => ({
+        id: board.id,
+        name: board.name,
+        description: 'A docking bay board.',
+        difficulty: 'beginner',
+        minPlayers: 2,
+        maxPlayers: 8,
+        boards: [board]
+    }))
 ];
 
 // Combine new and legacy courses

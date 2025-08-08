@@ -1,17 +1,5 @@
-// lib/game/boards/boardBuilder.ts
-
 import { Board, Tile, TileType, Direction, Checkpoint, StartingPosition, Laser } from '../types';
 import { BoardDefinition, TileElement, LaserElement, WallElement } from './boardDefinitions';
-
-// Export for CommonJS compatibility in server.js
-module.exports = {
-    buildBoard,
-    addBoardEdgeWalls,
-    validateBoardConfiguration,
-    rotateDirection,
-    oppositeDirection,
-    applyDirection
-};
 
 /**
  * Builds a Board object from a BoardDefinition
