@@ -237,6 +237,7 @@ app.prepare().then(() => {
                     board: null,
                     roundNumber: 0,
                     cardsDealt: false,
+                    host: null // Initialize host as null
                 };
                 games.set(roomCode, gameState);
             }
@@ -260,6 +261,12 @@ app.prepare().then(() => {
                     lockedRegisters: 0,
                     submitted: false,
                 };
+            }
+
+            // Set host if this is the first player
+            if (!gameState.host && Object.keys(gameState.players).length === 1) {
+                gameState.host = newPlayerId;
+                console.log(`Setting ${playerName} (${newPlayerId}) as host`);
             }
 
             // Track socket connection
@@ -286,6 +293,7 @@ app.prepare().then(() => {
 
             // Only allow host to change board selection
             const playerInfo = playerSockets.get(socket.id);
+            console.log('Player info:', playerInfo, 'Game host:', gameState.host);
             if (!playerInfo || gameState.host !== playerInfo.playerId) {
                 console.log('Non-host tried to change board selection');
                 return;

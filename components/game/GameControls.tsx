@@ -29,10 +29,12 @@ export default function GameControls({ isHost, roomCode, playerCount, gameState,
 
   // Use external course if provided, otherwise use internal state
   const selectedCourse = externalSelectedCourse || internalSelectedCourse;
-  const setSelectedCourse = (courseId: string) => {
+  const setSelectedCourse = (courseId: string, fromSocket = false) => {
     setInternalSelectedCourse(courseId);
     onCourseChange?.(courseId);
-    if (isHost) {
+
+    // Only emit board selection to server if host and not from socket event
+    if (isHost && !fromSocket) {
       socketClient.emit('select-board', { roomCode, boardId: courseId });
     }
   };
