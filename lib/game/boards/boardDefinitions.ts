@@ -1,6 +1,7 @@
 // lib/game/boards/boardDefinitions.ts
 
 import { Board, Checkpoint, StartingPosition, TileType, Direction } from '../types';
+const { DOCKING_BAY_BOARDS } = require('./dockingBayBoards.js');
 import { LEGACY_COURSES } from './legacyBoards';
 
 export interface CourseDefinition {
