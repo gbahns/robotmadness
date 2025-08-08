@@ -623,9 +623,9 @@ export default function GamePage() {
                           <span className={player.isDisconnected ? 'line-through' : ''}>
                             {player.name}
                           </span>
-                          {player.id === playerIdRef.current && (
+                          {/* {player.id === playerIdRef.current && (
                             <span className="text-xs text-gray-400">(You)</span>
-                          )}
+                          )} */}
                           {index === 0 && (
                             <span className="text-xs text-yellow-400">(Host)</span>
                           )}
@@ -636,6 +636,9 @@ export default function GamePage() {
                         <div className="flex items-center gap-2 text-sm">
                           <span>❤️ {player.lives}</span>
                           <span>⚡ {player.damage}</span>
+                          {player.checkpointsVisited >= 0 && (
+                            <span>🚩 {player.checkpointsVisited}</span>
+                          )}
                         </div>
                       </div>
                     ))}
