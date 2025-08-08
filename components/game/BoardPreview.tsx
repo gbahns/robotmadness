@@ -18,7 +18,7 @@ export default function BoardPreview({ board, size = 300 }: BoardPreviewProps) {
 
     // Create a map of special tiles for quick lookup
     const tileMap = new Map<string, any>();
-    board.tiles?.forEach(tile => {
+    board.tiles?.flat().forEach(tile => {
         const key = `${tile.position.x},${tile.position.y}`;
         tileMap.set(key, tile);
     });
