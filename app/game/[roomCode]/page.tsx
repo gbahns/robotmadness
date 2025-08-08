@@ -1,8 +1,9 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState, useRef } from 'react';
-import { GameState, Player, ProgramCard, Position, Direction } from '@/lib/game/types';
+import Link from 'next/link';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { GameState, ProgramCard } from '@/lib/game/types';
 import { socketClient } from '@/lib/socket';
 import Board from '@/components/game/Board';
 import Hand from '@/components/game/Hand';

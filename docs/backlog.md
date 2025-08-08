@@ -1,4 +1,6 @@
 ## Backlog
+* fix it so resetting your program doesn't affect other players
+* fix it so the robots don't show up on the board in preview mode
 * walls
 * pushers
 * wrenches
@@ -22,6 +24,8 @@
 * add the risky exchange board
 * add all standard game boards
 * make it so robot lasers only fire if there's a robot for them to it?
+* ability for players to register with a username and password for unique identity
+* migrate data from legacy RoboRally game
 
 ## In Progress
 * starting space mini boards
