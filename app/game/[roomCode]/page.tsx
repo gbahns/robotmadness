@@ -35,9 +35,8 @@ export default function GamePage() {
 
   useEffect(() => {
     // Build preview board when course is selected
-    const boardDef = getBoardById(selectedCourse) || TEST_BOARD;
-    if (boardDef) {
-      const board = buildBoard(boardDef);
+    const board = getBoardById(selectedCourse) || TEST_BOARD;
+    if (board) {
       setPreviewBoard(board);
     }
   }, [selectedCourse]);

@@ -1,4 +1,5 @@
 import { Board, Checkpoint, StartingPosition, TileType, Direction } from '../types';
+import { buildBoard } from './boardBuilder';
 import { DOCKING_BAY_BOARDS } from './dockingBayBoards';
 import { LEGACY_COURSES } from './legacyBoards';
 
@@ -293,15 +294,15 @@ export const COURSES: CourseDefinition[] = [
     CHECKMATE,
     DIZZY_DASH,
     ISLAND_HOP,
-    ...DOCKING_BAY_BOARDS.map(board => ({
-        id: board.id,
-        name: board.name,
-        description: 'A docking bay board.',
-        difficulty: 'beginner',
-        minPlayers: 2,
-        maxPlayers: 8,
-        boards: [board]
-    }))
+    // ...DOCKING_BAY_BOARDS.map(board => ({
+    //     id: board.id,
+    //     name: board.name,
+    //     description: 'A docking bay board.',
+    //     //difficulty: 'beginner',
+    //     minPlayers: 2,
+    //     maxPlayers: 8,
+    //     boards: [board]
+    //}))
 ];
 
 // Combine new and legacy courses
@@ -313,12 +314,13 @@ export function getCourseById(courseId: string): CourseDefinition | undefined {
 }
 
 // Helper function to get a board by ID
-export function getBoardById(boardId: string): BoardDefinition | undefined {
+export function getBoardById(boardId: string): Board {
     for (const course of ALL_COURSES) {
         const board = course.boards.find(b => b.id === boardId);
-        if (board) return board;
+        if (board) return buildBoard(board);
+        board;
     }
-    return boardId === 'test' ? TEST_BOARD : undefined;
+    return buildBoard(TEST_BOARD);
 }
 
 // Helper function to create an empty board

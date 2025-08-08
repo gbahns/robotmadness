@@ -1,7 +1,8 @@
 import { Server } from 'socket.io';
 import { GameState, Player, ProgramCard, Tile, Direction, CardType, GamePhase, Board } from './types';
 import { TileType } from './types/enums';
-import { getBoardById } from './boards/boardDefinitions';
+import { getBoardById, BoardDefinition } from './boards/boardDefinitions';
+import { buildBoard } from './boards';
 
 export interface ServerGameState extends GameState {
     host: string;
@@ -52,7 +53,9 @@ export class GameEngine {
             userId: playerId,
         };
 
-        const board = getBoardById(boardId || 'default');
+        const board = getBoardById(boardId || 'default') as Board;
+        // If getBoardById could return undefined, provide a fallback:
+        // const board = getBoardById(boardId || 'default') as Board ?? getBoardById('default') as Board;
 
         const gameState: ServerGameState = {
             id: roomCode,
@@ -61,7 +64,7 @@ export class GameEngine {
             phase: GamePhase.WAITING,
             currentRegister: 0,
             players: { [playerId]: newPlayer },
-            board,
+            board: board,
             roundNumber: 0,
             cardsDealt: false,
             host: playerId,
@@ -144,15 +147,78 @@ export class GameEngine {
         }
     }
 
+    // lib/game/gameEngine.ts - Updated executeProgramPhase method
+
     async executeProgramPhase(gameState: ServerGameState): Promise<void> {
         gameState.phase = GamePhase.EXECUTING;
+
+        // Execute all 5 registers
         for (let i = 0; i < 5; i++) {
             gameState.currentRegister = i;
             await this.executeRegister(gameState, i);
         }
+
+        // Execute board elements after all registers
         await this.executeBoardElements(gameState);
+
+        // Respawn any dead robots
         this.respawnDeadRobots(gameState);
-        gameState.phase = GamePhase.PROGRAMMING;
+
+        // CLEANUP PHASE - This was missing in the TypeScript conversion!
+        // Clear selected cards for non-locked registers and reset submission state
+        for (const playerId in gameState.players) {
+            const player = gameState.players[playerId];
+            if (player.lives > 0) {
+                // Clear non-locked registers
+                const lockedCount = Math.max(0, player.damage - 4);
+                for (let i = 0; i < 5 - lockedCount; i++) {
+                    player.selectedCards[i] = null;
+                }
+                // Reset submission state
+                player.submitted = false;
+            }
+        }
+
+        // Deal new cards for next turn
+        this.dealCards(gameState);
+
+        // Reset for next turn
+        gameState.currentRegister = 1;
+    }
+
+    // Add this new method to handle the cleanup phase
+    async performCleanupPhase(gameState: ServerGameState): Promise<void> {
+        console.log('Performing cleanup phase');
+
+        // Process each player
+        for (const playerId in gameState.players) {
+            const player = gameState.players[playerId];
+
+            if (player.lives > 0) {
+                // 1. Handle repairs (robots on repair sites)
+                // TODO: Check if robot is on a repair site and remove damage
+
+                // 2. Wipe registers - discard all program cards from non-locked registers
+                // Clear selected cards (keeping locked ones if damage >= 5)
+                const lockedCount = Math.max(0, player.damage - 4);
+                for (let i = 0; i < 5 - lockedCount; i++) {
+                    player.selectedCards[i] = null;
+                }
+
+                // 3. Reset submission state for next turn
+                player.submitted = false;
+
+                // 4. Clear dealt cards (they were used this turn)
+                player.dealtCards = [];
+            }
+        }
+
+        // 5. Deal new cards for the next turn
+        console.log('Dealing new cards for next turn');
+        this.dealCards(gameState);
+
+        // 6. Reset turn number (if tracking)
+        //gameState.turnNumber = (gameState.turnNumber || 0) + 1;
     }
 
     async executeRegister(gameState: ServerGameState, registerIndex: number): Promise<void> {
@@ -180,6 +246,12 @@ export class GameEngine {
 
             console.log(`${player.name} executes ${card.type} (priority ${card.priority})`);
             await this.executeCard(gameState, player, card);
+            this.io.to(gameState.roomCode).emit('card-executed', {
+                playerId,
+                playerName: player.name,
+                card,
+                register: registerIndex
+            });
             this.io.to(gameState.roomCode).emit('game-state', gameState);
             await new Promise(resolve => setTimeout(resolve, this.registerExecutionDelay));
         }
@@ -412,9 +484,10 @@ export class GameEngine {
             const tile = this.getTileAt(gameState, player.position.x, player.position.y);
             if (!tile || tile.type !== TileType.PUSHER) return;
             if ((tile as any).registers && (tile as any).registers.includes(currentRegister + 1)) {
-                if (this.pushRobot(gameState, player, (tile as any).direction)) {
-                    this.executionLog(gameState, `${player.name} pushed by pusher`);
-                }
+                this.pushRobot(gameState, player, (tile as any).direction);
+                // if (this.pushRobot(gameState, player, (tile as any).direction)) {
+                //     this.executionLog(gameState, `${player.name} pushed by pusher`);
+                //}
             }
         });
         this.io.to(gameState.roomCode).emit('game-state', gameState);
@@ -473,7 +546,9 @@ export class GameEngine {
                 x += vector.x;
                 y += vector.y;
                 const nextTile = this.getTileAt(gameState, x, y);
-                if (nextTile && nextTile.walls && nextTile.walls.includes((shooter.direction + 2) % 4)) break;
+                if (nextTile && nextTile.walls && nextTile.walls.includes((shooter.direction + 2) % 4)) {
+                    break;
+                }
             }
             if (path.length > 0) {
                 robotLaserShots.push({

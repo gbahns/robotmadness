@@ -6,8 +6,9 @@ import { BoardDefinition, TileElement, LaserElement, WallElement } from './board
  */
 export function buildBoard(definition: BoardDefinition): Board {
     // Initialize empty tile grid
-    const tiles: Tile[][] = Array(definition.height).fill(null).map(() =>
-        Array(definition.width).fill(null).map(() => ({
+    const tiles: Tile[][] = Array(definition.height).fill(null).map((_, _y) =>
+        Array(definition.width).fill(null).map((_, x) => ({
+            position: { x, y: _y },
             type: TileType.EMPTY,
             walls: []
         }))
@@ -19,8 +20,8 @@ export function buildBoard(definition: BoardDefinition): Board {
             const { x, y } = tileElement.position;
             if (x >= 0 && x < definition.width && y >= 0 && y < definition.height) {
                 tiles[y][x] = {
+                    ...tiles[y][x],
                     type: tileElement.type,
-                    walls: [] // Walls will be added separately
                 };
 
                 // Add any tile-specific properties (for future enhancement)

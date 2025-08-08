@@ -7,6 +7,12 @@ export enum Direction {
   LEFT = 3,
 }
 
+export enum Difficulty {
+  Beginner = 0,
+  Intermediate = 1,
+  Advanced = 2,
+}
+
 export enum GamePhase {
   WAITING = 'waiting',
   STARTING = 'starting',
@@ -84,6 +90,7 @@ export interface Laser {
 }
 
 export interface Tile {
+  position: Position;
   type: TileType;
   walls: Direction[]; // Walls on this tile blocking movement in those directions
 }

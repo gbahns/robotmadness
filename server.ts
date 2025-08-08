@@ -22,6 +22,7 @@ interface ServerToClientEvents {
     'timer-expired': () => void;
     'phase-change': (data: { phase: string }) => void;
     'execution-update': (data: { message: string; playerId?: string; action?: string }) => void;
+    'card-executed': (data: { playerId: string; playerName: string; card: ProgramCard; register: number }) => void;
     'game-ended': (data: { winner: string }) => void;
     'board-selected': (data: { boardId: string, previewBoard: Board }) => void;
     'error': (data: { message: string }) => void;
@@ -210,7 +211,16 @@ app.prepare().then(() => {
 
             if (allSubmitted) {
                 console.log('All players submitted, starting execution phase');
-                gameEngine.executeProgramPhase(gameState);
+
+                // Execute the program phase - this now includes cleanup and dealing new cards
+                await gameEngine.executeProgramPhase(gameState);
+
+                // Emit the updated game state with new cards and reset submission states
+                io.to(roomCode).emit('game-state', gameState);
+
+                console.log('Execution complete, new cards dealt, phase:', gameState.phase);
+            } else {
+                io.to(roomCode).emit('game-state', gameState);
             }
         });
 
