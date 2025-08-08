@@ -132,6 +132,9 @@ export enum SocketEvent {
   PLAYER_JOINED = 'player-joined',
   PLAYER_LEFT = 'player-left',
   CARDS_DEALT = 'cards-dealt',
+  PLAYER_SUBMITTED = 'player-submitted',
+  REGISTER_START = 'register-start',
+  REGISTER_STARTED = 'register-started',
   REGISTER_EXECUTED = 'register-executed',
   GAME_ERROR = 'game-error',
 }

@@ -26,6 +26,9 @@ interface ServerToClientEvents {
     'game-ended': (data: { winner: string }) => void;
     'board-selected': (data: { boardId: string, previewBoard: Board }) => void;
     'error': (data: { message: string }) => void;
+    'player-submitted': (data: { playerId: string, playerName: string }) => void;
+    'register-start': (data: { register: number }) => void;
+    'register-started': (data: { register: number, registerNumber: number }) => void;
 }
 
 interface ClientToServerEvents {
@@ -199,30 +202,122 @@ app.prepare().then(() => {
             io.to(roomCode).emit('game-state', gameState);
         });
 
-        socket.on('submit-cards', async ({ roomCode, playerId, cards }) => {
+        socket.on('submit-cards', (data) => {
+            const { roomCode, playerId, cards } = data;
             const gameState = games.get(roomCode);
+
             if (!gameState || !gameState.players[playerId]) return;
 
-            gameEngine.submitCards(gameState, playerId, cards);
+            console.log(`Player ${gameState.players[playerId].name} (${playerId}) submitted cards:`, cards.map(c => c ? `${c.type}(${c.priority})` : 'null'));
 
-            const allSubmitted = Object.values(gameState.players).every(
-                player => player.selectedCards.every(card => card !== null) || player.lives <= 0
-            );
+            // Store the submitted cards
+            gameState.players[playerId].selectedCards = cards;
+            gameState.players[playerId].submitted = true;
+
+            // Check if all players have submitted
+            const allSubmitted = Object.values(gameState.players).every(p => p.submitted);
+            console.log(`Players submitted: ${Object.values(gameState.players).filter(p => p.submitted).length}/${Object.keys(gameState.players).length}`);
 
             if (allSubmitted) {
-                console.log('All players submitted, starting execution phase');
+                console.log('All players submitted! Starting execution phase...');
 
-                // Execute the program phase - this now includes cleanup and dealing new cards
-                await gameEngine.executeProgramPhase(gameState);
+                // Move to execution phase
+                gameState.phase = GamePhase.EXECUTING;
+                gameState.currentRegister = 0;
 
-                // Emit the updated game state with new cards and reset submission states
+                // Reset submitted flags for next round
+                Object.values(gameState.players).forEach(p => p.submitted = false);
+
                 io.to(roomCode).emit('game-state', gameState);
 
-                console.log('Execution complete, new cards dealt, phase:', gameState.phase);
+                // Execute all 5 registers
+                executeRegisters(gameState, roomCode);
+
             } else {
-                io.to(roomCode).emit('game-state', gameState);
+                // Just update this player's status
+                io.to(roomCode).emit('player-submitted', { playerId, playerName: gameState.players[playerId].name });
+                console.log(`Player ${gameState.players[playerId].name} submitted, waiting for others...`);
             }
         });
+
+        // Execute all 5 registers
+        async function executeRegisters(gameState: ServerGameState, roomCode: string) {
+            for (let i = 0; i < 5; i++) {
+                gameState.currentRegister = i;
+                io.to(roomCode).emit('register-start', { register: i });
+
+                io.to(roomCode).emit('register-started', {
+                    register: i,
+                    registerNumber: i + 1
+                });
+
+                //await executeRegister(io, gameState, i);
+                await gameEngine.executeRegister(gameState, i);
+
+                // Broadcast updated game state after each register
+                //io.to(gameState.roomCode).emit('game-state', gameState);
+
+                // Check if game ended
+                if (gameState.phase === 'ended') {
+                    console.log(`Game ended! Winner: ${gameState.winner}`);
+                    io.to(roomCode).emit('game-ended', { winner: gameState.winner || 'No winner' });
+                    return;
+                }
+
+                // Check if all players are dead
+                if (gameState.allPlayersDead) {
+                    console.log('All players are dead, ending turn early.');
+                    break; // Exit the register loop
+                }
+
+                // Delay between registers
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+
+            // After all registers, clean up the turn
+            // 1. Respawn any dead robots
+            gameEngine.respawnDeadRobots(gameState);
+
+            // 2. TODO: Handle repairs & upgrades
+
+            // 3. TODO: Handle power downs
+
+            // 4. Go back to programming phase for the next turn
+            gameState.phase = GamePhase.PROGRAMMING;
+            gameState.currentRegister = 0;
+            gameState.roundNumber++;
+            gameState.allPlayersDead = false; // Reset the flag
+            gameEngine.dealCards(gameState);
+            io.to(roomCode).emit('game-state', gameState);
+        }
+
+
+        // socket.on('submit-cards', async ({ roomCode, playerId, cards }) => {
+        //     const gameState = games.get(roomCode);
+        //     if (!gameState || !gameState.players[playerId]) return;
+
+        //     console.log(`Player ${gameState.players[playerId].name} submitted cards for room ${roomCode}:`, cards);
+
+        //     gameEngine.submitCards(gameState, playerId, cards);
+
+        //     const allSubmitted = Object.values(gameState.players).every(
+        //         player => player.selectedCards.every(card => card !== null) || player.lives <= 0
+        //     );
+
+        //     if (allSubmitted) {
+        //         console.log('All players submitted, starting execution phase');
+
+        //         // Execute the program phase - this now includes cleanup and dealing new cards
+        //         await gameEngine.executeProgramPhase(gameState);
+
+        //         // Emit the updated game state with new cards and reset submission states
+        //         io.to(roomCode).emit('game-state', gameState);
+
+        //         console.log('Execution complete, new cards dealt, phase:', gameState.phase);
+        //     } else {
+        //         io.to(roomCode).emit('game-state', gameState);
+        //     }
+        // });
 
         socket.on('reset-cards', ({ roomCode, playerId }) => {
             const gameState = games.get(roomCode);

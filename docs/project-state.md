@@ -44,10 +44,13 @@
 ## Architecture Decisions (LOCKED - DO NOT CHANGE)
 
 ### Server Architecture
-- **File**: `/server.js` (Plain Node.js, not TypeScript)
+- **Main File**: `/server.ts` (TypeScript with tsx runtime)
+- **Game Engine**: `/lib/game/gameEngine.ts` - TypeScript implementation
 - **Port**: 3000
 - **Storage**: In-memory Map for games
+- **Docking Bay Size**: 4x12 ALWAYS
 - **Board Size**: 12x12 grid ALWAYS
+- **Course Size**: 1 Docking Bay and 1 or 2 Factory Floor Boards
 - **Tile Size**: 50px ALWAYS
 
 ### Client Architecture  

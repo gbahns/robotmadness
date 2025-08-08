@@ -128,10 +128,37 @@ export class GameEngine {
             if (player.lives > 0) {
                 player.dealtCards = deck.splice(0, 9);
             }
+            // Reset selected cards
+            player.selectedCards = [null, null, null, null, null];
         }
+
+
         gameState.phase = GamePhase.PROGRAMMING;
         gameState.cardsDealt = true;
     }
+
+    // Deal cards to all players
+    // function dealCards(gameState) {
+    //     const shuffledDeck = shuffleArray(CARD_DECK);
+    //     let deckIndex = 0;
+
+    //     Object.values(gameState.players).forEach(player => {
+    //         // Deal 9 cards to each player (minus damage)
+    //         const cardsToDeal = Math.max(0, 9 - player.damage);
+    //         player.dealtCards = shuffledDeck.slice(deckIndex, deckIndex + cardsToDeal);
+    //         deckIndex += cardsToDeal;
+
+    //         // Reset selected cards
+    //         player.selectedCards = [null, null, null, null, null];
+
+    //         // Calculate locked registers (5+ damage locks registers)
+    //         player.lockedRegisters = Math.max(0, player.damage - 4);
+    //     });
+
+    //     gameState.phase = 'programming';
+    //     gameState.cardsDealt = true;
+    // }
+
 
     submitCards(gameState: ServerGameState, playerId: string, cards: (ProgramCard | null)[]): void {
         const player = gameState.players[playerId];
@@ -185,6 +212,8 @@ export class GameEngine {
         // Reset for next turn
         gameState.currentRegister = 1;
     }
+
+
 
     // Add this new method to handle the cleanup phase
     async performCleanupPhase(gameState: ServerGameState): Promise<void> {
