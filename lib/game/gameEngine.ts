@@ -1,0 +1,597 @@
+import { Server } from 'socket.io';
+import { GameState, Player, ProgramCard, Tile, Direction, CardType, GamePhase, Board } from './types';
+import { TileType } from './types/enums';
+import { getBoardById } from './boards/boardDefinitions';
+
+export interface ServerGameState extends GameState {
+    host: string;
+    selectedBoard: string;
+    winner?: string;
+    allPlayersDead?: boolean;
+}
+
+interface IoServer {
+    to(room: string): { emit(event: string, ...args: any[]): void; };
+}
+
+interface DirectionVectors {
+    [key: number]: { x: number; y: number; };
+}
+
+export class GameEngine {
+    private io: IoServer;
+    private DIRECTION_VECTORS: DirectionVectors;
+    private registerExecutionDelay: number;
+    private boardElementDelay: number;
+
+    constructor(io: IoServer) {
+        this.io = io;
+        this.DIRECTION_VECTORS = {
+            [Direction.UP]: { x: 0, y: -1 },
+            [Direction.RIGHT]: { x: 1, y: 0 },
+            [Direction.DOWN]: { x: 0, y: 1 },
+            [Direction.LEFT]: { x: -1, y: 0 }
+        };
+        this.registerExecutionDelay = 500;
+        this.boardElementDelay = 500;
+    }
+
+    createGame(roomCode: string, playerName: string, playerId: string, boardId?: string): ServerGameState {
+        const newPlayer: Player = {
+            id: playerId,
+            name: playerName,
+            position: { x: -1, y: -1 }, // Temporary position
+            direction: Direction.DOWN,
+            damage: 0,
+            lives: 3,
+            checkpointsVisited: 0,
+            isPoweredDown: false,
+            dealtCards: [],
+            selectedCards: Array(5).fill(null),
+            lockedRegisters: 0,
+            userId: playerId,
+        };
+
+        const board = getBoardById(boardId || 'default');
+
+        const gameState: ServerGameState = {
+            id: roomCode,
+            roomCode,
+            name: `${playerName}'s Game`,
+            phase: GamePhase.WAITING,
+            currentRegister: 0,
+            players: { [playerId]: newPlayer },
+            board,
+            roundNumber: 0,
+            cardsDealt: false,
+            host: playerId,
+            selectedBoard: boardId || 'default',
+        };
+
+        return gameState;
+    }
+
+    addPlayerToGame(gameState: ServerGameState, playerId: string, playerName: string): void {
+        if (gameState.players[playerId]) return;
+
+        const newPlayer: Player = {
+            id: playerId,
+            name: playerName,
+            position: { x: -1, y: -1 },
+            direction: Direction.DOWN,
+            damage: 0,
+            lives: 3,
+            checkpointsVisited: 0,
+            isPoweredDown: false,
+            dealtCards: [],
+            selectedCards: Array(5).fill(null),
+            lockedRegisters: 0,
+            userId: playerId,
+        };
+
+        gameState.players[playerId] = newPlayer;
+    }
+
+    removePlayerFromGame(gameState: ServerGameState, playerId: string): void {
+        delete gameState.players[playerId];
+    }
+
+    selectBoard(gameState: ServerGameState, boardId: string): Board {
+        const board = getBoardById(boardId);
+        gameState.board = board;
+        gameState.selectedBoard = boardId;
+        return board;
+    }
+
+    startGame(gameState: ServerGameState, selectedCourse: string): void {
+        gameState.phase = GamePhase.STARTING;
+        const startingPositions = [...gameState.board.startingPositions];
+        for (const playerId in gameState.players) {
+            const player = gameState.players[playerId];
+            const startPos = startingPositions.shift();
+            if (startPos) {
+                player.position = startPos.position;
+                player.direction = startPos.direction;
+            }
+        }
+    }
+
+    dealCards(gameState: ServerGameState): void {
+        const deck = this.createDeck();
+        this.shuffleDeck(deck);
+
+        for (const playerId in gameState.players) {
+            const player = gameState.players[playerId];
+            if (player.lives > 0) {
+                player.dealtCards = deck.splice(0, 9);
+            }
+        }
+        gameState.phase = GamePhase.PROGRAMMING;
+        gameState.cardsDealt = true;
+    }
+
+    submitCards(gameState: ServerGameState, playerId: string, cards: (ProgramCard | null)[]): void {
+        const player = gameState.players[playerId];
+        if (player) {
+            player.selectedCards = cards;
+        }
+    }
+
+    resetCards(gameState: ServerGameState, playerId: string): void {
+        const player = gameState.players[playerId];
+        if (player) {
+            player.selectedCards = Array(5).fill(null);
+        }
+    }
+
+    async executeProgramPhase(gameState: ServerGameState): Promise<void> {
+        gameState.phase = GamePhase.EXECUTING;
+        for (let i = 0; i < 5; i++) {
+            gameState.currentRegister = i;
+            await this.executeRegister(gameState, i);
+        }
+        await this.executeBoardElements(gameState);
+        this.respawnDeadRobots(gameState);
+        gameState.phase = GamePhase.PROGRAMMING;
+    }
+
+    async executeRegister(gameState: ServerGameState, registerIndex: number): Promise<void> {
+        console.log(`Executing register ${registerIndex + 1}`);
+        const programmedCards: Array<{ playerId: string; card: ProgramCard; player: Player }> = [];
+
+        Object.entries(gameState.players).forEach(([playerId, player]) => {
+            if (player.lives > 0 && player.selectedCards[registerIndex]) {
+                programmedCards.push({
+                    playerId,
+                    card: player.selectedCards[registerIndex] as ProgramCard,
+                    player
+                });
+            }
+        });
+
+        programmedCards.sort((a, b) => b.card.priority - a.card.priority);
+
+        console.log('Cards to execute this register:', programmedCards.map(c =>
+            `${c.player.name}: ${c.card.type}(${c.card.priority})`
+        ));
+
+        for (const { playerId, card, player } of programmedCards) {
+            if ((player as any).isDead) continue;
+
+            console.log(`${player.name} executes ${card.type} (priority ${card.priority})`);
+            await this.executeCard(gameState, player, card);
+            this.io.to(gameState.roomCode).emit('game-state', gameState);
+            await new Promise(resolve => setTimeout(resolve, this.registerExecutionDelay));
+        }
+    }
+
+    async executeCard(gameState: ServerGameState, player: Player, card: ProgramCard): Promise<void> {
+        switch (card.type) {
+            case CardType.MOVE_1:
+                await this.moveRobot(gameState, player, 1);
+                break;
+            case CardType.MOVE_2:
+                await this.moveRobot(gameState, player, 2);
+                break;
+            case CardType.MOVE_3:
+                await this.moveRobot(gameState, player, 3);
+                break;
+            case CardType.BACK_UP:
+                await this.moveRobot(gameState, player, -1);
+                break;
+            case CardType.ROTATE_LEFT:
+                player.direction = (player.direction + 3) % 4;
+                break;
+            case CardType.ROTATE_RIGHT:
+                player.direction = (player.direction + 1) % 4;
+                break;
+            case CardType.U_TURN:
+                player.direction = (player.direction + 2) % 4;
+                break;
+        }
+    }
+
+    async moveRobot(gameState: ServerGameState, player: Player, distance: number): Promise<void> {
+        const direction = distance < 0 ?
+            (player.direction + 2) % 4 :
+            player.direction;
+        const moves = Math.abs(distance);
+
+        for (let i = 0; i < moves; i++) {
+            const vector = this.DIRECTION_VECTORS[direction];
+            const newX = player.position.x + vector.x;
+            const newY = player.position.y + vector.y;
+
+            if (newX < 0 || newX >= gameState.board.width ||
+                newY < 0 || newY >= gameState.board.height) {
+                this.destroyRobot(gameState, player, 'fell off board');
+                break;
+            }
+
+            const occupant = this.getPlayerAt(gameState, newX, newY);
+            if (occupant) {
+                const pushed = await this.pushRobot(gameState, occupant, direction);
+                if (!pushed) {
+                    break;
+                } else {
+                    this.executionLog(gameState, `${player.name} pushed ${occupant.name}`);
+                }
+            }
+
+            if (newX >= 0 && newX < gameState.board.width && newY >= 0 && newY < gameState.board.height) {
+                player.position.x = newX;
+                player.position.y = newY;
+            } else {
+                this.destroyRobot(gameState, player, 'fell off board');
+                break;
+            }
+        }
+    }
+
+    async pushRobot(gameState: ServerGameState, playerToPush: Player, direction: Direction): Promise<boolean> {
+        const vector = this.DIRECTION_VECTORS[direction];
+        const newX = playerToPush.position.x + vector.x;
+        const newY = playerToPush.position.y + vector.y;
+
+        if (newX < 0 || newX >= gameState.board.width ||
+            newY < 0 || newY >= gameState.board.height) {
+            this.destroyRobot(gameState, playerToPush, 'fell off board');
+            return true; // Pushed off the board
+        }
+
+        const occupant = this.getPlayerAt(gameState, newX, newY);
+        if (occupant) {
+            const pushed = await this.pushRobot(gameState, occupant, direction);
+            if (!pushed) {
+                return false; // Blocked by another robot that couldn't be pushed
+            }
+        }
+
+        playerToPush.position.x = newX;
+        playerToPush.position.y = newY;
+        return true;
+    }
+
+    getPlayerAt(gameState: ServerGameState, x: number, y: number): Player | undefined {
+        return Object.values(gameState.players).find(p => p.position.x === x && p.position.y === y && !(p as any).isDead);
+    }
+
+    destroyRobot(gameState: ServerGameState, player: Player, reason: string): void {
+        if ((player as any).isDead) return;
+
+        console.log(`${player.name} destroyed: ${reason}`);
+
+        player.lives--;
+        player.damage = 2;
+        (player as any).isDead = true;
+        player.position = { x: -1, y: -1 };
+
+        this.io.to(gameState.roomCode).emit('robot-destroyed', {
+            playerName: player.name,
+            reason: reason
+        });
+
+        if (player.lives <= 0) {
+            console.log(`${player.name} is out of lives!`);
+            this.io.to(gameState.roomCode).emit('robot-destroyed', {
+                playerName: player.name,
+                reason: 'out of lives'
+            });
+        }
+
+        const allPlayers = Object.values(gameState.players);
+        const allDead = allPlayers.every(p => (p as any).isDead || p.lives <= 0);
+        if (allDead) {
+            gameState.allPlayersDead = true;
+            console.log('All players are destroyed. Turn will end early.');
+        }
+    }
+
+    respawnDeadRobots(gameState: ServerGameState) {
+        Object.values(gameState.players).forEach(player => {
+            if ((player as any).isDead) {
+                if (player.lives > 0) {
+                    console.log(`${player.name} is respawning.`);
+                    const startPos = gameState.board.startingPositions[Object.keys(gameState.players).indexOf(player.id) % gameState.board.startingPositions.length];
+                    player.position = { ...startPos.position };
+                    player.direction = startPos.direction;
+                    (player as any).isDead = false;
+                    this.io.to(gameState.roomCode).emit('robot-respawned', {
+                        playerName: player.name,
+                        position: player.position,
+                        direction: player.direction
+                    });
+                } else {
+                    console.log(`${player.name} has no lives left.`);
+                }
+            }
+        });
+    }
+
+    async executeBoardElements(gameState: ServerGameState) {
+        console.log('Executing board elements...');
+        await this.executeConveyorBelts(gameState, true, true);
+        await this.executePushers(gameState);
+        await this.executeGears(gameState);
+        await this.executeLasers(gameState);
+        await this.checkCheckpoints(gameState);
+    }
+
+    async executeConveyorBelts(gameState: ServerGameState, includeExpress: boolean, includeNormal: boolean) {
+        const movements: any[] = [];
+        Object.values(gameState.players).forEach(player => {
+            if (player.lives <= 0) return;
+            const tile = this.getTileAt(gameState, player.position.x, player.position.y);
+            if (!tile) return;
+            if ((tile.type === TileType.EXPRESS_CONVEYOR && includeExpress) || (tile.type === TileType.CONVEYOR && includeNormal)) {
+                const vector = this.DIRECTION_VECTORS[(tile as any).direction];
+                const newX = player.position.x + vector.x;
+                const newY = player.position.y + vector.y;
+                this.executionLog(gameState, `${player.name} moved by conveyor`);
+                movements.push({
+                    player,
+                    to: { x: newX, y: newY },
+                    fromTile: tile
+                });
+            }
+        });
+
+        const resolvedMovements = this.resolveConveyorMovements(gameState, movements);
+
+        resolvedMovements.forEach(movement => {
+            const { player, to, fromTile } = movement;
+            if (to.x < 0 || to.x >= gameState.board.width || to.y < 0 || to.y >= gameState.board.height) {
+                this.destroyRobot(gameState, player, 'fell off board');
+                return;
+            }
+            player.position = { ...to };
+            const toTile = this.getTileAt(gameState, to.x, to.y);
+            if (toTile && (toTile as any).rotate && (fromTile.type === TileType.CONVEYOR || fromTile.type === TileType.EXPRESS_CONVEYOR)) {
+                if ((toTile as any).rotate === 'clockwise') {
+                    player.direction = (player.direction + 1) % 4;
+                } else if ((toTile as any).rotate === 'counterclockwise') {
+                    player.direction = (player.direction + 3) % 4;
+                }
+                this.executionLog(gameState, `${player.name} rotated by conveyor`);
+            }
+        });
+        this.io.to(gameState.roomCode).emit('game-state', gameState);
+        await new Promise(resolve => setTimeout(resolve, this.boardElementDelay));
+    }
+
+    resolveConveyorMovements(gameState: ServerGameState, movements: any[]) {
+        const resolved: any[] = [];
+        const destinations = new Map();
+        movements.forEach(movement => {
+            const key = `${movement.to.x},${movement.to.y}`;
+            if (!destinations.has(key)) {
+                destinations.set(key, []);
+            }
+            destinations.get(key).push(movement);
+        });
+
+        movements.forEach(movement => {
+            const destKey = `${movement.to.x},${movement.to.y}`;
+            const conflicts = destinations.get(destKey);
+            const occupant = this.getPlayerAt(gameState, movement.to.x, movement.to.y);
+            if (conflicts.length > 1) {
+                return;
+            }
+            if (occupant && !movements.find(m => m.player.id === occupant.id)) {
+                return;
+            }
+            resolved.push(movement);
+        });
+        return resolved;
+    }
+
+    async executePushers(gameState: ServerGameState) {
+        const currentRegister = gameState.currentRegister;
+        Object.values(gameState.players).forEach(player => {
+            if (player.lives <= 0) return;
+            const tile = this.getTileAt(gameState, player.position.x, player.position.y);
+            if (!tile || tile.type !== TileType.PUSHER) return;
+            if ((tile as any).registers && (tile as any).registers.includes(currentRegister + 1)) {
+                if (this.pushRobot(gameState, player, (tile as any).direction)) {
+                    this.executionLog(gameState, `${player.name} pushed by pusher`);
+                }
+            }
+        });
+        this.io.to(gameState.roomCode).emit('game-state', gameState);
+        await new Promise(resolve => setTimeout(resolve, this.boardElementDelay));
+    }
+
+    async executeGears(gameState: ServerGameState) {
+        Object.values(gameState.players).forEach(player => {
+            if (player.lives <= 0) return;
+            const tile = this.getTileAt(gameState, player.position.x, player.position.y);
+            if (!tile || (tile.type !== TileType.GEAR_CW && tile.type !== TileType.GEAR_CCW)) return;
+            if (tile.type === TileType.GEAR_CW) {
+                player.direction = (player.direction + 1) % 4;
+            } else if (tile.type === TileType.GEAR_CCW) {
+                player.direction = (player.direction + 3) % 4;
+            }
+            this.executionLog(gameState, `${player.name} rotated by gear`);
+        });
+        this.io.to(gameState.roomCode).emit('game-state', gameState);
+        await new Promise(resolve => setTimeout(resolve, this.boardElementDelay));
+    }
+
+    async executeLasers(gameState: ServerGameState) {
+        const damages = new Map();
+        const getDamageInfo = (playerId: string) => {
+            if (!damages.has(playerId)) {
+                damages.set(playerId, { boardDamage: 0, robotHits: [] });
+            }
+            return damages.get(playerId);
+        };
+
+        if (gameState.board.lasers) {
+            gameState.board.lasers.forEach(laser => {
+                const hits = this.traceLaser(gameState, laser.position.x, laser.position.y, laser.direction, laser.damage || 1);
+                hits.forEach(hit => {
+                    getDamageInfo(hit.player.id).boardDamage += hit.damage;
+                });
+            });
+        }
+
+        const robotLaserShots: any[] = [];
+        Object.values(gameState.players).forEach(shooter => {
+            if (shooter.lives <= 0) return;
+            const vector = this.DIRECTION_VECTORS[shooter.direction];
+            const startX = shooter.position.x + vector.x;
+            const startY = shooter.position.y + vector.y;
+            const hits = this.traceLaser(gameState, startX, startY, shooter.direction, 1);
+            const path: any[] = [];
+            let x = startX;
+            let y = startY;
+            while (x >= 0 && x < gameState.board.width && y >= 0 && y < gameState.board.height) {
+                path.push({ x, y });
+                if (this.getPlayerAt(gameState, x, y)) break;
+                const tile = this.getTileAt(gameState, x, y);
+                if (tile && tile.walls && tile.walls.includes(shooter.direction)) break;
+                x += vector.x;
+                y += vector.y;
+                const nextTile = this.getTileAt(gameState, x, y);
+                if (nextTile && nextTile.walls && nextTile.walls.includes((shooter.direction + 2) % 4)) break;
+            }
+            if (path.length > 0) {
+                robotLaserShots.push({
+                    shooterId: shooter.id,
+                    path: path,
+                    targetId: hits.length > 0 ? hits[0].player.id : undefined,
+                    timestamp: Date.now()
+                });
+            }
+            hits.forEach(hit => {
+                if (hit.player.id !== shooter.id) {
+                    getDamageInfo(hit.player.id).robotHits.push({ shooterName: shooter.name, damage: hit.damage });
+                }
+            });
+        });
+
+        if (robotLaserShots.length > 0) {
+            this.io.to(gameState.roomCode).emit('robot-lasers-fired', robotLaserShots);
+        }
+
+        damages.forEach((damageInfo, playerId) => {
+            const victim = gameState.players[playerId];
+            const totalDamage = damageInfo.boardDamage + damageInfo.robotHits.reduce((sum: number, hit: any) => sum + hit.damage, 0);
+            if (totalDamage === 0) return;
+            victim.damage += totalDamage;
+            if (damageInfo.boardDamage > 0) {
+                const message = `${victim.name} takes ${damageInfo.boardDamage} damage from laser`;
+                console.log(message);
+                this.io.to(gameState.roomCode).emit('robot-damaged', { playerName: victim.name, damage: damageInfo.boardDamage, reason: 'laser' });
+            }
+            damageInfo.robotHits.forEach((hit: any) => {
+                const message = `${victim.name} shot by ${hit.shooterName}`;
+                console.log(message);
+                this.io.to(gameState.roomCode).emit('robot-damaged', { playerName: victim.name, damage: hit.damage, reason: hit.shooterName, shooterName: hit.shooterName, message });
+            });
+            if (victim.damage >= 10) {
+                console.log(`${victim.name} is destroyed!`);
+                this.destroyRobot(gameState, victim, 'took too much damage');
+            }
+        });
+    }
+
+    traceLaser(gameState: ServerGameState, startX: number, startY: number, direction: Direction, damage: number) {
+        const hits: any[] = [];
+        const vector = this.DIRECTION_VECTORS[direction];
+        let x = startX;
+        let y = startY;
+        while (x >= 0 && x < gameState.board.width && y >= 0 && y < gameState.board.height) {
+            const player = this.getPlayerAt(gameState, x, y);
+            if (player) {
+                hits.push({ player, damage });
+                break;
+            }
+            const tile = this.getTileAt(gameState, x, y);
+            if (tile && tile.walls && tile.walls.includes(direction)) {
+                break;
+            }
+            x += vector.x;
+            y += vector.y;
+            const nextTile = this.getTileAt(gameState, x, y);
+            if (nextTile && nextTile.walls && nextTile.walls.includes((direction + 2) % 4)) {
+                break;
+            }
+        }
+        return hits;
+    }
+
+    async checkCheckpoints(gameState: ServerGameState) {
+        Object.values(gameState.players).forEach(player => {
+            if (player.lives <= 0) return;
+            const checkpoint = gameState.board.checkpoints.find(cp => cp.position.x === player.position.x && cp.position.y === player.position.y);
+            if (checkpoint && checkpoint.number === player.checkpointsVisited + 1) {
+                player.checkpointsVisited++;
+                console.log(`${player.name} reached checkpoint ${checkpoint.number}!`);
+                this.io.to(gameState.roomCode).emit('checkpoint-reached', { playerName: player.name, checkpointNumber: checkpoint.number });
+                (player as any).respawnPosition = { position: { ...player.position }, direction: player.direction };
+                if (player.checkpointsVisited === gameState.board.checkpoints.length) {
+                    gameState.winner = player.name;
+                    gameState.phase = GamePhase.ENDED;
+                    console.log(`${player.name} wins the game!`);
+                    this.io.to(gameState.roomCode).emit('game-over', { winner: player.name });
+                }
+            }
+            const tile = this.getTileAt(gameState, player.position.x, player.position.y);
+            if (tile && (tile.type === TileType.REPAIR)) {
+                (player as any).respawnPosition = { position: { ...player.position }, direction: player.direction };
+            }
+        });
+    }
+
+    getTileAt(gameState: ServerGameState, x: number, y: number): Tile | undefined {
+        if (!gameState.board.tiles) return undefined;
+        return gameState.board.tiles[y] && gameState.board.tiles[y][x];
+    }
+
+    executionLog(gameState: ServerGameState, message: string): void {
+        this.io.to(gameState.roomCode).emit('execution-update', { message });
+    }
+
+    private createDeck(): ProgramCard[] {
+        const deck: ProgramCard[] = [];
+        let priority = 10;
+
+        for (let i = 0; i < 6; i++) deck.push({ id: priority, type: CardType.U_TURN, priority: priority += 10 });
+        for (let i = 0; i < 18; i++) deck.push({ id: priority, type: CardType.ROTATE_LEFT, priority: priority += 20 });
+        for (let i = 0; i < 18; i++) deck.push({ id: priority, type: CardType.ROTATE_RIGHT, priority: priority += 20 });
+        for (let i = 0; i < 6; i++) deck.push({ id: priority, type: CardType.BACK_UP, priority: priority += 10 });
+        for (let i = 0; i < 18; i++) deck.push({ id: priority, type: CardType.MOVE_1, priority: priority += 10 });
+        for (let i = 0; i < 12; i++) deck.push({ id: priority, type: CardType.MOVE_2, priority: priority += 10 });
+        for (let i = 0; i < 6; i++) deck.push({ id: priority, type: CardType.MOVE_3, priority: priority += 10 });
+
+        return deck;
+    }
+
+    private shuffleDeck(deck: ProgramCard[]): void {
+        for (let i = deck.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [deck[i], deck[j]] = [deck[j], deck[i]];
+        }
+    }
+}
