@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { socketClient } from '@/lib/socket';
 import { COURSES, getBoardById, TEST_BOARD } from '@/lib/game/boards/boardDefinitions';
+import BoardPreview from './BoardPreview';
 
 interface GameControlsProps {
   isHost: boolean;
@@ -28,12 +29,35 @@ export default function GameControls({ isHost, roomCode, playerCount, gameState,
 
   // Use external course if provided, otherwise use internal state
   const selectedCourse = externalSelectedCourse || internalSelectedCourse;
-  const setSelectedCourse = (courseId: string) => {
+  const setSelectedCourse = (courseId: string, fromSocket = false) => {
     setInternalSelectedCourse(courseId);
     onCourseChange?.(courseId);
+
+    // Only emit board selection to server if host and not from socket event
+    if (isHost && !fromSocket) {
+      socketClient.emit('select-board', { roomCode, boardId: courseId });
+    }
   };
 
   if (!isHost || gameState?.phase !== 'waiting') {
+    // Show selected board info for non-hosts in waiting phase
+    if (gameState?.phase === 'waiting' && selectedCourse) {
+      const courseInfo = COURSES.find(c => c.boards.some(b => b.id === selectedCourse));
+      const boardName = selectedCourse === 'test' ? 'Test Board' : courseInfo?.name || 'Unknown Board';
+
+      return (
+        <div className="bg-gray-800 rounded-lg p-6 text-center space-y-2">
+          <p className="text-gray-400">Waiting for host to start the game...</p>
+          <p className="text-sm text-gray-500">
+            Selected course: <span className="text-white font-semibold">{boardName}</span>
+          </p>
+          {courseInfo && (
+            <p className="text-xs text-gray-600">{courseInfo.description}</p>
+          )}
+        </div>
+      );
+    }
+
     return (
       <div className="bg-gray-800 rounded-lg p-6 text-center">
         <p className="text-gray-400">Waiting for host to start the game...</p>
@@ -77,7 +101,13 @@ export default function GameControls({ isHost, roomCode, playerCount, gameState,
         )}
       </div>
 
-      {/* Board Preview removed - now showing in main board area */}
+      {/* Board Preview */}
+      {selectedBoard && (
+        <div className="mt-4">
+          <h3 className="text-sm font-semibold text-gray-300 mb-2">Board Preview:</h3>
+          <BoardPreview board={selectedBoard} size={250} />
+        </div>
+      )}
 
       <button
         onClick={() => {
