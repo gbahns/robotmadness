@@ -1,6 +1,7 @@
 // lib/game/boards/boardDefinitions.ts
 
 import { Board, Checkpoint, StartingPosition, TileType, Direction } from '../types';
+import { LEGACY_COURSES } from './legacyBoards';
 
 export interface CourseDefinition {
     id: string;
@@ -292,17 +293,20 @@ export const COURSES: CourseDefinition[] = [
     RISKY_EXCHANGE,
     CHECKMATE,
     DIZZY_DASH,
-    ISLAND_HOP
+    ISLAND_HOP,
 ];
+
+// Combine new and legacy courses
+export const ALL_COURSES: CourseDefinition[] = [...COURSES, ...LEGACY_COURSES];
 
 // Helper function to get a course by ID
 export function getCourseById(courseId: string): CourseDefinition | undefined {
-    return COURSES.find(course => course.id === courseId);
+    return ALL_COURSES.find(course => course.id === courseId);
 }
 
 // Helper function to get a board by ID
 export function getBoardById(boardId: string): BoardDefinition | undefined {
-    for (const course of COURSES) {
+    for (const course of ALL_COURSES) {
         const board = course.boards.find(b => b.id === boardId);
         if (board) return board;
     }

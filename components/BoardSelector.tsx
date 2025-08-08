@@ -1,7 +1,7 @@
 // components/BoardSelector.tsx
 
 import React from 'react';
-import { COURSES, CourseDefinition } from '@/lib/game/boards/boardDefinitions';
+import { ALL_COURSES, CourseDefinition } from '@/lib/game/boards/boardDefinitions';
 
 interface BoardSelectorProps {
     selectedBoardId: string;
@@ -32,7 +32,7 @@ export default function BoardSelector({ selectedBoardId, onSelectBoard }: BoardS
                 </button>
 
                 {/* Course Options */}
-                {COURSES.map((course) => {
+                {ALL_COURSES.map((course) => {
                     // For now, we'll use the first board in each course
                     const board = course.boards[0];
                     return (
@@ -66,7 +66,7 @@ export default function BoardSelector({ selectedBoardId, onSelectBoard }: BoardS
             <div className="mt-4 p-4 bg-gray-800 rounded-lg">
                 <h4 className="text-sm font-semibold text-gray-300 mb-2">Selected Board Details</h4>
                 {selectedBoardId && (() => {
-                    const course = COURSES.find(c => c.boards.some(b => b.id === selectedBoardId));
+                    const course = ALL_COURSES.find(c => c.boards.some(b => b.id === selectedBoardId));
                     const board = course?.boards.find(b => b.id === selectedBoardId);
 
                     if (!board && selectedBoardId !== 'test') return null;

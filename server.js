@@ -8,7 +8,7 @@ const { Server } = require('socket.io');
 const GameEngine = require('./gameEngine');
 const { SAMPLE_BOARD, TEST_BOARD, BOARD_THEMES, RISKY_EXCHANGE_BOARD, RISKY_EXCHANGE_BOARD_CLAUDE_1, RISKY_EXCHANGE_BOARD_GEMINI, LASER_TEST_BOARD } = require('./boardConfig');
 const boardBuilder = require('./lib/game/boards/boardBuilder.js');
-const { /*TEST_BOARD, */ COURSES, getBoardById } = require('./lib/game/boards/boardDefinitions');
+const { ALL_COURSES, getBoardById } = require('./lib/game/boards/boardDefinitions');
 //const boardBuilder = require('./lib/game/boards/boardBuilder').default;
 
 const dev = process.env.NODE_ENV !== 'production';

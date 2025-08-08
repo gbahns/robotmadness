@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { socketClient } from '@/lib/socket';
-import { COURSES, getBoardById, TEST_BOARD } from '@/lib/game/boards/boardDefinitions';
+import { ALL_COURSES, getBoardById, TEST_BOARD } from '@/lib/game/boards/boardDefinitions';
 import BoardPreview from './BoardPreview';
 
 interface GameControlsProps {
@@ -15,7 +15,7 @@ interface GameControlsProps {
 // Build available courses from our board definitions
 const availableCourses = [
   { id: 'test', name: 'Test Board' },
-  ...COURSES.map(course => ({
+  ...ALL_COURSES.map(course => ({
     id: course.boards[0].id, // Use the first board in each course
     name: course.name,
     description: course.description,
@@ -42,7 +42,7 @@ export default function GameControls({ isHost, roomCode, playerCount, gameState,
   if (!isHost || gameState?.phase !== 'waiting') {
     // Show selected board info for non-hosts in waiting phase
     if (gameState?.phase === 'waiting' && selectedCourse) {
-      const courseInfo = COURSES.find(c => c.boards.some(b => b.id === selectedCourse));
+      const courseInfo = ALL_COURSES.find(c => c.boards.some(b => b.id === selectedCourse));
       const boardName = selectedCourse === 'test' ? 'Test Board' : courseInfo?.name || 'Unknown Board';
 
       return (
@@ -67,7 +67,7 @@ export default function GameControls({ isHost, roomCode, playerCount, gameState,
 
   // Find the selected course details
   const selectedBoard = getBoardById(selectedCourse) || TEST_BOARD;
-  const courseInfo = COURSES.find(c => c.boards.some(b => b.id === selectedCourse));
+  const courseInfo = ALL_COURSES.find(c => c.boards.some(b => b.id === selectedCourse));
 
   return (
     <div className="bg-gray-800 rounded-lg p-6 space-y-4">
@@ -81,7 +81,7 @@ export default function GameControls({ isHost, roomCode, playerCount, gameState,
         >
           <option value="test">Test Board</option>
           <optgroup label="Beginner Courses">
-            {COURSES.filter(c => c.difficulty === 'beginner').map(course => (
+            {ALL_COURSES.filter(c => c.difficulty === 'beginner').map(course => (
               <option key={course.boards[0].id} value={course.boards[0].id}>
                 {course.name}
               </option>
