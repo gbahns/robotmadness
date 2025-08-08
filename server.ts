@@ -174,6 +174,9 @@ app.prepare().then(() => {
 
             console.log(`Starting game ${roomCode} with course: ${selectedCourse}`);
 
+            // Ensure the board is set based on the selected course
+            gameEngine.selectBoard(gameState, selectedCourse);
+
             gameEngine.startGame(gameState, selectedCourse);
 
             io.to(roomCode).emit('game-state', gameState);
