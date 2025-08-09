@@ -3,6 +3,7 @@ import { GameState, Player, ProgramCard, Tile, Direction, CardType, GamePhase, B
 import { TileType } from './types/enums';
 import { getBoardById, BoardDefinition } from './boards/boardDefinitions';
 import { buildBoard } from './boards';
+import { Console } from 'console';
 
 export interface ServerGameState extends GameState {
     host: string;
@@ -129,9 +130,8 @@ export class GameEngine {
                 player.dealtCards = deck.splice(0, 9);
             }
             // Reset selected cards
-            player.selectedCards = [null, null, null, null, null];
+            //player.selectedCards = [null, null, null, null, null];
         }
-
 
         gameState.phase = GamePhase.PROGRAMMING;
         gameState.cardsDealt = true;
@@ -161,6 +161,7 @@ export class GameEngine {
 
 
     submitCards(gameState: ServerGameState, playerId: string, cards: (ProgramCard | null)[]): void {
+        console.log(`PLAYER ${playerId} SUBMITS CARDS:`, cards);
         const player = gameState.players[playerId];
         if (player) {
             player.selectedCards = cards;
@@ -168,6 +169,7 @@ export class GameEngine {
     }
 
     resetCards(gameState: ServerGameState, playerId: string): void {
+        console.log(`PLAYER ${playerId} RESET CARDS`);
         const player = gameState.players[playerId];
         if (player) {
             player.selectedCards = Array(5).fill(null);
@@ -177,16 +179,19 @@ export class GameEngine {
     // lib/game/gameEngine.ts - Updated executeProgramPhase method
 
     async executeProgramPhase(gameState: ServerGameState): Promise<void> {
+        console.log('All players submitted! Starting execution phase...');
         gameState.phase = GamePhase.EXECUTING;
 
-        // Execute all 5 registers
-        for (let i = 0; i < 5; i++) {
-            gameState.currentRegister = i;
-            await this.executeRegister(gameState, i);
-        }
+        //gameState.currentRegister = 0;
 
-        // Execute board elements after all registers
-        await this.executeBoardElements(gameState);
+        // Reset submitted flags for next round
+        //Object.values(gameState.players).forEach(p => p.submitted = false);
+
+        //this.io.to(gameState.roomCode).emit('game-state', gameState);
+
+        // Execute all 5 registers
+        await this.executeRegisters(gameState, gameState.roomCode);
+        //console.log('Registers executed, moving to cleanup phase...');
 
         // Respawn any dead robots
         this.respawnDeadRobots(gameState);
@@ -198,6 +203,7 @@ export class GameEngine {
             if (player.lives > 0) {
                 // Clear non-locked registers
                 const lockedCount = Math.max(0, player.damage - 4);
+                console.log("CLEARING CARDS FOR PLAYER", player.name, "LOCKED COUNT:", lockedCount);
                 for (let i = 0; i < 5 - lockedCount; i++) {
                     player.selectedCards[i] = null;
                 }
@@ -206,11 +212,54 @@ export class GameEngine {
             }
         }
 
+        this.performCleanupPhase(gameState);
+
         // Deal new cards for next turn
-        this.dealCards(gameState);
+        //this.dealCards(gameState);
 
         // Reset for next turn
-        gameState.currentRegister = 1;
+        //gameState.currentRegister = 1;
+    }
+
+
+    // Execute all 5 registers
+    async executeRegisters(gameState: ServerGameState, roomCode: string) {
+        for (let i = 0; i < 5; i++) {
+            gameState.currentRegister = i;
+            this.io.to(roomCode).emit('register-start', { register: i });
+
+            this.io.to(roomCode).emit('register-started', {
+                register: i,
+                registerNumber: i + 1
+            });
+
+            await this.executeRegister(gameState, i);
+
+            var playerToLog = gameState.players[gameState.host];
+            console.log(`Player ${playerToLog.name} (${gameState.host}) submitted cards:`, playerToLog.selectedCards);
+
+            // Execute board elements after player cards have been executed for this register phase
+            await this.executeBoardElements(gameState);
+
+            // Broadcast updated game state after each register
+            this.io.to(gameState.roomCode).emit('game-state', gameState);
+
+            // Check if game ended
+            if (gameState.phase === 'ended') {
+                console.log(`Game ended! Winner: ${gameState.winner}`);
+                this.io.to(roomCode).emit('game-ended', { winner: gameState.winner || 'No winner' });
+                return;
+            }
+
+            // Check if all players are dead
+            if (gameState.allPlayersDead) {
+                console.log('All players are dead, ending turn early.');
+                break; // Exit the register loop
+            }
+
+            // Delay between registers
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
     }
 
 
@@ -230,6 +279,7 @@ export class GameEngine {
                 // 2. Wipe registers - discard all program cards from non-locked registers
                 // Clear selected cards (keeping locked ones if damage >= 5)
                 const lockedCount = Math.max(0, player.damage - 4);
+                console.log("CLEANING UP CARDS FOR PLAYER", player.name, "LOCKED COUNT:", lockedCount);
                 for (let i = 0; i < 5 - lockedCount; i++) {
                     player.selectedCards[i] = null;
                 }
@@ -244,10 +294,15 @@ export class GameEngine {
 
         // 5. Deal new cards for the next turn
         console.log('Dealing new cards for next turn');
+        gameState.currentRegister = 0;
+        gameState.roundNumber++;
+        gameState.allPlayersDead = false; // Reset the flag
         this.dealCards(gameState);
 
         // 6. Reset turn number (if tracking)
         //gameState.turnNumber = (gameState.turnNumber || 0) + 1;
+        //gameState.phase = GamePhase.PROGRAMMING; // Reset to programming phase
+        this.io.to(gameState.roomCode).emit('game-state', gameState);
     }
 
     async executeRegister(gameState: ServerGameState, registerIndex: number): Promise<void> {
@@ -270,11 +325,16 @@ export class GameEngine {
             `${c.player.name}: ${c.card.type}(${c.card.priority})`
         ));
 
+        var playerToLog = gameState.players[gameState.host];
+        //console.log(`BEFORE EXECUTING THIS REGISTER: Player ${playerToLog.name}'s CARDS:`, playerToLog.selectedCards);
+
         for (const { playerId, card, player } of programmedCards) {
             if ((player as any).isDead) continue;
 
+            //console.log(`BEFORE EXECUTING THIS CARD: Player ${playerToLog.name}'s CARDS:`, playerToLog.selectedCards);
             console.log(`${player.name} executes ${card.type} (priority ${card.priority})`);
             await this.executeCard(gameState, player, card);
+            //console.log(`AFTER EXECUTING THIS CARD: Player ${playerToLog.name}'s CARDS:`, playerToLog.selectedCards);
             this.io.to(gameState.roomCode).emit('card-executed', {
                 playerId,
                 playerName: player.name,
@@ -284,6 +344,7 @@ export class GameEngine {
             this.io.to(gameState.roomCode).emit('game-state', gameState);
             await new Promise(resolve => setTimeout(resolve, this.registerExecutionDelay));
         }
+        //console.log(`AFTER EXECUTING THIS REGISTER: Player ${playerToLog.name}'s CARDS:`, playerToLog.selectedCards);
     }
 
     async executeCard(gameState: ServerGameState, player: Player, card: ProgramCard): Promise<void> {
@@ -648,6 +709,7 @@ export class GameEngine {
     async checkCheckpoints(gameState: ServerGameState) {
         Object.values(gameState.players).forEach(player => {
             if (player.lives <= 0) return;
+            console.log(`${player.name} checking for checkpoints at position (${player.position.x}, ${player.position.y})`);
             const checkpoint = gameState.board.checkpoints.find(cp => cp.position.x === player.position.x && cp.position.y === player.position.y);
             if (checkpoint && checkpoint.number === player.checkpointsVisited + 1) {
                 player.checkpointsVisited++;

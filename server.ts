@@ -219,20 +219,7 @@ app.prepare().then(() => {
             console.log(`Players submitted: ${Object.values(gameState.players).filter(p => p.submitted).length}/${Object.keys(gameState.players).length}`);
 
             if (allSubmitted) {
-                console.log('All players submitted! Starting execution phase...');
-
-                // Move to execution phase
-                gameState.phase = GamePhase.EXECUTING;
-                gameState.currentRegister = 0;
-
-                // Reset submitted flags for next round
-                Object.values(gameState.players).forEach(p => p.submitted = false);
-
-                io.to(roomCode).emit('game-state', gameState);
-
-                // Execute all 5 registers
-                executeRegisters(gameState, roomCode);
-
+                gameEngine.executeProgramPhase(gameState);
             } else {
                 // Just update this player's status
                 io.to(roomCode).emit('player-submitted', { playerId, playerName: gameState.players[playerId].name });
