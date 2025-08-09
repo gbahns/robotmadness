@@ -227,58 +227,6 @@ app.prepare().then(() => {
             }
         });
 
-        // Execute all 5 registers
-        async function executeRegisters(gameState: ServerGameState, roomCode: string) {
-            for (let i = 0; i < 5; i++) {
-                gameState.currentRegister = i;
-                io.to(roomCode).emit('register-start', { register: i });
-
-                io.to(roomCode).emit('register-started', {
-                    register: i,
-                    registerNumber: i + 1
-                });
-
-                //await executeRegister(io, gameState, i);
-                await gameEngine.executeRegister(gameState, i);
-
-                // Broadcast updated game state after each register
-                //io.to(gameState.roomCode).emit('game-state', gameState);
-
-                // Check if game ended
-                if (gameState.phase === 'ended') {
-                    console.log(`Game ended! Winner: ${gameState.winner}`);
-                    io.to(roomCode).emit('game-ended', { winner: gameState.winner || 'No winner' });
-                    return;
-                }
-
-                // Check if all players are dead
-                if (gameState.allPlayersDead) {
-                    console.log('All players are dead, ending turn early.');
-                    break; // Exit the register loop
-                }
-
-                // Delay between registers
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-
-            // After all registers, clean up the turn
-            // 1. Respawn any dead robots
-            gameEngine.respawnDeadRobots(gameState);
-
-            // 2. TODO: Handle repairs & upgrades
-
-            // 3. TODO: Handle power downs
-
-            // 4. Go back to programming phase for the next turn
-            gameState.phase = GamePhase.PROGRAMMING;
-            gameState.currentRegister = 0;
-            gameState.roundNumber++;
-            gameState.allPlayersDead = false; // Reset the flag
-            gameEngine.dealCards(gameState);
-            io.to(roomCode).emit('game-state', gameState);
-        }
-
-
         // socket.on('submit-cards', async ({ roomCode, playerId, cards }) => {
         //     const gameState = games.get(roomCode);
         //     if (!gameState || !gameState.players[playerId]) return;
