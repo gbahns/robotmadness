@@ -1,4 +1,6 @@
 ## Backlog
+* respawn robots on their archive marker
+* server got stuck resetting or dealing cards for next turn; one robot had 9 damage, might be related to that
 * fix it so resetting your program doesn't affect other players
 * fix it so the robots don't show up on the board in preview mode
 * walls
@@ -67,3 +69,5 @@
 * change the card colors - needs some thought - e.g. I don't like red for U-Turn
 * make the U-Turn the same color as the other turns
 * orient the U-Turn arrow like an upside-down U
+* damage isn't reducing number of cards dealt
+* damage isn't properly locking registers

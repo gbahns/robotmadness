@@ -55,6 +55,8 @@ export interface Player {
   isVirtual?: boolean;
   isDisconnected?: boolean;
   submitted?: boolean;
+  respawnPosition?: StartingPosition;
+  isDead?: boolean;
 
   // Cards
   dealtCards: ProgramCard[];
@@ -93,6 +95,9 @@ export interface Tile {
   position: Position;
   type: TileType;
   walls: Direction[]; // Walls on this tile blocking movement in those directions
+  direction?: Direction; // For conveyors, gears, pushers
+  rotate?: 'clockwise' | 'counterclockwise'; // For gears
+  registers?: number[]; // For pushers
 }
 
 export interface Checkpoint {

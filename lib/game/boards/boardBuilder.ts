@@ -22,11 +22,10 @@ export function buildBoard(definition: BoardDefinition): Board {
                 tiles[y][x] = {
                     ...tiles[y][x],
                     type: tileElement.type,
+                    ...(tileElement.direction !== undefined && { direction: tileElement.direction }),
+                    ...(tileElement.rotate !== undefined && { rotate: tileElement.rotate }),
+                    ...(tileElement.registers !== undefined && { registers: tileElement.registers }),
                 };
-
-                // Add any tile-specific properties (for future enhancement)
-                // These would be stored in a separate enhanced tiles array
-                // For now, we're using the basic tile system
             }
         }
     }

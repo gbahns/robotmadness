@@ -122,43 +122,28 @@ export class GameEngine {
 
     dealCards(gameState: ServerGameState): void {
         const deck = this.createDeck();
+        console.log('created deck', deck);
+
         this.shuffleDeck(deck);
+        console.log('shuffled deck', deck);
 
         for (const playerId in gameState.players) {
             const player = gameState.players[playerId];
             if (player.lives > 0) {
-                player.dealtCards = deck.splice(0, 9);
+                player.dealtCards = deck.splice(0, 9 - player.damage);
+                // player.dealtCards = shuffledDeck.slice(deckIndex, deckIndex + cardsToDeal);
+                // deckIndex += cardsToDeal;
             }
             // Reset selected cards
             //player.selectedCards = [null, null, null, null, null];
+
+            // Calculate locked registers (5+ damage locks registers)
+            player.lockedRegisters = Math.max(0, player.damage - 4);
         }
 
         gameState.phase = GamePhase.PROGRAMMING;
         gameState.cardsDealt = true;
     }
-
-    // Deal cards to all players
-    // function dealCards(gameState) {
-    //     const shuffledDeck = shuffleArray(CARD_DECK);
-    //     let deckIndex = 0;
-
-    //     Object.values(gameState.players).forEach(player => {
-    //         // Deal 9 cards to each player (minus damage)
-    //         const cardsToDeal = Math.max(0, 9 - player.damage);
-    //         player.dealtCards = shuffledDeck.slice(deckIndex, deckIndex + cardsToDeal);
-    //         deckIndex += cardsToDeal;
-
-    //         // Reset selected cards
-    //         player.selectedCards = [null, null, null, null, null];
-
-    //         // Calculate locked registers (5+ damage locks registers)
-    //         player.lockedRegisters = Math.max(0, player.damage - 4);
-    //     });
-
-    //     gameState.phase = 'programming';
-    //     gameState.cardsDealt = true;
-    // }
-
 
     submitCards(gameState: ServerGameState, playerId: string, cards: (ProgramCard | null)[]): void {
         console.log(`PLAYER ${playerId} SUBMITS CARDS:`, cards);
@@ -196,29 +181,13 @@ export class GameEngine {
         // Respawn any dead robots
         this.respawnDeadRobots(gameState);
 
-        // CLEANUP PHASE - This was missing in the TypeScript conversion!
-        // Clear selected cards for non-locked registers and reset submission state
-        for (const playerId in gameState.players) {
-            const player = gameState.players[playerId];
-            if (player.lives > 0) {
-                // Clear non-locked registers
-                const lockedCount = Math.max(0, player.damage - 4);
-                console.log("CLEARING CARDS FOR PLAYER", player.name, "LOCKED COUNT:", lockedCount);
-                for (let i = 0; i < 5 - lockedCount; i++) {
-                    player.selectedCards[i] = null;
-                }
-                // Reset submission state
-                player.submitted = false;
-            }
-        }
 
-        this.performCleanupPhase(gameState);
+        // 2. TODO: Handle repairs & upgrades
 
-        // Deal new cards for next turn
-        //this.dealCards(gameState);
+        // 3. TODO: Handle power downs
 
-        // Reset for next turn
-        //gameState.currentRegister = 1;
+        // 4. End turn and start programming phase for the next turn
+        this.endTurn(gameState);
     }
 
 
@@ -262,13 +231,9 @@ export class GameEngine {
         }
     }
 
+    async endTurn(gameState: ServerGameState): Promise<void> {
+        console.log('Ending turn and dealing cards for next turn');
 
-
-    // Add this new method to handle the cleanup phase
-    async performCleanupPhase(gameState: ServerGameState): Promise<void> {
-        console.log('Performing cleanup phase');
-
-        // Process each player
         for (const playerId in gameState.players) {
             const player = gameState.players[playerId];
 
@@ -285,10 +250,10 @@ export class GameEngine {
                 }
 
                 // 3. Reset submission state for next turn
-                player.submitted = false;
+                player.submitted = false; //is this needed or does dealCards handle it?
 
                 // 4. Clear dealt cards (they were used this turn)
-                player.dealtCards = [];
+                player.dealtCards = []; //is this needed or does dealCards handle it?
             }
         }
 
@@ -301,7 +266,6 @@ export class GameEngine {
 
         // 6. Reset turn number (if tracking)
         //gameState.turnNumber = (gameState.turnNumber || 0) + 1;
-        //gameState.phase = GamePhase.PROGRAMMING; // Reset to programming phase
         this.io.to(gameState.roomCode).emit('game-state', gameState);
     }
 
