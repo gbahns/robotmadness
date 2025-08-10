@@ -1,11 +1,9 @@
-// components/game/BoardPreview.tsx
-
 import React from 'react';
 import { BoardDefinition } from '@/lib/game/boards/boardDefinitions';
-import { Direction } from '@/lib/game/types';
+import { Board } from '@/lib/game/types';
 
 interface BoardPreviewProps {
-    board: BoardDefinition;
+    board: Board;
     size?: number; // Size of the preview in pixels
 }
 
@@ -152,12 +150,12 @@ export default function BoardPreview({ board, size = 300 }: BoardPreviewProps) {
                 <span className="flex items-center gap-1">
                     <span className="inline-block w-3 h-3 bg-white rounded-full"></span> Checkpoint
                 </span>
-                {board.tiles?.some(t => t.type === 'pit') && (
+                {board.tiles?.flat().some(t => t.type === 'pit') && (
                     <span className="flex items-center gap-1">
                         <span className="inline-block w-3 h-3 bg-black"></span> Pit
                     </span>
                 )}
-                {board.tiles?.some(t => t.type === 'repair') && (
+                {board.tiles?.flat().some(t => t.type === 'repair') && (
                     <span className="flex items-center gap-1">
                         <span className="text-green-500">🔧</span> Repair
                     </span>
