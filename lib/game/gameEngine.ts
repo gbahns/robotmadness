@@ -111,6 +111,44 @@ export class GameEngine {
         }
     }
 
+    dealCardsToPlayer(roomCode: string, player: Player, deck: ProgramCard[]): void {
+        // Handle power down state transitions
+        if (player.powerState === PowerState.ANNOUNCING) {
+            // Transition to powered down
+            player.powerState = PowerState.OFF;
+            player.damage = 0; // Remove ALL damage
+            player.dealtCards = []; // No cards when powered down
+            player.selectedCards = [null, null, null, null, null];
+            player.lockedRegisters = 0;
+            player.announcedPowerDown = false;
+
+            console.log(`${player.name} is now powered down - all damage repaired`);
+
+            // Notify all clients
+            this.io.to(roomCode).emit('player-powered-down', {
+                playerId: player.id,
+                playerName: player.name
+            });
+
+        } else if (player.powerState === PowerState.OFF) {
+            // Already powered down - can choose to stay powered down
+            player.dealtCards = []; // Still no cards
+            player.selectedCards = [null, null, null, null, null];
+            console.log(`${player.name} is still powered down`);
+
+            // mark as submitted since they can't program
+            player.submitted = true;
+
+            // Send option to continue or end power down
+            this.io.to(player.id).emit('power-down-option', {
+                message: 'You are powered down. Stay powered down for another turn?'
+            });
+
+        } else {
+            player.dealtCards = deck.splice(0, 9 - player.damage);
+        }
+    }
+
     dealCards(gameState: ServerGameState): void {
         const deck = this.createDeck();
         console.log('created deck', deck);
@@ -121,7 +159,8 @@ export class GameEngine {
         for (const playerId in gameState.players) {
             const player = gameState.players[playerId];
             if (player.lives > 0) {
-                player.dealtCards = deck.splice(0, 9 - player.damage);
+                //player.dealtCards = deck.splice(0, 9 - player.damage);
+                this.dealCardsToPlayer(gameState.roomCode, player, deck);
                 // player.dealtCards = shuffledDeck.slice(deckIndex, deckIndex + cardsToDeal);
                 // deckIndex += cardsToDeal;
             }

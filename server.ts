@@ -2,7 +2,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import next from 'next';
-import { GameState, ProgramCard, GamePhase, Board, Player } from './lib/game/types';
+import { GameState, ProgramCard, GamePhase, Board, Player, PowerState } from './lib/game/types';
 import { GameEngine, ServerGameState } from './lib/game/gameEngine';
 
 const dev = process.env.NODE_ENV !== 'production';
@@ -29,6 +29,11 @@ interface ServerToClientEvents {
     'player-submitted': (data: { playerId: string, playerName: string }) => void;
     'register-start': (data: { register: number }) => void;
     'register-started': (data: { register: number, registerNumber: number }) => void;
+    'player-powered-down': (data: { playerId: string, playerName: string }) => void;
+    'power-down-option': (data: { message: string }) => void;
+    'player-power-state-changed': (data: { playerId: string, playerName: string, powerState: PowerState, announcedPowerDown?: boolean }) => void;
+    'respawn-power-down-option': (data: { message: string }) => void;
+    'continue-power-down': (data: { roomCode: string, playerId: string, message: string }) => void;
 }
 
 interface ClientToServerEvents {
@@ -40,6 +45,8 @@ interface ClientToServerEvents {
     'submit-cards': (data: { roomCode: string; playerId: string; cards: (ProgramCard | null)[] }) => void;
     'reset-cards': (data: { roomCode: string; playerId: string; }) => void;
     'request-game-state': (roomCode: string) => void;
+    'toggle-power-down': (data: { roomCode: string; playerId: string }) => void;
+    'continue-power-down': (data: { roomCode: string; playerId: string; continueDown: boolean }) => void;
 }
 
 interface InterServerEvents { }
@@ -253,6 +260,65 @@ app.prepare().then(() => {
         //         io.to(roomCode).emit('game-state', gameState);
         //     }
         // });
+
+        // Toggle power down announcement
+        socket.on('toggle-power-down', ({ roomCode, playerId }) => {
+            const gameState = games.get(roomCode);
+            if (!gameState || !gameState.players[playerId]) return;
+            const player = gameState.players[playerId];
+
+            // Toggle power down state
+            if (player.powerState === PowerState.ON) {
+                player.powerState = PowerState.ANNOUNCING;
+                player.announcedPowerDown = true;
+                console.log(`${player.name} announced power down for next turn`);
+
+            } else if (player.powerState === PowerState.ANNOUNCING) {
+                player.powerState = PowerState.ON;
+                player.announcedPowerDown = false;
+                console.log(`${player.name} cancelled power down announcement`);
+
+            } else if (player.powerState === PowerState.OFF) {
+                // Toggle whether to continue being powered down
+                player.continuesPowerDown = !player.continuesPowerDown;
+                console.log(`${player.name} will ${player.continuesPowerDown ? 'stay' : 'not stay'} powered down`);
+            }
+
+            // Notify all clients of the state change
+            io.to(roomCode).emit('player-power-state-changed', {
+                playerId: player.id,
+                playerName: player.name,
+                powerState: player.powerState,
+                announcedPowerDown: player.announcedPowerDown
+            });
+
+            // Send updated game state
+            io.to(roomCode).emit('game-state', gameState);
+        });
+
+        // Handle continuing power down decision
+        socket.on('continue-power-down', ({ roomCode, playerId, continueDown }) => {
+            const gameState = games.get(roomCode);
+            if (!gameState) return;
+
+
+            const player = gameState.players[playerId];
+            if (!player || player.powerState !== PowerState.OFF) return;
+
+            if (continueDown) {
+                // Stay powered down
+                player.continuesPowerDown = true;
+                player.powerState = PowerState.OFF;
+                console.log(`${player.name} chooses to stay powered down`);
+            } else {
+                // Power back on next turn
+                player.continuesPowerDown = false;
+                // Will transition to ON at start of next turn
+                console.log(`${player.name} will power back on next turn`);
+            }
+
+            io.to(roomCode).emit('game-state', gameState);
+        });
 
         socket.on('reset-cards', ({ roomCode, playerId }) => {
             const gameState = games.get(roomCode);

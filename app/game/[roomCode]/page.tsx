@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { GameState, ProgramCard } from '@/lib/game/types';
+import { GameState, ProgramCard, Player, PowerState } from '@/lib/game/types';
 import { socketClient } from '@/lib/socket';
 import Board from '@/components/game/Board';
 import Hand from '@/components/game/Hand';
@@ -11,6 +11,7 @@ import GameContent from '@/components/game/GameContent';
 import ExecutionLog from '@/components/game/ExecutionLog';
 import { RobotLaserShot } from '@/components/game/RobotLaserAnimation';
 import GameControls from '@/components/game/GameControls';
+import ProgrammingControls from '@/components/game/ProgrammingControls';
 import { getBoardById, TEST_BOARD } from '@/lib/game/boards/boardDefinitions';
 import { buildBoard } from '@/lib/game/boards/boardBuilder';
 
@@ -301,6 +302,97 @@ export default function GamePage() {
     // Handle register start
     socketClient.on('register-start', (data: { register: number }) => {
       console.log('Executing register:', data.register);
+    });
+
+    // Power state change handler
+    socketClient.on('player-power-state-changed', (data: {
+      playerId: string;
+      playerName: string;
+      powerState: PowerState;
+      announcedPowerDown: boolean;
+    }) => {
+      console.log(`${data.playerName} power state changed to ${data.powerState}`);
+
+      setGameState(prev => {
+        if (!prev) return prev;
+
+        const updatedPlayers = { ...prev.players };
+        if (updatedPlayers[data.playerId]) {
+          updatedPlayers[data.playerId] = {
+            ...updatedPlayers[data.playerId],
+            powerState: data.powerState,
+            announcedPowerDown: data.announcedPowerDown
+          };
+        }
+
+        return {
+          ...prev,
+          players: updatedPlayers
+        };
+      });
+
+      // Add to log
+      setLogEntries(prev => [...prev, {
+        type: 'power-down',
+        message: data.powerState === PowerState.ANNOUNCING
+          ? `${data.playerName} announced power down for next turn`
+          : data.powerState === PowerState.OFF
+            ? `${data.playerName} is powered down`
+            : `${data.playerName} cancelled power down`,
+        timestamp: Date.now()
+      }]);
+    });
+
+    // Player powered down notification
+    socketClient.on('player-powered-down', (data: {
+      playerId: string;
+      playerName: string;
+    }) => {
+      console.log(`${data.playerName} is now powered down`);
+
+      setExecutionMessage(`${data.playerName} is powered down - all damage repaired!`);
+
+      setLogEntries(prev => [...prev, {
+        type: 'power-down-active',
+        message: `${data.playerName} powered down and repaired all damage`,
+        timestamp: Date.now()
+      }]);
+    });
+
+    // Power down option (for continuing)
+    socketClient.on('power-down-option', (data: {
+      message: string;
+    }) => {
+      // Show modal or UI element to let player choose
+      const continueDown = window.confirm(data.message);
+      socketClient.emit('continue-power-down', {
+        gameId: roomCode,
+        continueDown
+      });
+    });
+
+    // Respawn with power down option
+    socketClient.on('respawn-power-down-option', (data: {
+      message: string;
+    }) => {
+      const powerDown = window.confirm(data.message);
+      if (powerDown) {
+        socketClient.emit('toggle-power-down', { gameId: roomCode });
+      }
+    });
+
+    // Register execution with powered down indicator
+    socketClient.on('register-executed', (data: any) => {
+      if (data.isPoweredDown) {
+        setExecutionMessage(`${data.playerName} is powered down - skipping turn`);
+
+        setLogEntries(prev => [...prev, {
+          type: 'execution',
+          message: `${data.playerName} is powered down`,
+          timestamp: Date.now()
+        }]);
+      }
+      // ... handle normal register execution
     });
 
     // Join the game
@@ -645,14 +737,26 @@ export default function GamePage() {
                   </div>
                 </div>
 
-                <GameControls
-                  isHost={isHost}
-                  roomCode={roomCode}
-                  playerCount={Object.keys(gameState?.players || {}).length}
-                  gameState={gameState}
-                  selectedCourse={selectedCourse}
-                  onCourseChange={setSelectedCourse}
-                />
+                {gameState?.phase === 'waiting' && (
+                  <GameControls
+                    isHost={isHost}
+                    roomCode={roomCode}
+                    playerCount={Object.keys(gameState?.players || {}).length}
+                    currentPlayer={currentPlayer}
+                    gameState={gameState}
+                    selectedCourse={selectedCourse}
+                    onCourseChange={setSelectedCourse}
+                  />
+                )}
+
+                {gameState?.phase === 'programming' && (
+                  <ProgrammingControls
+                    gameState={gameState}
+                    currentPlayer={currentPlayer || {} as Player}
+                    selectedCards={currentPlayer?.selectedCards || []}
+                    onSubmitCards={handleSubmitCards}
+                  />
+                )}
 
                 <ExecutionLog entries={logEntries} />
               </div>

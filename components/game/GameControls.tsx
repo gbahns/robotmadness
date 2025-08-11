@@ -2,11 +2,14 @@ import React, { useState } from 'react';
 import { socketClient } from '@/lib/socket';
 import { ALL_COURSES, getBoardById, TEST_BOARD } from '@/lib/game/boards/boardDefinitions';
 import BoardPreview from './BoardPreview';
+import PowerDownButton from './PowerDownButton';
+import { Player } from '@/lib/game/types';
 
 interface GameControlsProps {
   isHost: boolean;
   roomCode: string;
   playerCount: number;
+  currentPlayer?: Player;
   gameState: any;
   selectedCourse?: string;
   onCourseChange?: (courseId: string) => void;
@@ -24,7 +27,7 @@ const availableCourses = [
   }))
 ];
 
-export default function GameControls({ isHost, roomCode, playerCount, gameState, selectedCourse: externalSelectedCourse, onCourseChange }: GameControlsProps) {
+export default function GameControls({ isHost, roomCode, playerCount, currentPlayer, gameState, selectedCourse: externalSelectedCourse, onCourseChange }: GameControlsProps) {
   const [internalSelectedCourse, setInternalSelectedCourse] = useState<string>('test');
 
   // Use external course if provided, otherwise use internal state
@@ -57,12 +60,27 @@ export default function GameControls({ isHost, roomCode, playerCount, gameState,
         </div>
       );
     }
-
-    return (
-      <div className="bg-gray-800 rounded-lg p-6 text-center">
-        <p className="text-gray-400">Waiting for host to start the game...</p>
-      </div>
-    );
+    if (gameState?.phase === 'waiting') {
+      return (
+        <div className="bg-gray-800 rounded-lg p-6 text-center">
+          <p className="text-gray-400">Waiting for host to start the game...</p>
+        </div>
+      );
+    }
+    else if (currentPlayer && gameState) {
+      return (
+        <div className="bg-gray-800 rounded-lg p-6 text-center">
+          <p className="text-gray-400">What the fuck</p>
+          <PowerDownButton
+            gameId={gameState.roomCode}
+            powerState={currentPlayer.powerState}
+            damage={currentPlayer.damage}
+            disabled={currentPlayer.isDead || currentPlayer.lives <= 0}
+            isProgrammingPhase={gameState.phase === 'programming'}
+          />
+        </div>
+      )
+    }
   }
 
   // Find the selected course details
@@ -104,7 +122,6 @@ export default function GameControls({ isHost, roomCode, playerCount, gameState,
       {/* Board Preview */}
       {selectedBoard && (
         <div className="mt-4">
-          <h3 className="text-sm font-semibold text-gray-300 mb-2">Board Preview:</h3>
           <BoardPreview board={selectedBoard} size={250} />
         </div>
       )}
