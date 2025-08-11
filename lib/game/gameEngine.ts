@@ -1,5 +1,5 @@
 import { Server } from 'socket.io';
-import { GameState, Player, ProgramCard, Tile, Direction, CardType, GamePhase, Board } from './types';
+import { GameState, Player, ProgramCard, Tile, Direction, CardType, GamePhase, Board, PowerState } from './types';
 import { TileType } from './types/enums';
 import { getBoardById, BoardDefinition } from './boards/boardDefinitions';
 import { buildBoard } from './boards';
@@ -38,9 +38,10 @@ export class GameEngine {
         this.boardElementDelay = 500;
     }
 
-    createGame(roomCode: string, playerName: string, playerId: string, boardId?: string): ServerGameState {
-        const newPlayer: Player = {
+    createPlayer(playerId: string, playerName: string): Player {
+        return {
             id: playerId,
+            userId: playerId,
             name: playerName,
             position: { x: -1, y: -1 }, // Temporary position
             direction: Direction.DOWN,
@@ -51,8 +52,13 @@ export class GameEngine {
             dealtCards: [],
             selectedCards: Array(5).fill(null),
             lockedRegisters: 0,
-            userId: playerId,
+            powerState: PowerState.ON,
+            announcedPowerDown: false,
         };
+    }
+
+    createGame(roomCode: string, playerName: string, playerId: string, boardId?: string): ServerGameState {
+        const newPlayer: Player = this.createPlayer(playerId, playerName);
 
         const board = getBoardById(boardId || 'default') as Board;
         // If getBoardById could return undefined, provide a fallback:
@@ -77,22 +83,7 @@ export class GameEngine {
 
     addPlayerToGame(gameState: ServerGameState, playerId: string, playerName: string): void {
         if (gameState.players[playerId]) return;
-
-        const newPlayer: Player = {
-            id: playerId,
-            name: playerName,
-            position: { x: -1, y: -1 },
-            direction: Direction.DOWN,
-            damage: 0,
-            lives: 3,
-            checkpointsVisited: 0,
-            isPoweredDown: false,
-            dealtCards: [],
-            selectedCards: Array(5).fill(null),
-            lockedRegisters: 0,
-            userId: playerId,
-        };
-
+        const newPlayer: Player = this.createPlayer(playerId, playerName);
         gameState.players[playerId] = newPlayer;
     }
 
