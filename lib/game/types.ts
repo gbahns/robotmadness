@@ -61,7 +61,18 @@ export interface Player {
   // Cards
   dealtCards: ProgramCard[];
   selectedCards: (ProgramCard | null)[];
-  lockedRegisters: number; // Number of registers locked due to damage
+  lockedRegisters: number;
+
+  // Power Down fields
+  powerState: PowerState;
+  announcedPowerDown: boolean;
+  continuesPowerDown?: boolean;
+}
+
+export enum PowerState {
+  ON = 'ON',                 // Normal operation
+  ANNOUNCING = 'ANNOUNCING', // Announced power down, takes effect next turn
+  OFF = 'OFF'                // Currently powered down
 }
 
 export interface GameState {
@@ -142,6 +153,35 @@ export enum SocketEvent {
   REGISTER_STARTED = 'register-started',
   REGISTER_EXECUTED = 'register-executed',
   GAME_ERROR = 'game-error',
+
+  // Power Down events
+  TOGGLE_POWER_DOWN = 'toggle-power-down',
+  PLAYER_POWER_STATE_CHANGED = 'player-power-state-changed',
+  PLAYER_POWERED_DOWN = 'player-powered-down',
+  CONTINUE_POWER_DOWN = 'continue-power-down',
+  POWER_DOWN_OPTION = 'power-down-option',
+}
+
+// Power down related event payloads
+export interface PowerDownTogglePayload {
+  gameId: string;
+}
+
+export interface PowerStateChangedPayload {
+  playerId: string;
+  playerName: string;
+  powerState: PowerState;
+  announcedPowerDown: boolean;
+}
+
+export interface PoweredDownPayload {
+  playerId: string;
+  playerName: string;
+}
+
+export interface ContinuePowerDownPayload {
+  gameId: string;
+  continueDown: boolean;
 }
 
 export interface MoveResult {
