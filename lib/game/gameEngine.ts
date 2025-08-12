@@ -112,7 +112,6 @@ export class GameEngine {
         }
     }
 
-    // Update dealCardsToPlayer to not send power-down-option (it's already sent earlier)
     dealCardsToPlayer(roomCode: string, player: Player, deck: ProgramCard[]): void {
         // Handle power down state transitions
         if (player.powerState === PowerState.ANNOUNCING) {
@@ -137,9 +136,6 @@ export class GameEngine {
             player.dealtCards = []; // Still no cards
             player.selectedCards = [null, null, null, null, null];
             console.log(`${player.name} is still powered down`);
-
-            // DON'T send power-down-option here - it was already sent in dealCards
-
         } else {
             // Normal card dealing
             player.dealtCards = deck.splice(0, 9 - player.damage);
