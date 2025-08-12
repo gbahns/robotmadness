@@ -136,9 +136,6 @@ export class GameEngine {
             player.selectedCards = [null, null, null, null, null];
             console.log(`${player.name} is still powered down`);
 
-            // mark as submitted since they can't program
-            player.submitted = true;
-
             // Send option to continue or end power down
             this.io.to(player.id).emit('power-down-option', {
                 message: 'You are powered down. Stay powered down for another turn?'

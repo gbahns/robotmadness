@@ -222,7 +222,7 @@ app.prepare().then(() => {
             gameState.players[playerId].submitted = true;
 
             // Check if all players have submitted
-            const allSubmitted = Object.values(gameState.players).every(p => p.submitted);
+            const allSubmitted = Object.values(gameState.players).every(p => p.submitted || p.powerState === PowerState.OFF || p.lives <= 0);
             console.log(`Players submitted: ${Object.values(gameState.players).filter(p => p.submitted).length}/${Object.keys(gameState.players).length}`);
 
             if (allSubmitted) {
