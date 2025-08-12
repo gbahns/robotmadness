@@ -72,7 +72,8 @@ export default function GameControls({ isHost, roomCode, playerCount, currentPla
         <div className="bg-gray-800 rounded-lg p-6 text-center">
           <p className="text-gray-400">What the fuck</p>
           <PowerDownButton
-            gameId={gameState.roomCode}
+            roomCode={gameState.roomCode}
+            playerId={currentPlayer.id}
             powerState={currentPlayer.powerState}
             damage={currentPlayer.damage}
             disabled={currentPlayer.isDead || currentPlayer.lives <= 0}

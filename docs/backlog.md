@@ -1,4 +1,8 @@
 ## Backlog
+* when a robot is powered down the game doesn't proceed to execution after all other players have submitted their cards
+* powering down indicator that's visibible during execution for the player that's powering down
+* powering down indicator on the robot and/or in the player list for other players
+* what's the idea for the Confirm Powered Down button?
 * respawn robots on their archive marker
 * server got stuck resetting or dealing cards for next turn; one robot had 9 damage, might be related to that
 * fix it so resetting your program doesn't affect other players

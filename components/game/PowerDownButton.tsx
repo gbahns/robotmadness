@@ -3,7 +3,8 @@ import { PowerState } from '@/lib/game/types';
 import { socketClient } from '@/lib/socket';
 
 interface PowerDownButtonProps {
-    gameId: string;
+    roomCode: string;
+    playerId: string;
     powerState: PowerState;
     damage: number;
     disabled?: boolean;
@@ -11,7 +12,8 @@ interface PowerDownButtonProps {
 }
 
 export default function PowerDownButton({
-    gameId,
+    roomCode,
+    playerId,
     powerState,
     damage,
     disabled = false,
@@ -19,8 +21,9 @@ export default function PowerDownButton({
 }: PowerDownButtonProps) {
 
     const handleToggle = () => {
+        console.log(`Toggling power down for player ${playerId} in game ${roomCode} isProgrammingPhase: ${isProgrammingPhase}`);
         if (!isProgrammingPhase) return;
-        socketClient.emit('toggle-power-down', { gameId });
+        socketClient.emit('toggle-power-down', { roomCode, playerId });
     };
 
     const getButtonText = () => {

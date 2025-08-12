@@ -263,6 +263,7 @@ app.prepare().then(() => {
 
         // Toggle power down announcement
         socket.on('toggle-power-down', ({ roomCode, playerId }) => {
+            console.log(`Received toggle-power-down from player ${playerId} in game ${roomCode}`);
             const gameState = games.get(roomCode);
             if (!gameState || !gameState.players[playerId]) return;
             const player = gameState.players[playerId];

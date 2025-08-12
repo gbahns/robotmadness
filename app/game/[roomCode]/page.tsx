@@ -366,7 +366,7 @@ export default function GamePage() {
       // Show modal or UI element to let player choose
       const continueDown = window.confirm(data.message);
       socketClient.emit('continue-power-down', {
-        gameId: roomCode,
+        roomCode,
         continueDown
       });
     });
@@ -377,7 +377,7 @@ export default function GamePage() {
     }) => {
       const powerDown = window.confirm(data.message);
       if (powerDown) {
-        socketClient.emit('toggle-power-down', { gameId: roomCode });
+        socketClient.emit('toggle-power-down', { roomCode, playerId: playerIdRef.current });
       }
     });
 

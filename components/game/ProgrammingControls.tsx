@@ -45,7 +45,8 @@ export default function ProgrammingControls({
                 <div className="border-t border-gray-700 pt-4">
                     <h3 className="text-sm font-semibold text-gray-400 mb-2">Robot Maintenance</h3>
                     <PowerDownButton
-                        gameId={gameState.roomCode}
+                        roomCode={gameState.roomCode}
+                        playerId={currentPlayer.id}
                         powerState={currentPlayer.powerState}
                         damage={currentPlayer.damage}
                         disabled={currentPlayer.isDead || currentPlayer.lives <= 0}
@@ -110,7 +111,7 @@ export default function ProgrammingControls({
                         onClick={() => {
                             // Submit empty cards for powered down robot
                             socketClient.emit('submit-cards', {
-                                gameId: gameState.roomCode,
+                                roomCode: gameState.roomCode,
                                 cards: [null, null, null, null, null]
                             });
                         }}

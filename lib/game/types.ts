@@ -164,7 +164,7 @@ export enum SocketEvent {
 
 // Power down related event payloads
 export interface PowerDownTogglePayload {
-  gameId: string;
+  roomCode: string;
 }
 
 export interface PowerStateChangedPayload {
@@ -180,7 +180,7 @@ export interface PoweredDownPayload {
 }
 
 export interface ContinuePowerDownPayload {
-  gameId: string;
+  roomCode: string;
   continueDown: boolean;
 }
 
