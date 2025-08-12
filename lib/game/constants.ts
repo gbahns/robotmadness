@@ -13,7 +13,7 @@ export const GAME_CONFIG = {
   // Timing (in milliseconds)
   CARD_SELECTION_TIME: 30000, // 30 seconds
   MOVE_ANIMATION_TIME: 500,
-  REGISTER_DELAY: 1000,
+  REGISTER_DELAY: 200,
 } as const;
 
 // Direction vectors for movement

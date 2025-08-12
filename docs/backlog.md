@@ -1,7 +1,7 @@
 ## Backlog
 * display a powered down marker on powered down robots
 * when preparing the deck we need to leave out cards that are locked in player registers
-* hide the reset button - or the whole registers section and the player's hand - when powered down
+* hide the whole registers section and the player's hand when powered down?
 * powering down indicator that's visibible during execution for the player that's powering down
 * powering down indicator on the robot and/or in the player list for other players
 * what's the idea for the Confirm Powered Down button?
@@ -88,3 +88,4 @@
 * when a robot is powered down the game doesn't proceed to execution after all other players have submitted their cards
 * after being powered down, the player needs to be prompted whether they want to remain powered down or not.  this needs to happen before cards are dealt
 * robots are not supposed to fire when powered down
+* hide the reset button when powered down

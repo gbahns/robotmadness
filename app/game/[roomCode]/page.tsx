@@ -13,6 +13,7 @@ import { RobotLaserShot } from '@/components/game/RobotLaserAnimation';
 import GameControls from '@/components/game/GameControls';
 import ProgrammingControls from '@/components/game/ProgrammingControls';
 import { getBoardById, TEST_BOARD } from '@/lib/game/boards/boardDefinitions';
+import PowerDownModal from '@/components/game/PowerDownModal';
 import { buildBoard } from '@/lib/game/boards/boardBuilder';
 
 export default function GamePage() {
@@ -33,6 +34,7 @@ export default function GamePage() {
   const [activeLasers, setActiveLasers] = useState<RobotLaserShot[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<string>('test');
   const [previewBoard, setPreviewBoard] = useState<any>(null);
+  const [showPowerDownModal, setShowPowerDownModal] = useState(false);
 
   useEffect(() => {
     // Build preview board when course is selected
@@ -369,6 +371,7 @@ export default function GamePage() {
         playerId: playerIdRef.current,
         continueDown
       });
+      //setShowPowerDownModal(true);
     });
 
     // Respawn with power down option
@@ -804,7 +807,7 @@ export default function GamePage() {
                             Submit
                           </button>
                         )}
-                        {(gameState?.phase === 'programming' || isSubmitted) && (
+                        {(/*gameState?.phase === 'programming' || isSubmitted ||*/ currentPlayer.selectedCards.filter(c => c !== null).length > 0) && (
                           <button
                             onClick={handleResetCards}
                             className="bg-red-600 hover:bg-red-700 px-8 py-3 rounded font-semibold"
@@ -814,6 +817,17 @@ export default function GamePage() {
                         )}
                       </div>
                     </div>
+                  )}
+
+                  {/* Power Down Modal */}
+                  {currentPlayer && (
+                    <PowerDownModal
+                      isOpen={showPowerDownModal}
+                      roomCode={roomCode}
+                      playerId={currentPlayer.id}
+                      playerName={currentPlayer.name}
+                      onClose={() => setShowPowerDownModal(false)}
+                    />
                   )}
                 </>
               )}

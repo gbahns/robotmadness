@@ -4,6 +4,7 @@ import { TileType } from './types/enums';
 import { getBoardById, BoardDefinition } from './boards/boardDefinitions';
 import { buildBoard } from './boards';
 import { Console } from 'console';
+import { GAME_CONFIG } from './constants';
 
 export interface ServerGameState extends GameState {
     host: string;
@@ -35,8 +36,8 @@ export class GameEngine {
             [Direction.DOWN]: { x: 0, y: 1 },
             [Direction.LEFT]: { x: -1, y: 0 }
         };
-        this.registerExecutionDelay = 500;
-        this.boardElementDelay = 500;
+        this.registerExecutionDelay = GAME_CONFIG.REGISTER_DELAY;
+        this.boardElementDelay = GAME_CONFIG.REGISTER_DELAY;
     }
 
     createPlayer(playerId: string, playerName: string): Player {
@@ -113,15 +114,16 @@ export class GameEngine {
     }
 
     dealCardsToPlayer(roomCode: string, player: Player, deck: ProgramCard[]): void {
-        // Handle power down state transitions
-        if (player.powerState === PowerState.ANNOUNCING) {
-            // Transition to powered down
+        // Handle power down states
+        if (player.announcedPowerDown && player.powerState === PowerState.ANNOUNCING) {
+            // Transition from ANNOUNCING to OFF
             player.powerState = PowerState.OFF;
-            player.damage = 0; // Remove ALL damage
+            player.damage = 0; // Repair all damage
             player.dealtCards = []; // No cards when powered down
             player.selectedCards = [null, null, null, null, null];
             player.lockedRegisters = 0;
             player.announcedPowerDown = false;
+            player.submitted = true; // Auto-submit for powered down players
 
             console.log(`${player.name} is now powered down - all damage repaired`);
 
@@ -132,13 +134,26 @@ export class GameEngine {
             });
 
         } else if (player.powerState === PowerState.OFF) {
-            // Already powered down - decision was already made
-            player.dealtCards = []; // Still no cards
+            // Already powered down - send option to continue or power up
+            console.log(`${player.name} is powered down - sending continuation option`);
+
+            // Don't deal cards yet - wait for decision
+            player.dealtCards = [];
             player.selectedCards = [null, null, null, null, null];
-            console.log(`${player.name} is still powered down`);
+
+            // Send power down option ONLY to the specific player
+            // Use setTimeout to ensure it's sent after the game state update
+            setTimeout(() => {
+                console.log(`Emitting power-down-option to player ${player.id}`);
+                this.io.to(player.id).emit('power-down-option', {
+                    message: 'You are powered down. Stay powered down for another turn?'
+                });
+            }, 100);
+
         } else {
             // Normal card dealing
             player.dealtCards = deck.splice(0, 9 - player.damage);
+            player.submitted = false;
         }
     }
 
@@ -153,9 +168,17 @@ export class GameEngine {
             if (player.powerState === PowerState.OFF) {
                 poweredDownPlayers.push(player);
                 // Ask if they want to continue being powered down
-                this.io.to(player.id).emit('power-down-option', {
-                    message: 'You are powered down. Stay powered down for another turn?'
-                });
+                // this.io.to(player.id).emit('power-down-option', {
+                //     message: 'You are powered down. Stay powered down for another turn?'
+                // });
+                // Send power down option ONLY to the specific player
+                // Use setTimeout to ensure it's sent after the game state update
+                setTimeout(() => {
+                    console.log(`Emitting power-down-option to player ${player.id}`);
+                    this.io.to(player.id).emit('power-down-option', {
+                        message: 'You are powered down. Stay powered down for another turn?'
+                    });
+                }, 100);
                 console.log(`Waiting for ${player.name} to decide on continuing power down...`);
             }
         }
