@@ -362,6 +362,7 @@ export default function GamePage() {
     // Power down option (for continuing)
     socketClient.on('power-down-option', (data: { message: string; }) => {
       // Show modal or UI element to let player choose
+      console.log('Power down option:', data.message);
       const continueDown = window.confirm(data.message);
       socketClient.emit('continue-power-down', {
         roomCode,

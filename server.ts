@@ -33,7 +33,7 @@ interface ServerToClientEvents {
     'power-down-option': (data: { message: string }) => void;
     'player-power-state-changed': (data: { playerId: string, playerName: string, powerState: PowerState, announcedPowerDown?: boolean }) => void;
     'respawn-power-down-option': (data: { message: string }) => void;
-    'continue-power-down': (data: { roomCode: string, playerId: string, message: string }) => void;
+    //'continue-power-down': (data: { roomCode: string, playerId: string, message: string }) => void;
 }
 
 interface ClientToServerEvents {

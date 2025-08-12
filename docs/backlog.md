@@ -1,4 +1,6 @@
 ## Backlog
+* display a powered down marker on powered down robots
+* when preparing the deck we need to leave out cards that are locked in player registers
 * hide the reset button - or the whole registers section and the player's hand - when powered down
 * powering down indicator that's visibible during execution for the player that's powering down
 * powering down indicator on the robot and/or in the player list for other players
@@ -36,6 +38,7 @@
 * make it so robot lasers only fire if there's a robot for them to it?
 * ability for players to register with a username and password for unique identity
 * migrate data from legacy RoboRally game
+* make the execution delay configurable
 
 ## In Progress
 //* it executed moves for a robot even though it was powered down and it's registers appeared to be empty
