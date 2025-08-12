@@ -105,7 +105,11 @@ export default function ProgrammingControls({
             )}
 
             {/* Auto-submit for powered down robots */}
-            {currentPlayer.powerState === 'OFF' && (
+            {//not clear what the purpose of this was supposed to be.  "Confirm Powered Down" button
+                // it seems redundant since powered down robots don't need to submit cards
+                // and the concept of "Confirm Powered Down" is supposed to happen at the end of the turn
+                // so it's implemented in a different way
+            /* {currentPlayer.powerState === 'OFF' && (
                 <div className="border-t border-gray-700 pt-4">
                     <button
                         onClick={() => {
@@ -124,7 +128,7 @@ export default function ProgrammingControls({
                         {currentPlayer.submitted ? 'Ready' : 'Confirm Powered Down'}
                     </button>
                 </div>
-            )}
+            )} */}
 
             {/* Player Status Summary */}
             <div className="border-t border-gray-700 pt-4 space-y-2">
