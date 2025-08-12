@@ -1,11 +1,12 @@
 ## Backlog
-* 
 * hide the reset button - or the whole registers section and the player's hand - when powered down
-* robots don't fire when powered down
 * powering down indicator that's visibible during execution for the player that's powering down
 * powering down indicator on the robot and/or in the player list for other players
 * what's the idea for the Confirm Powered Down button?
 * other players don't see your intent to power down until the cards are submitted.  in the official rules, when one player's decision to power down might be affected by another player's decision, the playwers announce in clockwise order. in our automated implementation we don't need this; each player makes their decision independently.
+* starting space mini boards
+* somehow make checkpoints and possibly other board elements visible when a robot is sitting on them
+* tooltips so a player can hover their mouse pointer over a tile and see what's there when a robot is sitting on it
 * respawn robots on their archive marker
 * server got stuck resetting or dealing cards for next turn; one robot had 9 damage, might be related to that
 * fix it so resetting your program doesn't affect other players
@@ -37,7 +38,8 @@
 * migrate data from legacy RoboRally game
 
 ## In Progress
-* starting space mini boards
+//* it executed moves for a robot even though it was powered down and it's registers appeared to be empty
+* toggling power down should not reset your registers
 
 ## Done
 * robots pushing each other
@@ -76,6 +78,10 @@
 * change the card colors - needs some thought - e.g. I don't like red for U-Turn
 * make the U-Turn the same color as the other turns
 * orient the U-Turn arrow like an upside-down U
+
+## Defect Fix History
 * damage isn't reducing number of cards dealt
 * damage isn't properly locking registers
 * when a robot is powered down the game doesn't proceed to execution after all other players have submitted their cards
+* after being powered down, the player needs to be prompted whether they want to remain powered down or not.  this needs to happen before cards are dealt
+* robots are not supposed to fire when powered down

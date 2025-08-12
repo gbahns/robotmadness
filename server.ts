@@ -302,23 +302,32 @@ app.prepare().then(() => {
             const gameState = games.get(roomCode);
             if (!gameState) return;
 
-
             const player = gameState.players[playerId];
             if (!player || player.powerState !== PowerState.OFF) return;
 
             if (continueDown) {
                 // Stay powered down
-                player.continuesPowerDown = true;
                 player.powerState = PowerState.OFF;
                 console.log(`${player.name} chooses to stay powered down`);
             } else {
-                // Power back on next turn
-                player.continuesPowerDown = false;
-                // Will transition to ON at start of next turn
-                console.log(`${player.name} will power back on next turn`);
+                // Power back on
+                player.powerState = PowerState.ON;
+                console.log(`${player.name} will power back on this turn`);
             }
 
-            io.to(roomCode).emit('game-state', gameState);
+            // Remove this player from waiting list
+            if (gameState.waitingForPowerDownDecisions) {
+                gameState.waitingForPowerDownDecisions = gameState.waitingForPowerDownDecisions.filter(
+                    id => id !== playerId
+                );
+
+                // If all powered down players have decided, proceed with dealing cards
+                if (gameState.waitingForPowerDownDecisions.length === 0) {
+                    console.log('All power down decisions received, dealing cards...');
+                    gameEngine.proceedWithDealingCards(gameState);
+                    io.to(roomCode).emit('game-state', gameState);
+                }
+            }
         });
 
         socket.on('reset-cards', ({ roomCode, playerId }) => {

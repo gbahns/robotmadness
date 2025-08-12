@@ -360,13 +360,12 @@ export default function GamePage() {
     });
 
     // Power down option (for continuing)
-    socketClient.on('power-down-option', (data: {
-      message: string;
-    }) => {
+    socketClient.on('power-down-option', (data: { message: string; }) => {
       // Show modal or UI element to let player choose
       const continueDown = window.confirm(data.message);
       socketClient.emit('continue-power-down', {
         roomCode,
+        playerId: playerIdRef.current,
         continueDown
       });
     });

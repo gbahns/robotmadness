@@ -16,6 +16,7 @@ export enum Difficulty {
 export enum GamePhase {
   WAITING = 'waiting',
   STARTING = 'starting',
+  POWER_DOWN_DECISION = 'power_down_decision',
   PROGRAMMING = 'programming',
   EXECUTING = 'executing',
   ENDED = 'ended',

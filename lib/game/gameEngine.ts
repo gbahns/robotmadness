@@ -10,6 +10,7 @@ export interface ServerGameState extends GameState {
     selectedBoard: string;
     winner?: string;
     allPlayersDead?: boolean;
+    waitingForPowerDownDecisions?: string[];
 }
 
 interface IoServer {
@@ -111,6 +112,7 @@ export class GameEngine {
         }
     }
 
+    // Update dealCardsToPlayer to not send power-down-option (it's already sent earlier)
     dealCardsToPlayer(roomCode: string, player: Player, deck: ProgramCard[]): void {
         // Handle power down state transitions
         if (player.powerState === PowerState.ANNOUNCING) {
@@ -131,22 +133,53 @@ export class GameEngine {
             });
 
         } else if (player.powerState === PowerState.OFF) {
-            // Already powered down - can choose to stay powered down
+            // Already powered down - decision was already made
             player.dealtCards = []; // Still no cards
             player.selectedCards = [null, null, null, null, null];
             console.log(`${player.name} is still powered down`);
 
-            // Send option to continue or end power down
-            this.io.to(player.id).emit('power-down-option', {
-                message: 'You are powered down. Stay powered down for another turn?'
-            });
+            // DON'T send power-down-option here - it was already sent in dealCards
 
         } else {
+            // Normal card dealing
             player.dealtCards = deck.splice(0, 9 - player.damage);
         }
     }
 
     dealCards(gameState: ServerGameState): void {
+        // STEP 1: Handle powered down players FIRST (before creating deck)
+        // They need to decide whether to stay powered down
+        const poweredDownPlayers: Player[] = [];
+
+        for (const playerId in gameState.players) {
+            const player = gameState.players[playerId];
+
+            if (player.powerState === PowerState.OFF) {
+                poweredDownPlayers.push(player);
+                // Ask if they want to continue being powered down
+                this.io.to(player.id).emit('power-down-option', {
+                    message: 'You are powered down. Stay powered down for another turn?'
+                });
+                console.log(`Waiting for ${player.name} to decide on continuing power down...`);
+            }
+        }
+
+        // If there are powered down players, we need to wait for their decisions
+        // This should be handled via a separate phase or waiting mechanism
+        // For now, we'll set a flag
+        if (poweredDownPlayers.length > 0) {
+            gameState.waitingForPowerDownDecisions = poweredDownPlayers.map(p => p.id);
+            gameState.phase = GamePhase.POWER_DOWN_DECISION;
+            // Return early - actual card dealing will happen after decisions are made
+            return;
+        }
+
+        // STEP 2: If no one is powered down (or after decisions are made), proceed with dealing
+        this.proceedWithDealingCards(gameState);
+    }
+
+    // New method to actually deal cards after power down decisions
+    proceedWithDealingCards(gameState: ServerGameState): void {
         const deck = this.createDeck();
         console.log('created deck', deck);
 
@@ -156,13 +189,8 @@ export class GameEngine {
         for (const playerId in gameState.players) {
             const player = gameState.players[playerId];
             if (player.lives > 0) {
-                //player.dealtCards = deck.splice(0, 9 - player.damage);
                 this.dealCardsToPlayer(gameState.roomCode, player, deck);
-                // player.dealtCards = shuffledDeck.slice(deckIndex, deckIndex + cardsToDeal);
-                // deckIndex += cardsToDeal;
             }
-            // Reset selected cards
-            //player.selectedCards = [null, null, null, null, null];
 
             // Calculate locked registers (5+ damage locks registers)
             player.lockedRegisters = Math.max(0, player.damage - 4);
@@ -170,6 +198,10 @@ export class GameEngine {
 
         gameState.phase = GamePhase.PROGRAMMING;
         gameState.cardsDealt = true;
+        gameState.waitingForPowerDownDecisions = undefined;
+
+        // Emit the updated game state
+        this.io.to(gameState.roomCode).emit('game-state', gameState);
     }
 
     submitCards(gameState: ServerGameState, playerId: string, cards: (ProgramCard | null)[]): void {
@@ -611,7 +643,7 @@ export class GameEngine {
 
         const robotLaserShots: any[] = [];
         Object.values(gameState.players).forEach(shooter => {
-            if (shooter.lives <= 0) return;
+            if (shooter.lives <= 0 || shooter.powerState === PowerState.OFF) return;
             const vector = this.DIRECTION_VECTORS[shooter.direction];
             const startX = shooter.position.x + vector.x;
             const startY = shooter.position.y + vector.y;
