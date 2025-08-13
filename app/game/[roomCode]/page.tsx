@@ -28,6 +28,7 @@ export default function GamePage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [logEntries, setLogEntries] = useState<any[]>([]);
   const playerIdRef = useRef<string>('');
+  const logIdCounter = useRef(0); // New ref for unique log entry IDs
   const [executionMessage, setExecutionMessage] = useState<string>('');
   const [winner, setWinner] = useState<string | null>(null);
   const [boardPhase, setBoardPhase] = useState<string | null>(null);
@@ -75,7 +76,7 @@ export default function GamePage() {
 
       // Add to log
       setLogEntries(prev => [...prev, {
-        id: Date.now() + Math.random(),
+        id: logIdCounter.current++, // Use incrementing counter for ID
         message,
         type: 'info',
         timestamp: new Date()
@@ -85,7 +86,7 @@ export default function GamePage() {
     const handleRobotDamaged = (data: any) => {
       const { playerName, damage, reason } = data;
       setLogEntries(prev => [...prev, {
-        id: Date.now() + Math.random(),
+        id: logIdCounter.current++, // Use incrementing counter for ID
         message: `${playerName} takes ${damage} damage from ${reason}`,
         type: 'damage',
         timestamp: new Date()
@@ -95,7 +96,7 @@ export default function GamePage() {
     const handleRobotFellOffBoard = (data: any) => {
       const { playerName } = data;
       setLogEntries(prev => [...prev, {
-        id: Date.now() + Math.random(),
+        id: logIdCounter.current++, // Use incrementing counter for ID
         message: `${playerName} fell off the board!`,
         type: 'damage',
         timestamp: new Date()
@@ -105,7 +106,7 @@ export default function GamePage() {
     const handleRobotDestroyed = (data: any) => {
       const { playerName, reason } = data;
       setLogEntries(prev => [...prev, {
-        id: Date.now() + Math.random(),
+        id: logIdCounter.current++, // Use incrementing counter for ID
         message: `${playerName} was destroyed (${reason})!`,
         type: 'damage',
         timestamp: new Date()
@@ -115,7 +116,7 @@ export default function GamePage() {
     const handleCheckpointReached = (data: any) => {
       const { playerName, checkpointNumber } = data;
       setLogEntries(prev => [...prev, {
-        id: Date.now() + Math.random(),
+        id: logIdCounter.current++, // Use incrementing counter for ID
         message: `${playerName} reached checkpoint ${checkpointNumber}!`,
         type: 'checkpoint',
         timestamp: new Date()
@@ -170,7 +171,7 @@ export default function GamePage() {
       // add a separator to the execution log when starting a new round
       if (gameState && state.roundNumber > gameState.roundNumber) {
         setLogEntries(prev => [...prev, {
-          id: Date.now() + Math.random(),
+          id: logIdCounter.current++, // Use incrementing counter for ID
           message: `━━━━━ Round ${state.roundNumber} ━━━━━`,
           type: 'info',
           timestamp: new Date()
@@ -262,7 +263,7 @@ export default function GamePage() {
       console.log('Player submitted:', data.playerId);
       if (data.playerId != playerIdRef.current) {
         setLogEntries(prev => [...prev, {
-          id: Date.now() + Math.random(),
+          id: logIdCounter.current++, // Use incrementing counter for ID
           message: `${data.playerName} submitted their program`,
           type: 'info',
           timestamp: new Date()
@@ -273,7 +274,7 @@ export default function GamePage() {
     socketClient.on('execution-log', (data: { message: string, type: string }) => {
       console.log('Execution log:', data.message, data.type);
       setLogEntries(prev => [...prev, {
-        id: Date.now() + Math.random(),
+        id: logIdCounter.current++, // Use incrementing counter for ID
         message: `${data.message}`,
         type: data.type,
         timestamp: new Date()
@@ -291,7 +292,7 @@ export default function GamePage() {
       const message = `${data.playerName} ${data.card.type.replace(/_/g, ' ')} (Priority: ${data.card.priority})`;
 
       setLogEntries(prev => [...prev, {
-        id: Date.now() + Math.random(),
+        id: logIdCounter.current++, // Use incrementing counter for ID
         message,
         type: 'action',
         timestamp: new Date()
@@ -365,13 +366,13 @@ export default function GamePage() {
     socketClient.on('power-down-option', (data: { message: string; }) => {
       // Show modal or UI element to let player choose
       console.log('Power down option:', data.message);
-      const continueDown = window.confirm(data.message);
-      socketClient.emit('continue-power-down', {
-        roomCode,
-        playerId: playerIdRef.current,
-        continueDown
-      });
-      //setShowPowerDownModal(true);
+      // const continueDown = window.confirm(data.message);
+      // socketClient.emit('continue-power-down', {
+      //   roomCode,
+      //   playerId: playerIdRef.current,
+      //   continueDown
+      // });
+      setShowPowerDownModal(true);
     });
 
     // Respawn with power down option
@@ -533,7 +534,7 @@ export default function GamePage() {
 
     // Add to log
     setLogEntries(prev => [...prev, {
-      id: Date.now() + Math.random(),
+      id: logIdCounter.current++, // Use incrementing counter for ID
       message: `You submitted your program`,
       type: 'info',
       timestamp: new Date()
@@ -581,7 +582,7 @@ export default function GamePage() {
 
     // Add to log
     setLogEntries(prev => [...prev, {
-      id: Date.now() + Math.random(),
+      id: logIdCounter.current++, // Use incrementing counter for ID
       message: `You reset your program`,
       type: 'info',
       timestamp: new Date()
@@ -705,7 +706,7 @@ export default function GamePage() {
                   <div className="space-y-2">
                     {gameState && Object.values(gameState.players).map((player, index) => (
                       <div
-                        key={player.id}
+                        key={`${player.id}-info`}
                         className={`flex items-center justify-between p-2 rounded ${player.id === playerIdRef.current ? 'bg-gray-700' : ''
                           } ${player.isDisconnected ? 'opacity-50' : ''}`}
                       >
