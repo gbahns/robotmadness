@@ -1,9 +1,6 @@
-import { Server } from 'socket.io';
 import { GameState, Player, ProgramCard, Tile, Direction, CardType, GamePhase, Board, PowerState } from './types';
 import { TileType } from './types/enums';
 import { getBoardById, BoardDefinition } from './boards/boardDefinitions';
-import { buildBoard } from './boards';
-import { Console } from 'console';
 import { GAME_CONFIG } from './constants';
 
 export interface ServerGameState extends GameState {
@@ -59,9 +56,8 @@ export class GameEngine {
         };
     }
 
-    createGame(roomCode: string, playerName: string, playerId: string, boardId?: string): ServerGameState {
-        const newPlayer: Player = this.createPlayer(playerId, playerName);
-
+    createGame(roomCode: string, name: string, boardId?: string): ServerGameState {
+        console.log(`Creating game with room code: ${roomCode}, name: ${name}, boardId: ${boardId}`);
         const board = getBoardById(boardId || 'default') as Board;
         // If getBoardById could return undefined, provide a fallback:
         // const board = getBoardById(boardId || 'default') as Board ?? getBoardById('default') as Board;
@@ -69,14 +65,14 @@ export class GameEngine {
         const gameState: ServerGameState = {
             id: roomCode,
             roomCode,
-            name: `${playerName}'s Game`,
+            name: name == '' ? roomCode : name,
             phase: GamePhase.WAITING,
             currentRegister: 0,
-            players: { [playerId]: newPlayer },
+            players: {},
             board: board,
             roundNumber: 0,
             cardsDealt: false,
-            host: playerId,
+            host: '',
             selectedBoard: boardId || 'default',
         };
 
@@ -85,8 +81,8 @@ export class GameEngine {
 
     addPlayerToGame(gameState: ServerGameState, playerId: string, playerName: string): void {
         if (gameState.players[playerId]) return;
-        const newPlayer: Player = this.createPlayer(playerId, playerName);
-        gameState.players[playerId] = newPlayer;
+        gameState.players[playerId] = this.createPlayer(playerId, playerName);
+        if (gameState.host === '') gameState.host = playerId; // First player becomes host
     }
 
     removePlayerFromGame(gameState: ServerGameState, playerId: string): void {
@@ -134,6 +130,8 @@ export class GameEngine {
             });
 
         } else if (player.powerState === PowerState.OFF) {
+            //Gemini keeps trying to remove this block; should we remove it?
+
             // Already powered down - send option to continue or power up
             console.log(`${player.name} is powered down - sending continuation option`);
 
@@ -167,10 +165,6 @@ export class GameEngine {
 
             if (player.powerState === PowerState.OFF) {
                 poweredDownPlayers.push(player);
-                // Ask if they want to continue being powered down
-                // this.io.to(player.id).emit('power-down-option', {
-                //     message: 'You are powered down. Stay powered down for another turn?'
-                // });
                 // Send power down option ONLY to the specific player
                 // Use setTimeout to ensure it's sent after the game state update
                 setTimeout(() => {

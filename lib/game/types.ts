@@ -1,5 +1,3 @@
-// lib/game/types.ts
-
 export enum Direction {
   UP = 0,
   RIGHT = 1,

@@ -37,7 +37,7 @@ interface ServerToClientEvents {
 }
 
 interface ClientToServerEvents {
-    'create-game': (data: { playerName: string; userId: string; boardId?: string }, callback?: (response: { success: boolean; roomCode?: string; game?: any; error?: string }) => void) => void;
+    'create-game': (data: { playerName: string; playerId: string; boardId?: string }, callback?: (response: { success: boolean; roomCode?: string; game?: any; error?: string }) => void) => void;
     'join-game': (data: { roomCode: string; playerName: string; playerId: string }) => void;
     'leave-game': () => void;
     'start-game': (data: { roomCode: string; selectedCourse?: string }) => void;
@@ -59,29 +59,14 @@ interface SocketData {
 type IoServer = Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>;
 type IoSocket = Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>;
 
-// Extend GameState to include properties used by server
-
-
 // Store active games
 const games = new Map<string, ServerGameState>();
-const playerSocketMap = new Map<string, string>(); // playerId -> socketId
-const socketRoomMap = new Map<string, string>(); // socketId -> roomCode
 
 let gameEngine: GameEngine;
 
-// Complete card deck definition
-
-
-// Helper functions
 function generateRoomCode(): string {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
-
-
-
-
-
-
 
 // Main server setup
 app.prepare().then(() => {
@@ -116,33 +101,36 @@ app.prepare().then(() => {
     io.on('connection', (socket: IoSocket) => {
         console.log('Client connected:', socket.id);
 
-        socket.on('create-game', ({ playerName, userId, boardId }, callback) => {
-            if (!userId || !playerName) {
+        socket.on('create-game', ({ playerName, playerId: playerId, boardId }, callback) => {
+            console.log(`create-game event received: ${playerName}, playerId: ${playerId}, boardId: ${boardId}`);
+            if (!playerId || !playerName) {
                 if (callback) {
-                    callback({ success: false, error: 'userId and playerName are required' });
+                    callback({ success: false, error: 'playerId and playerName are required' });
                 }
                 return;
             }
 
             try {
                 const roomCode = generateRoomCode();
-                const newGame = gameEngine.createGame(roomCode, playerName, userId, boardId);
-                games.set(roomCode, newGame);
+                console.log(`Creating game with room code: ${roomCode}, player: ${playerName}, boardId: ${boardId}`);
+                const gameState = gameEngine.createGame(roomCode, "{playerName}'s Game");
+                gameEngine.addPlayerToGame(gameState, playerId, playerName);
+
+                games.set(roomCode, gameState);
 
                 socket.join(roomCode);
+                socket.join(playerId);
                 socket.data.roomCode = roomCode;
-                socket.data.playerId = userId;
-                playerSocketMap.set(userId, socket.id);
-                socketRoomMap.set(socket.id, roomCode);
+                socket.data.playerId = playerId;
 
                 if (callback) {
                     callback({
                         success: true,
                         roomCode,
-                        game: newGame
+                        game: gameState
                     });
                 } else {
-                    socket.emit('game-state', newGame);
+                    socket.emit('game-state', gameState);
                 }
                 console.log(`Game created: ${roomCode} by ${playerName}` + (boardId ? ` with board ${boardId}` : ''));
             } catch (error) {
@@ -154,29 +142,38 @@ app.prepare().then(() => {
                     });
                 }
             }
+            console.log('create-game event exit');
         });
 
         socket.on('join-game', ({ roomCode, playerName, playerId }) => {
-            let gameState = games.get(roomCode);
+            try {
+                console.log(`join-game event received: roomCode=${roomCode}, playerName=${playerName}, playerId=${playerId}`);
+                let gameState = games.get(roomCode);
 
-            if (!gameState) {
-                console.log(`Game ${roomCode} not found, creating it`);
-                gameState = gameEngine.createGame(roomCode, playerName, playerId); // Create if not found
-                games.set(roomCode, gameState);
+                if (!gameState) {
+                    console.log(`Game ${roomCode} not found, creating it`);
+                    gameState = gameEngine.createGame(roomCode, `${playerName}'s Game`); // Create if not found
+                    games.set(roomCode, gameState);
+                }
+
+                gameEngine.addPlayerToGame(gameState, playerId, playerName);
+
+                socket.join(roomCode);
+                socket.join(playerId);
+                socket.data.roomCode = roomCode;
+                socket.data.playerId = playerId;
+
+                const newPlayer = gameState.players[playerId];
+                io.to(roomCode).emit('player-joined', { player: newPlayer });
+                io.to(roomCode).emit('game-state', gameState);
+                console.log(`${playerName} joined game ${roomCode}`);
+            } catch (error) {
+                if (error instanceof Error) {
+                    console.error(`Error joining game: ${error.message} ${error.stack}`);
+                } else {
+                    console.error(`Error joining game: ${String(error)}`);
+                }
             }
-
-            gameEngine.addPlayerToGame(gameState, playerId, playerName);
-
-            socket.join(roomCode);
-            socket.data.roomCode = roomCode;
-            socket.data.playerId = playerId;
-            playerSocketMap.set(playerId, socket.id);
-            socketRoomMap.set(socket.id, roomCode);
-
-            const newPlayer = gameState.players[playerId];
-            io.to(roomCode).emit('player-joined', { player: newPlayer });
-            io.to(roomCode).emit('game-state', gameState);
-            console.log(`${playerName} joined game ${roomCode}`);
         });
 
         socket.on('start-game', ({ roomCode, selectedCourse = 'test' }) => {
@@ -355,8 +352,6 @@ app.prepare().then(() => {
                 if (gameState) {
                     gameEngine.removePlayerFromGame(gameState, playerId);
                     socket.leave(roomCode);
-                    playerSocketMap.delete(playerId);
-                    socketRoomMap.delete(socket.id);
 
                     io.to(roomCode).emit('player-left', { playerId });
 
@@ -378,7 +373,7 @@ app.prepare().then(() => {
 
         socket.on('disconnect', () => {
             console.log('Client disconnected:', socket.id);
-            const roomCode = socketRoomMap.get(socket.id);
+            const roomCode = socket.data.roomCode;
             const playerId = socket.data.playerId;
 
             if (roomCode && playerId) {
@@ -391,10 +386,6 @@ app.prepare().then(() => {
                         io.to(roomCode).emit('game-state', gameState);
                         console.log(`Player ${gameState.players[playerId].name} disconnected from game ${roomCode}`);
                     }
-
-                    // Clean up socket maps
-                    playerSocketMap.delete(playerId);
-                    socketRoomMap.delete(socket.id);
                 }
             }
         });
