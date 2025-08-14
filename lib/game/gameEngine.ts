@@ -128,26 +128,6 @@ export class GameEngine {
                 playerId: player.id,
                 playerName: player.name
             });
-
-        } else if (player.powerState === PowerState.OFF) {
-            //Gemini keeps trying to remove this block; should we remove it?
-
-            // Already powered down - send option to continue or power up
-            console.log(`${player.name} is powered down - sending continuation option`);
-
-            // Don't deal cards yet - wait for decision
-            player.dealtCards = [];
-            player.selectedCards = [null, null, null, null, null];
-
-            // Send power down option ONLY to the specific player
-            // Use setTimeout to ensure it's sent after the game state update
-            setTimeout(() => {
-                console.log(`Emitting power-down-option to player ${player.id}`);
-                this.io.to(player.id).emit('power-down-option', {
-                    message: 'You are powered down. Stay powered down for another turn?'
-                });
-            }, 100);
-
         } else {
             // Normal card dealing
             player.dealtCards = deck.splice(0, 9 - player.damage);
@@ -192,8 +172,26 @@ export class GameEngine {
     }
 
     // New method to actually deal cards after power down decisions
+    // New method to actually deal cards after power down decisions
     proceedWithDealingCards(gameState: ServerGameState): void {
-        const deck = this.createDeck();
+        // First, determine which cards are locked in registers
+        const lockedCards: ProgramCard[] = [];
+        for (const playerId in gameState.players) {
+            const player = gameState.players[playerId];
+            const lockedCount = Math.max(0, player.damage - 4);
+            player.lockedRegisters = lockedCount;
+
+            if (lockedCount > 0) {
+                const locked = player.selectedCards.slice(5 - lockedCount);
+                locked.forEach(card => {
+                    if (card) {
+                        lockedCards.push(card);
+                    }
+                });
+            }
+        }
+
+        const deck = this.createDeck(lockedCards);
         console.log('created deck', deck);
 
         this.shuffleDeck(deck);
@@ -204,9 +202,6 @@ export class GameEngine {
             if (player.lives > 0) {
                 this.dealCardsToPlayer(gameState.roomCode, player, deck);
             }
-
-            // Calculate locked registers (5+ damage locks registers)
-            player.lockedRegisters = Math.max(0, player.damage - 4);
         }
 
         gameState.phase = GamePhase.PROGRAMMING;
@@ -775,19 +770,57 @@ export class GameEngine {
         this.io.to(gameState.roomCode).emit('execution-update', { message });
     }
 
-    private createDeck(): ProgramCard[] {
+    private createDeck(excludedCards: ProgramCard[] = []): ProgramCard[] {
         const deck: ProgramCard[] = [];
-        let priority = 10;
 
-        for (let i = 0; i < 6; i++) deck.push({ id: priority, type: CardType.U_TURN, priority: priority += 10 });
-        for (let i = 0; i < 18; i++) deck.push({ id: priority, type: CardType.ROTATE_LEFT, priority: priority += 20 });
-        for (let i = 0; i < 18; i++) deck.push({ id: priority, type: CardType.ROTATE_RIGHT, priority: priority += 20 });
-        for (let i = 0; i < 6; i++) deck.push({ id: priority, type: CardType.BACK_UP, priority: priority += 10 });
-        for (let i = 0; i < 18; i++) deck.push({ id: priority, type: CardType.MOVE_1, priority: priority += 10 });
-        for (let i = 0; i < 12; i++) deck.push({ id: priority, type: CardType.MOVE_2, priority: priority += 10 });
-        for (let i = 0; i < 6; i++) deck.push({ id: priority, type: CardType.MOVE_3, priority: priority += 10 });
+        // U-Turn (6 cards, priorities 10-60, step 10)
+        for (let i = 0; i < 6; i++) {
+            const priority = 10 + i * 10;
+            deck.push({ id: priority, type: CardType.U_TURN, priority });
+        }
 
-        return deck;
+        // Rotate Left (18 cards, priorities 70-410, step 20)
+        for (let i = 0; i < 18; i++) {
+            const priority = 70 + i * 20;
+            deck.push({ id: priority, type: CardType.ROTATE_LEFT, priority });
+        }
+
+        // Rotate Right (18 cards, priorities 80-420, step 20)
+        for (let i = 0; i < 18; i++) {
+            const priority = 80 + i * 20;
+            deck.push({ id: priority, type: CardType.ROTATE_RIGHT, priority });
+        }
+
+        // Back-Up (6 cards, priorities 430-480, step 10)
+        for (let i = 0; i < 6; i++) {
+            const priority = 430 + i * 10;
+            deck.push({ id: priority, type: CardType.BACK_UP, priority });
+        }
+
+        // Move 1 (18 cards, priorities 490-660, step 10)
+        for (let i = 0; i < 18; i++) {
+            const priority = 490 + i * 10;
+            deck.push({ id: priority, type: CardType.MOVE_1, priority });
+        }
+
+        // Move 2 (12 cards, priorities 670-780, step 10)
+        for (let i = 0; i < 12; i++) {
+            const priority = 670 + i * 10;
+            deck.push({ id: priority, type: CardType.MOVE_2, priority });
+        }
+
+        // Move 3 (6 cards, priorities 790-840, step 10)
+        for (let i = 0; i < 6; i++) {
+            const priority = 790 + i * 10;
+            deck.push({ id: priority, type: CardType.MOVE_3, priority });
+        }
+
+        if (excludedCards.length === 0) {
+            return deck;
+        }
+
+        const excludedIds = new Set(excludedCards.map(c => c.id));
+        return deck.filter(card => !excludedIds.has(card.id));
     }
 
     private shuffleDeck(deck: ProgramCard[]): void {
