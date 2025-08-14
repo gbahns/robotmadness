@@ -36,8 +36,8 @@
 
 ## In Progress
 //* it executed moves for a robot even though it was powered down and it's registers appeared to be empty
+* one player resetting there programmed registers should not reset other players programmed registers
 * when your damage is cleared locked registers need to be clear accordingly
-* toggling power down should not reset your registers
 * other players don't see your intent to power down until the cards are submitted.  in the official rules, when one player's decision to power down might be affected by another player's decision, the playwers announce in clockwise order. in our automated implementation we don't need this; each player makes their decision independently.
 * display a powered down marker on powered down robots
 * powering down indicator that's visibible during execution for the player that's powering down
@@ -92,3 +92,4 @@
 * hide the reset button when powered down
 * when preparing the deck we need to leave out cards that are locked in player registers
 * when player elects to stay powered down it asks again
+* toggling power down should not reset your registers
