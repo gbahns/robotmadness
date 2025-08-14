@@ -1,11 +1,5 @@
 ## Backlog
-* display a powered down marker on powered down robots
-* when preparing the deck we need to leave out cards that are locked in player registers
 * hide the whole registers section and the player's hand when powered down?
-* powering down indicator that's visibible during execution for the player that's powering down
-* powering down indicator on the robot and/or in the player list for other players
-* what's the idea for the Confirm Powered Down button?
-* other players don't see your intent to power down until the cards are submitted.  in the official rules, when one player's decision to power down might be affected by another player's decision, the playwers announce in clockwise order. in our automated implementation we don't need this; each player makes their decision independently.
 * starting space mini boards
 * somehow make checkpoints and possibly other board elements visible when a robot is sitting on them
 * tooltips so a player can hover their mouse pointer over a tile and see what's there when a robot is sitting on it
@@ -42,7 +36,14 @@
 
 ## In Progress
 //* it executed moves for a robot even though it was powered down and it's registers appeared to be empty
+* when your damage is cleared locked registers need to be clear accordingly
 * toggling power down should not reset your registers
+* other players don't see your intent to power down until the cards are submitted.  in the official rules, when one player's decision to power down might be affected by another player's decision, the playwers announce in clockwise order. in our automated implementation we don't need this; each player makes their decision independently.
+* display a powered down marker on powered down robots
+* powering down indicator that's visibible during execution for the player that's powering down
+* powering down indicator on the robot and/or in the player list for other players
+* after dying and returning powered down, the robot was not healed
+* what's this Stay Powered Down button?
 
 ## Done
 * robots pushing each other
@@ -89,3 +90,5 @@
 * after being powered down, the player needs to be prompted whether they want to remain powered down or not.  this needs to happen before cards are dealt
 * robots are not supposed to fire when powered down
 * hide the reset button when powered down
+* when preparing the deck we need to leave out cards that are locked in player registers
+* when player elects to stay powered down it asks again

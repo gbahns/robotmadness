@@ -1,5 +1,5 @@
 import React from 'react';
-import { PowerState } from '@/lib/game/types';
+import { PowerState, ProgramCard } from '@/lib/game/types';
 import { socketClient } from '@/lib/socket';
 
 interface PowerDownButtonProps {
@@ -9,6 +9,7 @@ interface PowerDownButtonProps {
     damage: number;
     disabled?: boolean;
     isProgrammingPhase: boolean;
+    selectedCards: (ProgramCard | null)[];
 }
 
 export default function PowerDownButton({
@@ -17,13 +18,14 @@ export default function PowerDownButton({
     powerState,
     damage,
     disabled = false,
-    isProgrammingPhase
+    isProgrammingPhase,
+    selectedCards
 }: PowerDownButtonProps) {
 
     const handleToggle = () => {
         console.log(`Toggling power down for player ${playerId} in game ${roomCode} isProgrammingPhase: ${isProgrammingPhase}`);
         if (!isProgrammingPhase) return;
-        socketClient.emit('toggle-power-down', { roomCode, playerId });
+        socketClient.emit('toggle-power-down', { roomCode, playerId, selectedCards });
     };
 
     const getButtonText = () => {

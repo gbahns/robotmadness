@@ -51,6 +51,7 @@ export default function ProgrammingControls({
                         damage={currentPlayer.damage}
                         disabled={currentPlayer.isDead || currentPlayer.lives <= 0}
                         isProgrammingPhase={true}
+                        selectedCards={selectedCards}
                     />
                 </div>
             )}

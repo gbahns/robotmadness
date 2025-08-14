@@ -45,7 +45,7 @@ interface ClientToServerEvents {
     'submit-cards': (data: { roomCode: string; playerId: string; cards: (ProgramCard | null)[] }) => void;
     'reset-cards': (data: { roomCode: string; playerId: string; }) => void;
     'request-game-state': (roomCode: string) => void;
-    'toggle-power-down': (data: { roomCode: string; playerId: string }) => void;
+    'toggle-power-down': (data: { roomCode: string; playerId: string; selectedCards: (ProgramCard | null)[] }) => void;
     'continue-power-down': (data: { roomCode: string; playerId: string; continueDown: boolean }) => void;
 }
 
@@ -231,39 +231,18 @@ app.prepare().then(() => {
             }
         });
 
-        // socket.on('submit-cards', async ({ roomCode, playerId, cards }) => {
-        //     const gameState = games.get(roomCode);
-        //     if (!gameState || !gameState.players[playerId]) return;
-
-        //     console.log(`Player ${gameState.players[playerId].name} submitted cards for room ${roomCode}:`, cards);
-
-        //     gameEngine.submitCards(gameState, playerId, cards);
-
-        //     const allSubmitted = Object.values(gameState.players).every(
-        //         player => player.selectedCards.every(card => card !== null) || player.lives <= 0
-        //     );
-
-        //     if (allSubmitted) {
-        //         console.log('All players submitted, starting execution phase');
-
-        //         // Execute the program phase - this now includes cleanup and dealing new cards
-        //         await gameEngine.executeProgramPhase(gameState);
-
-        //         // Emit the updated game state with new cards and reset submission states
-        //         io.to(roomCode).emit('game-state', gameState);
-
-        //         console.log('Execution complete, new cards dealt, phase:', gameState.phase);
-        //     } else {
-        //         io.to(roomCode).emit('game-state', gameState);
-        //     }
-        // });
 
         // Toggle power down announcement
-        socket.on('toggle-power-down', ({ roomCode, playerId }) => {
+        socket.on('toggle-power-down', ({ roomCode, playerId, selectedCards }) => {
             console.log(`Received toggle-power-down from player ${playerId} in game ${roomCode}`);
             const gameState = games.get(roomCode);
             if (!gameState || !gameState.players[playerId]) return;
             const player = gameState.players[playerId];
+
+            // Update selected cards
+            if (selectedCards) {
+                player.selectedCards = selectedCards;
+            }
 
             // Toggle power down state
             if (player.powerState === PowerState.ON) {
