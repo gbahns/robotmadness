@@ -1,7 +1,9 @@
+// lib/game/boards/boardDefinitions.ts - Final version with proper separation
+
 import { Board, Checkpoint, StartingPosition, TileType, Direction } from '../types';
 import { buildBoard } from './boardBuilder';
-import { DOCKING_BAY_BOARDS } from './dockingBayBoards';
-import { LEGACY_COURSES } from './legacyBoards';
+import { DOCKING_BAY_BOARDS, COMBINED_COURSES, COMBINED_BOARD_DEFINITIONS } from './dockingBayBoards';
+import { OFFICIAL_BOARD_DEFINITIONS, OFFICIAL_COURSE_DEFINITIONS } from './officialBoards';
 
 export interface CourseDefinition {
     id: string;
@@ -10,7 +12,7 @@ export interface CourseDefinition {
     difficulty: 'beginner' | 'intermediate' | 'expert';
     minPlayers: number;
     maxPlayers: number;
-    boards: BoardDefinition[];
+    boards: string[]; // Array of board IDs, not embedded boards
 }
 
 export interface BoardDefinition {
@@ -44,227 +46,11 @@ export interface WallElement {
     sides: Direction[]; // Which sides of the tile have walls
 }
 
-// Beginner Course Definitions based on official RoboRally manual
+// =============================================================================
+// BOARD DEFINITIONS (Individual Boards)
+// =============================================================================
 
-export const RISKY_EXCHANGE: CourseDefinition = {
-    id: 'risky_exchange',
-    name: 'Risky Exchange',
-    description: 'An easy course to start on, but don\'t fall off the edge!',
-    difficulty: 'beginner',
-    minPlayers: 2,
-    maxPlayers: 8,
-    boards: [
-        {
-            id: 'exchange',
-            name: 'Exchange',
-            width: 12,
-            height: 12,
-            checkpoints: [
-                { position: { x: 10, y: 5 }, number: 1 },
-                { position: { x: 10, y: 10 }, number: 2 },
-                { position: { x: 1, y: 10 }, number: 3 }
-            ],
-            startingPositions: [
-                { position: { x: 0, y: 4 }, direction: Direction.RIGHT },
-                { position: { x: 0, y: 5 }, direction: Direction.RIGHT },
-                { position: { x: 0, y: 6 }, direction: Direction.RIGHT },
-                { position: { x: 0, y: 7 }, direction: Direction.RIGHT },
-                { position: { x: 11, y: 4 }, direction: Direction.LEFT },
-                { position: { x: 11, y: 5 }, direction: Direction.LEFT },
-                { position: { x: 11, y: 6 }, direction: Direction.LEFT },
-                { position: { x: 11, y: 7 }, direction: Direction.LEFT }
-            ],
-            tiles: [
-                // Express conveyor belt across the middle
-                { position: { x: 1, y: 5 }, type: TileType.EXPRESS_CONVEYOR, direction: Direction.RIGHT },
-                { position: { x: 2, y: 5 }, type: TileType.EXPRESS_CONVEYOR, direction: Direction.RIGHT },
-                { position: { x: 3, y: 5 }, type: TileType.EXPRESS_CONVEYOR, direction: Direction.RIGHT },
-                { position: { x: 4, y: 5 }, type: TileType.EXPRESS_CONVEYOR, direction: Direction.RIGHT },
-                { position: { x: 5, y: 5 }, type: TileType.EXPRESS_CONVEYOR, direction: Direction.RIGHT },
-                { position: { x: 6, y: 6 }, type: TileType.EXPRESS_CONVEYOR, direction: Direction.LEFT },
-                { position: { x: 7, y: 6 }, type: TileType.EXPRESS_CONVEYOR, direction: Direction.LEFT },
-                { position: { x: 8, y: 6 }, type: TileType.EXPRESS_CONVEYOR, direction: Direction.LEFT },
-                { position: { x: 9, y: 6 }, type: TileType.EXPRESS_CONVEYOR, direction: Direction.LEFT },
-                { position: { x: 10, y: 6 }, type: TileType.EXPRESS_CONVEYOR, direction: Direction.LEFT },
-                // Repair sites
-                { position: { x: 3, y: 3 }, type: TileType.REPAIR },
-                { position: { x: 8, y: 8 }, type: TileType.REPAIR },
-                // Gear tiles
-                { position: { x: 2, y: 2 }, type: TileType.GEAR_CW },
-                { position: { x: 9, y: 9 }, type: TileType.GEAR_CCW }
-            ],
-            lasers: [
-                { position: { x: 5, y: 1 }, direction: Direction.DOWN, damage: 1 },
-                { position: { x: 6, y: 10 }, direction: Direction.UP, damage: 1 }
-            ]
-        }
-    ]
-};
-
-export const CHECKMATE: CourseDefinition = {
-    id: 'checkmate',
-    name: 'Checkmate',
-    description: 'Another easy course—just push the other robots into pits. Checkmate!',
-    difficulty: 'beginner',
-    minPlayers: 5,
-    maxPlayers: 8,
-    boards: [
-        {
-            id: 'chess',
-            name: 'Chess',
-            width: 12,
-            height: 12,
-            checkpoints: [
-                { position: { x: 5, y: 5 }, number: 1 },
-                { position: { x: 3, y: 8 }, number: 2 }
-            ],
-            startingPositions: [
-                { position: { x: 1, y: 1 }, direction: Direction.UP },
-                { position: { x: 3, y: 1 }, direction: Direction.UP },
-                { position: { x: 5, y: 1 }, direction: Direction.UP },
-                { position: { x: 7, y: 1 }, direction: Direction.UP },
-                { position: { x: 9, y: 1 }, direction: Direction.UP },
-                { position: { x: 10, y: 3 }, direction: Direction.LEFT },
-                { position: { x: 10, y: 5 }, direction: Direction.LEFT },
-                { position: { x: 10, y: 7 }, direction: Direction.LEFT }
-            ],
-            tiles: [
-                // Pit tiles (chess pattern)
-                { position: { x: 3, y: 3 }, type: TileType.PIT },
-                { position: { x: 5, y: 3 }, type: TileType.PIT },
-                { position: { x: 7, y: 3 }, type: TileType.PIT },
-                { position: { x: 2, y: 4 }, type: TileType.PIT },
-                { position: { x: 4, y: 4 }, type: TileType.PIT },
-                { position: { x: 6, y: 4 }, type: TileType.PIT },
-                { position: { x: 8, y: 4 }, type: TileType.PIT },
-                { position: { x: 3, y: 5 }, type: TileType.PIT },
-                { position: { x: 7, y: 5 }, type: TileType.PIT },
-                { position: { x: 2, y: 6 }, type: TileType.PIT },
-                { position: { x: 4, y: 6 }, type: TileType.PIT },
-                { position: { x: 6, y: 6 }, type: TileType.PIT },
-                { position: { x: 8, y: 6 }, type: TileType.PIT },
-                { position: { x: 3, y: 7 }, type: TileType.PIT },
-                { position: { x: 5, y: 7 }, type: TileType.PIT },
-                { position: { x: 7, y: 7 }, type: TileType.PIT },
-                { position: { x: 4, y: 8 }, type: TileType.PIT },
-                { position: { x: 6, y: 8 }, type: TileType.PIT },
-                // Repair sites
-                { position: { x: 1, y: 10 }, type: TileType.REPAIR },
-                { position: { x: 10, y: 10 }, type: TileType.REPAIR }
-            ]
-        }
-    ]
-};
-
-export const DIZZY_DASH: CourseDefinition = {
-    id: 'dizzy_dash',
-    name: 'Dizzy Dash',
-    description: 'Whoops, was that the flag over there? Don\'t worry—it\'s still an easy course.',
-    difficulty: 'beginner',
-    minPlayers: 2,
-    maxPlayers: 8,
-    boards: [
-        {
-            id: 'spin_zone',
-            name: 'Spin Zone',
-            width: 12,
-            height: 12,
-            checkpoints: [
-                { position: { x: 2, y: 2 }, number: 1 },
-                { position: { x: 9, y: 2 }, number: 2 },
-                { position: { x: 9, y: 9 }, number: 3 }
-            ],
-            startingPositions: [
-                { position: { x: 1, y: 10 }, direction: Direction.UP },
-                { position: { x: 2, y: 10 }, direction: Direction.UP },
-                { position: { x: 3, y: 10 }, direction: Direction.UP },
-                { position: { x: 4, y: 10 }, direction: Direction.UP },
-                { position: { x: 7, y: 10 }, direction: Direction.UP },
-                { position: { x: 8, y: 10 }, direction: Direction.UP },
-                { position: { x: 9, y: 10 }, direction: Direction.UP },
-                { position: { x: 10, y: 10 }, direction: Direction.UP }
-            ],
-            tiles: [
-                // Gear tiles creating confusion
-                { position: { x: 2, y: 5 }, type: TileType.GEAR_CW },
-                { position: { x: 3, y: 5 }, type: TileType.GEAR_CCW },
-                { position: { x: 4, y: 5 }, type: TileType.GEAR_CW },
-                { position: { x: 5, y: 5 }, type: TileType.GEAR_CCW },
-                { position: { x: 6, y: 5 }, type: TileType.GEAR_CW },
-                { position: { x: 7, y: 5 }, type: TileType.GEAR_CCW },
-                { position: { x: 8, y: 5 }, type: TileType.GEAR_CW },
-                { position: { x: 9, y: 5 }, type: TileType.GEAR_CCW },
-                // Conveyor belts
-                { position: { x: 5, y: 2 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
-                { position: { x: 6, y: 2 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
-                { position: { x: 5, y: 3 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
-                { position: { x: 6, y: 3 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
-                // Repair sites
-                { position: { x: 1, y: 1 }, type: TileType.REPAIR },
-                { position: { x: 10, y: 1 }, type: TileType.REPAIR }
-            ]
-        }
-    ]
-};
-
-export const ISLAND_HOP: CourseDefinition = {
-    id: 'island_hop',
-    name: 'Island Hop',
-    description: 'Over the Island or around?',
-    difficulty: 'beginner',
-    minPlayers: 2,
-    maxPlayers: 8,
-    boards: [
-        {
-            id: 'island',
-            name: 'Island',
-            width: 12,
-            height: 12,
-            checkpoints: [
-                { position: { x: 6, y: 6 }, number: 1 },
-                { position: { x: 1, y: 10 }, number: 2 },
-                { position: { x: 10, y: 1 }, number: 3 }
-            ],
-            startingPositions: [
-                { position: { x: 0, y: 1 }, direction: Direction.RIGHT },
-                { position: { x: 0, y: 2 }, direction: Direction.RIGHT },
-                { position: { x: 1, y: 0 }, direction: Direction.DOWN },
-                { position: { x: 2, y: 0 }, direction: Direction.DOWN },
-                { position: { x: 11, y: 9 }, direction: Direction.LEFT },
-                { position: { x: 11, y: 10 }, direction: Direction.LEFT },
-                { position: { x: 9, y: 11 }, direction: Direction.UP },
-                { position: { x: 10, y: 11 }, direction: Direction.UP }
-            ],
-            tiles: [
-                // Water (pit) tiles around the edges
-                { position: { x: 3, y: 3 }, type: TileType.PIT },
-                { position: { x: 3, y: 4 }, type: TileType.PIT },
-                { position: { x: 3, y: 5 }, type: TileType.PIT },
-                { position: { x: 3, y: 6 }, type: TileType.PIT },
-                { position: { x: 3, y: 7 }, type: TileType.PIT },
-                { position: { x: 3, y: 8 }, type: TileType.PIT },
-                { position: { x: 4, y: 3 }, type: TileType.PIT },
-                { position: { x: 4, y: 8 }, type: TileType.PIT },
-                { position: { x: 5, y: 3 }, type: TileType.PIT },
-                { position: { x: 5, y: 8 }, type: TileType.PIT },
-                { position: { x: 6, y: 3 }, type: TileType.PIT },
-                { position: { x: 6, y: 8 }, type: TileType.PIT },
-                { position: { x: 7, y: 3 }, type: TileType.PIT },
-                { position: { x: 7, y: 8 }, type: TileType.PIT },
-                { position: { x: 8, y: 3 }, type: TileType.PIT },
-                { position: { x: 8, y: 4 }, type: TileType.PIT },
-                { position: { x: 8, y: 5 }, type: TileType.PIT },
-                { position: { x: 8, y: 6 }, type: TileType.PIT },
-                { position: { x: 8, y: 7 }, type: TileType.PIT },
-                { position: { x: 8, y: 8 }, type: TileType.PIT },
-                // Repair site on the island
-                { position: { x: 5, y: 6 }, type: TileType.REPAIR }
-            ]
-        }
-    ]
-};
-
-// Simple test board for development
+// Test board for development
 export const TEST_BOARD: BoardDefinition = {
     id: 'test',
     name: 'Test Board',
@@ -288,42 +74,273 @@ export const TEST_BOARD: BoardDefinition = {
     tiles: []
 };
 
-// All course definitions
-export const COURSES: CourseDefinition[] = [
-    RISKY_EXCHANGE,
-    CHECKMATE,
-    DIZZY_DASH,
-    ISLAND_HOP,
-    // ...DOCKING_BAY_BOARDS.map(board => ({
-    //     id: board.id,
-    //     name: board.name,
-    //     description: 'A docking bay board.',
-    //     //difficulty: 'beginner',
-    //     minPlayers: 2,
-    //     maxPlayers: 8,
-    //     boards: [board]
-    //}))
+// Checkmate board (single 12x12 board with starting positions)
+export const CHECKMATE_BOARD: BoardDefinition = {
+    id: 'checkmate-board',
+    name: 'Checkmate',
+    width: 12,
+    height: 12,
+    checkpoints: [
+        { position: { x: 6, y: 6 }, number: 1 },
+        { position: { x: 2, y: 2 }, number: 2 },
+        { position: { x: 10, y: 10 }, number: 3 }
+    ],
+    startingPositions: [
+        { position: { x: 0, y: 0 }, direction: Direction.RIGHT },
+        { position: { x: 11, y: 0 }, direction: Direction.LEFT },
+        { position: { x: 11, y: 11 }, direction: Direction.LEFT },
+        { position: { x: 0, y: 11 }, direction: Direction.RIGHT },
+        { position: { x: 5, y: 0 }, direction: Direction.DOWN },
+        { position: { x: 6, y: 0 }, direction: Direction.DOWN },
+        { position: { x: 5, y: 11 }, direction: Direction.UP },
+        { position: { x: 6, y: 11 }, direction: Direction.UP }
+    ],
+    tiles: [
+        // Central pit area
+        { position: { x: 5, y: 5 }, type: TileType.PIT },
+        { position: { x: 6, y: 5 }, type: TileType.PIT },
+        { position: { x: 7, y: 5 }, type: TileType.PIT },
+        { position: { x: 5, y: 6 }, type: TileType.PIT },
+        { position: { x: 7, y: 6 }, type: TileType.PIT },
+        { position: { x: 5, y: 7 }, type: TileType.PIT },
+        { position: { x: 6, y: 7 }, type: TileType.PIT },
+        { position: { x: 7, y: 7 }, type: TileType.PIT },
+        // Conveyors pushing toward center
+        { position: { x: 4, y: 6 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
+        { position: { x: 8, y: 6 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
+        { position: { x: 6, y: 4 }, type: TileType.CONVEYOR, direction: Direction.DOWN },
+        { position: { x: 6, y: 8 }, type: TileType.CONVEYOR, direction: Direction.UP },
+        // Repair sites at corners
+        { position: { x: 1, y: 1 }, type: TileType.REPAIR },
+        { position: { x: 10, y: 1 }, type: TileType.REPAIR },
+        { position: { x: 1, y: 10 }, type: TileType.REPAIR },
+        { position: { x: 10, y: 10 }, type: TileType.REPAIR }
+    ],
+    lasers: []
+};
+
+// Dizzy Dash board (single 12x12 board with starting positions)
+export const DIZZY_DASH_BOARD: BoardDefinition = {
+    id: 'dizzy-dash-board',
+    name: 'Dizzy Dash',
+    width: 12,
+    height: 12,
+    checkpoints: [
+        { position: { x: 9, y: 3 }, number: 1 },
+        { position: { x: 9, y: 9 }, number: 2 },
+        { position: { x: 3, y: 6 }, number: 3 }
+    ],
+    startingPositions: [
+        { position: { x: 0, y: 5 }, direction: Direction.RIGHT },
+        { position: { x: 0, y: 6 }, direction: Direction.RIGHT },
+        { position: { x: 11, y: 5 }, direction: Direction.LEFT },
+        { position: { x: 11, y: 6 }, direction: Direction.LEFT },
+        { position: { x: 5, y: 0 }, direction: Direction.DOWN },
+        { position: { x: 6, y: 0 }, direction: Direction.DOWN },
+        { position: { x: 5, y: 11 }, direction: Direction.UP },
+        { position: { x: 6, y: 11 }, direction: Direction.UP }
+    ],
+    tiles: [
+        // Multiple gear clusters for confusion
+        { position: { x: 2, y: 2 }, type: TileType.GEAR_CW },
+        { position: { x: 3, y: 2 }, type: TileType.GEAR_CCW },
+        { position: { x: 2, y: 3 }, type: TileType.GEAR_CCW },
+        { position: { x: 3, y: 3 }, type: TileType.GEAR_CW },
+
+        { position: { x: 8, y: 2 }, type: TileType.GEAR_CCW },
+        { position: { x: 9, y: 2 }, type: TileType.GEAR_CW },
+        { position: { x: 8, y: 3 }, type: TileType.GEAR_CW },
+        { position: { x: 10, y: 3 }, type: TileType.GEAR_CCW },
+
+        { position: { x: 2, y: 8 }, type: TileType.GEAR_CW },
+        { position: { x: 3, y: 8 }, type: TileType.GEAR_CCW },
+        { position: { x: 2, y: 9 }, type: TileType.GEAR_CCW },
+        { position: { x: 3, y: 9 }, type: TileType.GEAR_CW },
+
+        { position: { x: 8, y: 8 }, type: TileType.GEAR_CCW },
+        { position: { x: 9, y: 8 }, type: TileType.GEAR_CW },
+        { position: { x: 8, y: 9 }, type: TileType.GEAR_CW },
+        { position: { x: 9, y: 10 }, type: TileType.GEAR_CCW },
+
+        // Some conveyors for navigation
+        { position: { x: 5, y: 3 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
+        { position: { x: 6, y: 3 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
+        { position: { x: 7, y: 3 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
+
+        { position: { x: 5, y: 8 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
+        { position: { x: 6, y: 8 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
+        { position: { x: 7, y: 8 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
+
+        // Repair site in center
+        { position: { x: 5, y: 6 }, type: TileType.REPAIR }
+    ],
+    lasers: []
+};
+
+// Island Hop board (single 12x12 board with starting positions)
+export const ISLAND_HOP_BOARD: BoardDefinition = {
+    id: 'island-hop-board',
+    name: 'Island Hop',
+    width: 12,
+    height: 12,
+    checkpoints: [
+        { position: { x: 6, y: 2 }, number: 1 },
+        { position: { x: 10, y: 6 }, number: 2 },
+        { position: { x: 6, y: 10 }, number: 3 }
+    ],
+    startingPositions: [
+        { position: { x: 1, y: 1 }, direction: Direction.UP },
+        { position: { x: 10, y: 1 }, direction: Direction.UP },
+        { position: { x: 10, y: 10 }, direction: Direction.DOWN },
+        { position: { x: 1, y: 10 }, direction: Direction.DOWN },
+        { position: { x: 5, y: 5 }, direction: Direction.RIGHT },
+        { position: { x: 6, y: 6 }, direction: Direction.LEFT },
+        { position: { x: 3, y: 3 }, direction: Direction.DOWN },
+        { position: { x: 8, y: 8 }, direction: Direction.UP }
+    ],
+    tiles: [
+        // Central "island" of pits
+        { position: { x: 5, y: 5 }, type: TileType.PIT },
+        { position: { x: 6, y: 5 }, type: TileType.PIT },
+        { position: { x: 7, y: 5 }, type: TileType.PIT },
+        { position: { x: 5, y: 6 }, type: TileType.PIT },
+        { position: { x: 6, y: 6 }, type: TileType.PIT },
+        { position: { x: 7, y: 6 }, type: TileType.PIT },
+        { position: { x: 5, y: 7 }, type: TileType.PIT },
+        { position: { x: 6, y: 7 }, type: TileType.PIT },
+        { position: { x: 7, y: 7 }, type: TileType.PIT },
+
+        // Conveyors around the island
+        { position: { x: 4, y: 4 }, type: TileType.CONVEYOR, direction: Direction.DOWN },
+        { position: { x: 4, y: 5 }, type: TileType.CONVEYOR, direction: Direction.DOWN },
+        { position: { x: 4, y: 6 }, type: TileType.CONVEYOR, direction: Direction.DOWN },
+        { position: { x: 4, y: 7 }, type: TileType.CONVEYOR, direction: Direction.DOWN },
+        { position: { x: 4, y: 8 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
+        { position: { x: 5, y: 8 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
+        { position: { x: 6, y: 8 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
+        { position: { x: 7, y: 8 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
+        { position: { x: 8, y: 8 }, type: TileType.CONVEYOR, direction: Direction.UP },
+        { position: { x: 8, y: 7 }, type: TileType.CONVEYOR, direction: Direction.UP },
+        { position: { x: 8, y: 6 }, type: TileType.CONVEYOR, direction: Direction.UP },
+        { position: { x: 8, y: 5 }, type: TileType.CONVEYOR, direction: Direction.UP },
+        { position: { x: 8, y: 4 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
+        { position: { x: 7, y: 4 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
+        { position: { x: 6, y: 4 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
+        { position: { x: 5, y: 4 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
+
+        // Repair sites at strategic locations
+        { position: { x: 1, y: 6 }, type: TileType.REPAIR },
+        { position: { x: 11, y: 6 }, type: TileType.REPAIR },
+        { position: { x: 6, y: 1 }, type: TileType.REPAIR },
+        { position: { x: 6, y: 11 }, type: TileType.REPAIR }
+    ],
+    lasers: [
+        // Lasers across the island gaps
+        { position: { x: 0, y: 6 }, direction: Direction.RIGHT, damage: 1 },
+        { position: { x: 11, y: 6 }, direction: Direction.LEFT, damage: 1 },
+        { position: { x: 6, y: 0 }, direction: Direction.DOWN, damage: 1 },
+        { position: { x: 6, y: 11 }, direction: Direction.UP, damage: 1 }
+    ]
+};
+
+// All board definitions from different sources
+const SINGLE_BOARD_DEFINITIONS: BoardDefinition[] = [
+    TEST_BOARD,
+    CHECKMATE_BOARD,
+    DIZZY_DASH_BOARD,
+    ISLAND_HOP_BOARD
 ];
 
-// Combine new and legacy courses
-export const ALL_COURSES: CourseDefinition[] = [...COURSES, ...LEGACY_COURSES];
+// All board definitions combined
+export const ALL_BOARD_DEFINITIONS: BoardDefinition[] = [
+    ...SINGLE_BOARD_DEFINITIONS,
+    ...OFFICIAL_BOARD_DEFINITIONS,
+    ...DOCKING_BAY_BOARDS,
+    ...COMBINED_BOARD_DEFINITIONS
+];
 
-// Helper function to get a course by ID
+// =============================================================================
+// COURSE DEFINITIONS (References to Boards)
+// =============================================================================
+
+export const CHECKMATE_COURSE: CourseDefinition = {
+    id: 'checkmate',
+    name: 'Checkmate',
+    description: 'Another easy course—just push the other robots into pits.',
+    difficulty: 'beginner',
+    minPlayers: 2,
+    maxPlayers: 8,
+    boards: ['checkmate-board'] // Reference to board ID
+};
+
+export const DIZZY_DASH_COURSE: CourseDefinition = {
+    id: 'dizzy_dash',
+    name: 'Dizzy Dash',
+    description: 'Whoops, was that the flag over there? Don\'t worry—it\'s still an easy course.',
+    difficulty: 'beginner',
+    minPlayers: 2,
+    maxPlayers: 8,
+    boards: ['dizzy-dash-board'] // Reference to board ID
+};
+
+export const ISLAND_HOP_COURSE: CourseDefinition = {
+    id: 'island_hop',
+    name: 'Island Hop',
+    description: 'Over the island or around?',
+    difficulty: 'intermediate',
+    minPlayers: 2,
+    maxPlayers: 8,
+    boards: ['island-hop-board'] // Reference to board ID
+};
+
+// Single board course definitions
+const SINGLE_BOARD_COURSE_DEFINITIONS: CourseDefinition[] = [
+    CHECKMATE_COURSE,
+    DIZZY_DASH_COURSE,
+    ISLAND_HOP_COURSE
+];
+
+// All course definitions combined
+export const ALL_COURSE_DEFINITIONS: CourseDefinition[] = [
+    ...OFFICIAL_COURSE_DEFINITIONS, // Official courses first!
+    ...SINGLE_BOARD_COURSE_DEFINITIONS,
+    ...COMBINED_COURSES // Now properly separated!
+];
+
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
+
+// Get course by ID
 export function getCourseById(courseId: string): CourseDefinition | undefined {
-    return ALL_COURSES.find(course => course.id === courseId);
+    return ALL_COURSE_DEFINITIONS.find(course => course.id === courseId);
 }
 
-// Helper function to get a board by ID
+// Get board definition by ID
+export function getBoardDefinitionById(boardId: string): BoardDefinition | undefined {
+    return ALL_BOARD_DEFINITIONS.find(board => board.id === boardId);
+}
+
+// Get built board by ID (for game engine)
 export function getBoardById(boardId: string): Board {
-    for (const course of ALL_COURSES) {
-        const board = course.boards.find(b => b.id === boardId);
-        if (board) return buildBoard(board);
-        board;
+    const boardDef = getBoardDefinitionById(boardId);
+    if (boardDef) {
+        return buildBoard(boardDef);
     }
     return buildBoard(TEST_BOARD);
 }
 
-// Helper function to create an empty board
+// Get all boards for a course
+export function getBoardsForCourse(courseId: string): BoardDefinition[] {
+    const course = getCourseById(courseId);
+    if (!course) return [];
+
+    return course.boards
+        .map(boardId => getBoardDefinitionById(boardId))
+        .filter((board): board is BoardDefinition => board !== undefined);
+}
+
+// Create empty board
 export function createEmptyBoard(width: number = 12, height: number = 12): Board {
     const tiles = Array(height).fill(null).map(() =>
         Array(width).fill(null).map(() => ({
@@ -341,3 +358,7 @@ export function createEmptyBoard(width: number = 12, height: number = 12): Board
         startingPositions: []
     };
 }
+
+// Backward compatibility exports
+export const ALL_COURSES = ALL_COURSE_DEFINITIONS;
+export const COURSES = ALL_COURSE_DEFINITIONS;

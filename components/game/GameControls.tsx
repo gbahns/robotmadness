@@ -15,18 +15,6 @@ interface GameControlsProps {
   onCourseChange?: (courseId: string) => void;
 }
 
-// Build available courses from our board definitions
-const availableCourses = [
-  { id: 'test', name: 'Test Board' },
-  ...ALL_COURSES.map(course => ({
-    id: course.boards[0].id, // Use the first board in each course
-    name: course.name,
-    description: course.description,
-    difficulty: course.difficulty,
-    playerRange: `${course.minPlayers}-${course.maxPlayers} players`
-  }))
-];
-
 export default function GameControls({ isHost, roomCode, playerCount, currentPlayer, gameState, selectedCourse: externalSelectedCourse, onCourseChange }: GameControlsProps) {
   const [internalSelectedCourse, setInternalSelectedCourse] = useState<string>('test');
 
@@ -45,7 +33,7 @@ export default function GameControls({ isHost, roomCode, playerCount, currentPla
   if (!isHost || gameState?.phase !== 'waiting') {
     // Show selected board info for non-hosts in waiting phase
     if (gameState?.phase === 'waiting' && selectedCourse) {
-      const courseInfo = ALL_COURSES.find(c => c.boards.some(b => b.id === selectedCourse));
+      const courseInfo = ALL_COURSES.find(c => c.boards.some(b => b === selectedCourse));
       const boardName = selectedCourse === 'test' ? 'Test Board' : courseInfo?.name || 'Unknown Board';
 
       return (
@@ -74,6 +62,7 @@ export default function GameControls({ isHost, roomCode, playerCount, currentPla
           <PowerDownButton
             roomCode={gameState.roomCode}
             playerId={currentPlayer.id}
+            selectedCards={currentPlayer.selectedCards}
             powerState={currentPlayer.powerState}
             damage={currentPlayer.damage}
             disabled={currentPlayer.isDead || currentPlayer.lives <= 0}
@@ -86,7 +75,7 @@ export default function GameControls({ isHost, roomCode, playerCount, currentPla
 
   // Find the selected course details
   const selectedBoard = getBoardById(selectedCourse) || TEST_BOARD;
-  const courseInfo = ALL_COURSES.find(c => c.boards.some(b => b.id === selectedCourse));
+  const courseInfo = ALL_COURSES.find(c => c.boards.some(b => b === selectedCourse));
 
   return (
     <div className="bg-gray-800 rounded-lg p-6 space-y-4">
@@ -101,7 +90,21 @@ export default function GameControls({ isHost, roomCode, playerCount, currentPla
           <option value="test">Test Board</option>
           <optgroup label="Beginner Courses">
             {ALL_COURSES.filter(c => c.difficulty === 'beginner').map(course => (
-              <option key={course.boards[0].id} value={course.boards[0].id}>
+              <option key={course.id} value={course.boards[0]}>
+                {course.name}
+              </option>
+            ))}
+          </optgroup>
+          <optgroup label="Intermediate Courses">
+            {ALL_COURSES.filter(c => c.difficulty === 'intermediate').map(course => (
+              <option key={course.id} value={course.boards[0]}>
+                {course.name}
+              </option>
+            ))}
+          </optgroup>
+          <optgroup label="Expert Courses">
+            {ALL_COURSES.filter(c => c.difficulty === 'expert').map(course => (
+              <option key={course.id} value={course.boards[0]}>
                 {course.name}
               </option>
             ))}
@@ -114,7 +117,7 @@ export default function GameControls({ isHost, roomCode, playerCount, currentPla
             <p>{courseInfo.description}</p>
             <p className="text-xs mt-1">
               {courseInfo.minPlayers}-{courseInfo.maxPlayers} players •
-              {' '}{courseInfo.boards[0].checkpoints.length} checkpoints
+              {/* {' '}{courseInfo.boards[0].checkpoints.length} checkpoints */}
             </p>
           </div>
         )}
