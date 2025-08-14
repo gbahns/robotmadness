@@ -652,7 +652,12 @@ export default function GamePage() {
         <div className="container mx-auto max-w-7xl flex-1 flex flex-col">
           {/* Header */}
           <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold">RobotMadness</h1>
+            <div className="flex items-center gap-4">
+              <h1 className="text-3xl font-bold">RobotMadness</h1>
+              <a href="/" className="text-blue-400 hover:underline text-sm">
+                &larr; Back to Home
+              </a>
+            </div>
             <div className="flex items-center gap-6">
               <div className="text-right">
                 <p className="text-sm text-gray-400">Room Code</p>
