@@ -21,21 +21,13 @@ export default function PowerDownModal({
 
     const handleContinuePowerDown = () => {
         console.log(`${playerName} chooses to stay powered down`);
-        socketClient.emit('continue-power-down', {
-            roomCode,
-            playerId,
-            continueDown: true
-        });
+        socketClient.emit('continue-power-down', { roomCode, playerId, continueDown: true });
         onClose();
     };
 
     const handlePowerUp = () => {
         console.log(`${playerName} chooses to power back on`);
-        socketClient.emit('continue-power-down', {
-            roomCode,
-            playerId,
-            continueDown: false
-        });
+        socketClient.emit('continue-power-down', { roomCode, playerId, continueDown: false });
         onClose();
     };
 
