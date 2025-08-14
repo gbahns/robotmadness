@@ -23,6 +23,7 @@ export default function PowerDownModal({
         console.log(`${playerName} chooses to stay powered down`);
         socketClient.emit('continue-power-down', {
             roomCode,
+            playerId,
             continueDown: true
         });
         onClose();
@@ -32,6 +33,7 @@ export default function PowerDownModal({
         console.log(`${playerName} chooses to power back on`);
         socketClient.emit('continue-power-down', {
             roomCode,
+            playerId,
             continueDown: false
         });
         onClose();
