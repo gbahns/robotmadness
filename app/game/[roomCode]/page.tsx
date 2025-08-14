@@ -362,16 +362,9 @@ export default function GamePage() {
       }]);
     });
 
-    // Power down option (for continuing)
+    // ask powered-down player whether they want to continue to be powered down or not
     socketClient.on('power-down-option', (data: { message: string; }) => {
-      // Show modal or UI element to let player choose
       console.log('Power down option:', data.message);
-      // const continueDown = window.confirm(data.message);
-      // socketClient.emit('continue-power-down', {
-      //   roomCode,
-      //   playerId: playerIdRef.current,
-      //   continueDown
-      // });
       setShowPowerDownModal(true);
     });
 
