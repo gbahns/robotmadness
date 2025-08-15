@@ -1,6 +1,7 @@
 // components/game/Board.tsx
 import React, { useEffect, useState, useRef } from 'react';
-import { Board as BoardType, Player, Direction, Position } from '@/lib/game/types';
+import { Board as BoardType, Player, Direction, Position, Tile, Checkpoint, Laser, TileType } from '@/lib/game/types';
+import { TileElement } from '@/lib/game/boards/boardDefinitions';
 import RobotLaserAnimation, { RobotLaserShot } from './RobotLaserAnimation';
 import Robot from './Robot';
 import { socketClient } from '@/lib/socket';
@@ -13,27 +14,6 @@ interface BoardProps {
   gameState?: any;
   roomCode?: string;
   activeLasers?: RobotLaserShot[];
-}
-
-// These interfaces will be used when you add enhanced board features
-interface TileElement {
-  type: 'conveyor' | 'conveyor_express' | 'gear' | 'pusher' | 'repair' | 'pit' | 'option' | 'gear_cw' | 'gear_ccw';
-  position: { x: number; y: number };
-  direction?: number;
-  rotate?: 'clockwise' | 'counterclockwise';
-  registers?: number[];
-  walls?: number[];
-}
-
-interface Checkpoint {
-  position: { x: number; y: number };
-  number: number;
-}
-
-interface Laser {
-  position: { x: number; y: number };
-  direction: number;
-  damage: number;
 }
 
 // Direction mapping for visual arrows
@@ -239,14 +219,17 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
 
     // Add tile-specific elements when tiles are implemented
     if (tile) {
+      console.log('Rendering tile at', { x, y, tile });
+
       // Conveyor belts
-      if (tile.type === 'conveyor' || tile.type === 'conveyor_express') {
-        const color = tile.type === 'conveyor_express' ? 'bg-blue-400' : 'bg-yellow-600';
+      if (tile.type === 'conveyor' || tile.type === 'express') {
+        console.log('Rendering conveyor tile at', { x, y, tile });
+        const color = tile.type === 'express' ? 'bg-blue-400' : 'bg-yellow-600';
         const arrowRotation = ((tile.direction || 0) - 1) * 90;
 
         elements.push(
           <div key="conveyor" className={`absolute inset-1 ${color} rounded-sm flex items-center justify-center`}>
-            {tile.type === 'conveyor_express' ? (
+            {tile.type === 'express' ? (
               // Express conveyor with double arrows back-to-back
               <div
                 className="relative flex items-center justify-center"
