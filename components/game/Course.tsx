@@ -4,7 +4,7 @@ import { getCourseById } from '@/lib/game/boards/courses';
 import { getBoardDefinitionById } from '@/lib/game/boards/factoryFloorBoards';
 import { combineBoardsVertically } from '@/lib/game/boards/courses';
 import { buildBoard } from '@/lib/game/boards/boardBuilder';
-import { Board as BoardType, Player } from '@/lib/game/types';
+import { Board as BoardType, Player, Checkpoint } from '@/lib/game/types';
 import Board from './Board';
 import { RobotLaserShot } from './RobotLaserAnimation';
 
@@ -33,9 +33,13 @@ export default function Course({
     useEffect(() => {
         // Handle special test board case
         if (courseId === 'test') {
+            const testCourse = getCourseById('test');
             const testBoard = getBoardDefinitionById('test');
-            if (testBoard) {
-                setBoard(buildBoard(testBoard));
+            if (testBoard && testCourse) {
+                const builtBoard = buildBoard(testBoard);
+                // Override board checkpoints with course checkpoints
+                builtBoard.checkpoints = testCourse.checkpoints;
+                setBoard(builtBoard);
                 setCourseName('Test Board');
             }
             return;
@@ -57,25 +61,30 @@ export default function Course({
             }
 
             if (boardDefs.length === 1) {
-                // Single board course - just build it
-                setBoard(buildBoard(boardDefs[0]!));
+                // Single board course - build it and apply course checkpoints
+                const builtBoard = buildBoard(boardDefs[0]!);
+                builtBoard.checkpoints = courseData.checkpoints;
+                setBoard(builtBoard);
             } else {
                 // Multi-board course - combine them
-                // The convention is: factory floor on top, docking bay on bottom
-
                 // Separate factory floors and docking bays
                 const factoryFloors = boardDefs.filter(b => !b!.id.includes('docking'));
                 const dockingBays = boardDefs.filter(b => b!.id.includes('docking'));
 
                 // For Risky Exchange: combine factory floor (top) with docking bay (bottom)
                 if (factoryFloors.length > 0 && dockingBays.length > 0) {
-                    // combineBoardsVertically now expects (topBoard, bottomBoard)
+                    // combineBoardsVertically expects (topBoard, bottomBoard)
                     const combinedBoardDef = combineBoardsVertically(factoryFloors[0]!, dockingBays[0]!);
-                    setBoard(buildBoard(combinedBoardDef));
+                    const builtBoard = buildBoard(combinedBoardDef);
+                    // Apply course checkpoints to the combined board
+                    builtBoard.checkpoints = courseData.checkpoints;
+                    setBoard(builtBoard);
                 } else {
                     // Fallback: just use the first board if we can't identify the types
                     console.warn('Could not identify factory floor and docking bay boards');
-                    setBoard(buildBoard(boardDefs[0]!));
+                    const builtBoard = buildBoard(boardDefs[0]!);
+                    builtBoard.checkpoints = courseData.checkpoints;
+                    setBoard(builtBoard);
                 }
             }
         }
@@ -93,7 +102,7 @@ export default function Course({
         );
     }
 
-    // Render the board (either single or combined)
+    // Render the board with course-defined checkpoints
     return (
         <Board
             board={board}

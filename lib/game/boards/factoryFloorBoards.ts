@@ -13,11 +13,6 @@ export const TEST_BOARD: BoardDefinition = {
     name: 'Test Board',
     width: 12,
     height: 12,
-    checkpoints: [
-        { position: { x: 6, y: 3 }, number: 1 },
-        { position: { x: 9, y: 9 }, number: 2 },
-        { position: { x: 3, y: 6 }, number: 3 }
-    ],
     startingPositions: [
         { position: { x: 1, y: 1 }, direction: Direction.UP },
         { position: { x: 10, y: 1 }, direction: Direction.UP },
@@ -37,11 +32,6 @@ export const CHECKMATE_BOARD: BoardDefinition = {
     name: 'Checkmate',
     width: 12,
     height: 12,
-    checkpoints: [
-        { position: { x: 6, y: 6 }, number: 1 },
-        { position: { x: 2, y: 2 }, number: 2 },
-        { position: { x: 10, y: 10 }, number: 3 }
-    ],
     startingPositions: [
         { position: { x: 0, y: 0 }, direction: Direction.RIGHT },
         { position: { x: 11, y: 0 }, direction: Direction.LEFT },
@@ -82,11 +72,6 @@ export const DIZZY_DASH_BOARD: BoardDefinition = {
     name: 'Dizzy Dash',
     width: 12,
     height: 12,
-    checkpoints: [
-        { position: { x: 9, y: 3 }, number: 1 },
-        { position: { x: 9, y: 9 }, number: 2 },
-        { position: { x: 3, y: 6 }, number: 3 }
-    ],
     startingPositions: [
         { position: { x: 0, y: 5 }, direction: Direction.RIGHT },
         { position: { x: 0, y: 6 }, direction: Direction.RIGHT },
@@ -140,11 +125,6 @@ export const ISLAND_HOP_BOARD: BoardDefinition = {
     name: 'Island Hop',
     width: 12,
     height: 12,
-    checkpoints: [
-        { position: { x: 6, y: 2 }, number: 1 },
-        { position: { x: 10, y: 6 }, number: 2 },
-        { position: { x: 6, y: 10 }, number: 3 }
-    ],
     startingPositions: [
         { position: { x: 1, y: 1 }, direction: Direction.UP },
         { position: { x: 10, y: 1 }, direction: Direction.UP },

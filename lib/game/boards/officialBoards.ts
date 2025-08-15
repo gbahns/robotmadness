@@ -7,11 +7,6 @@ export const EXCHANGE_FACTORY_FLOOR: BoardDefinition = {
     name: 'Exchange Factory Floor',
     width: 12,
     height: 12,
-    checkpoints: [
-        { position: { x: 7, y: 1 }, number: 1 },  // Top center checkpoint
-        { position: { x: 9, y: 7 }, number: 2 },  // Right side checkpoint  
-        { position: { x: 1, y: 4 }, number: 3 }   // Left side checkpoint
-    ],
     startingPositions: [], // Will be provided by docking bay
     tiles: [
         // MAIN EXPRESS CONVEYOR SYSTEM - Yellow/orange conveyors from the image

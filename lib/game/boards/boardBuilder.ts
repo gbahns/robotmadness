@@ -52,7 +52,7 @@ export function buildBoard(definition: BoardDefinition): Board {
         width: definition.width,
         height: definition.height,
         tiles,
-        checkpoints: definition.checkpoints,
+        checkpoints: [], //definition.checkpoints,
         startingPositions: definition.startingPositions,
         lasers: lasers.length > 0 ? lasers : undefined
     };

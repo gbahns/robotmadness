@@ -1,13 +1,91 @@
 import { BoardDefinition, TileElement, LaserElement, WallElement } from '../types';
 import { Direction, TileType } from '../types';
 
-// ACCURATE DOCKING BAY for Risky Exchange (8 starting positions)
 export const RISKY_EXCHANGE_DOCKING_BAY: BoardDefinition = {
     id: 'risky-exchange-docking-bay',
     name: 'Risky Exchange Docking Bay',
     width: 12,
     height: 4,
-    checkpoints: [], // No checkpoints on docking bays
+    startingPositions: [
+        // Reading from the board image with (0,0) at upper left
+        { position: { x: 5, y: 2 }, direction: Direction.UP },  // Position 1
+        { position: { x: 6, y: 2 }, direction: Direction.UP },  // Position 2
+        { position: { x: 3, y: 2 }, direction: Direction.UP },  // Position 3
+        { position: { x: 8, y: 2 }, direction: Direction.UP },  // Position 4
+        { position: { x: 1, y: 1 }, direction: Direction.UP },  // Position 5
+        { position: { x: 10, y: 1 }, direction: Direction.UP }, // Position 6
+        { position: { x: 0, y: 0 }, direction: Direction.UP },  // Position 7
+        { position: { x: 11, y: 0 }, direction: Direction.UP }  // Position 8
+    ],
+    tiles: [
+        // Row 2 (y=2) - Main conveyor belt system
+        { position: { x: 0, y: 2 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
+        { position: { x: 1, y: 2 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
+        { position: { x: 2, y: 2 }, type: TileType.CONVEYOR, direction: Direction.DOWN },
+        // Gap for starting position 3
+        { position: { x: 4, y: 2 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
+        // Starting positions 1 and 2 are at x:5,6
+        { position: { x: 7, y: 2 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
+        // Starting position 4 at x:8
+        { position: { x: 9, y: 2 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
+        { position: { x: 10, y: 2 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
+        { position: { x: 11, y: 2 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
+
+        // Row 3 (y=3) - Bottom row conveyors
+        { position: { x: 2, y: 3 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
+        { position: { x: 3, y: 3 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
+        { position: { x: 4, y: 3 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
+        { position: { x: 5, y: 3 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
+        { position: { x: 6, y: 3 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
+        { position: { x: 7, y: 3 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
+        { position: { x: 8, y: 3 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
+        { position: { x: 9, y: 3 }, type: TileType.CONVEYOR, direction: Direction.UP }
+    ],
+    lasers: [],
+    walls: [
+        // Walls around starting position 5 (x:1, y:1)
+        { position: { x: 0, y: 1 }, sides: [Direction.RIGHT] },
+        { position: { x: 2, y: 1 }, sides: [Direction.LEFT] },
+
+        // Walls around starting position 6 (x:10, y:1)
+        { position: { x: 9, y: 1 }, sides: [Direction.RIGHT] },
+        { position: { x: 11, y: 1 }, sides: [Direction.LEFT] },
+
+        // Walls creating the conveyor path boundaries
+        { position: { x: 2, y: 2 }, sides: [Direction.RIGHT] },
+        { position: { x: 3, y: 2 }, sides: [Direction.LEFT, Direction.RIGHT] },
+        { position: { x: 4, y: 2 }, sides: [Direction.LEFT] },
+
+        { position: { x: 6, y: 2 }, sides: [Direction.RIGHT] },
+        { position: { x: 7, y: 2 }, sides: [Direction.LEFT, Direction.RIGHT] },
+        { position: { x: 8, y: 2 }, sides: [Direction.LEFT, Direction.RIGHT] },
+        { position: { x: 9, y: 2 }, sides: [Direction.LEFT] },
+
+        // Bottom edge walls
+        { position: { x: 2, y: 3 }, sides: [Direction.DOWN] },
+        { position: { x: 3, y: 3 }, sides: [Direction.DOWN] },
+        { position: { x: 4, y: 3 }, sides: [Direction.DOWN] },
+        { position: { x: 5, y: 3 }, sides: [Direction.DOWN, Direction.RIGHT] },
+        { position: { x: 6, y: 3 }, sides: [Direction.DOWN, Direction.LEFT] },
+        { position: { x: 7, y: 3 }, sides: [Direction.DOWN] },
+        { position: { x: 8, y: 3 }, sides: [Direction.DOWN] },
+        { position: { x: 9, y: 3 }, sides: [Direction.DOWN, Direction.RIGHT] },
+
+        // Outer boundary walls
+        { position: { x: 0, y: 0 }, sides: [Direction.LEFT, Direction.UP] },
+        { position: { x: 11, y: 0 }, sides: [Direction.RIGHT, Direction.UP] },
+        { position: { x: 0, y: 2 }, sides: [Direction.LEFT] },
+        { position: { x: 11, y: 2 }, sides: [Direction.RIGHT] }
+    ]
+};
+
+
+// INACCURATE DOCKING BAY for Risky Exchange (8 starting positions)
+export const RISKY_EXCHANGE_DOCKING_BAY_INACCURATE: BoardDefinition = {
+    id: 'risky-exchange-docking-bay',
+    name: 'Risky Exchange Docking Bay',
+    width: 12,
+    height: 4,
     startingPositions: [
         // Starting positions 1-8 as shown in the official image
         { position: { x: 3, y: 1 }, direction: Direction.UP },  // Position 1
@@ -39,7 +117,6 @@ export const DOCKING_BAY_4P: BoardDefinition = {
     name: 'Docking Bay (4 Players)',
     width: 12,
     height: 4,
-    checkpoints: [], // No checkpoints on docking bays
     startingPositions: [
         { position: { x: 1, y: 0 }, direction: Direction.UP },
         { position: { x: 4, y: 0 }, direction: Direction.UP },
@@ -62,7 +139,6 @@ export const DOCKING_BAY_8P: BoardDefinition = {
     name: 'Docking Bay (8 Players)',
     width: 12,
     height: 6,
-    checkpoints: [], // No checkpoints on docking bays
     startingPositions: [
         // Front row
         { position: { x: 1, y: 0 }, direction: Direction.UP },
@@ -96,7 +172,6 @@ export const DOCKING_BAY_WIDE: BoardDefinition = {
     name: 'Wide Docking Bay',
     width: 12,
     height: 3,
-    checkpoints: [],
     startingPositions: [
         { position: { x: 0, y: 0 }, direction: Direction.UP },
         { position: { x: 2, y: 0 }, direction: Direction.UP },
@@ -131,7 +206,6 @@ export const DOCKING_BAY_COMPACT: BoardDefinition = {
     name: 'Compact Docking Bay',
     width: 12,
     height: 2,
-    checkpoints: [],
     startingPositions: [
         { position: { x: 2, y: 0 }, direction: Direction.UP },
         { position: { x: 4, y: 0 }, direction: Direction.UP },
@@ -164,11 +238,6 @@ export const SIMPLE_FACTORY_FLOOR: BoardDefinition = {
     name: 'Simple Factory Floor',
     width: 12,
     height: 8,
-    checkpoints: [
-        { position: { x: 6, y: 2 }, number: 1 },
-        { position: { x: 2, y: 6 }, number: 2 },
-        { position: { x: 10, y: 6 }, number: 3 }
-    ],
     startingPositions: [], // Will be provided by docking bay
     tiles: [
         // Central conveyor belt
@@ -198,11 +267,6 @@ export const CONVEYOR_FACTORY_FLOOR: BoardDefinition = {
     name: 'Conveyor Factory Floor',
     width: 12,
     height: 10,
-    checkpoints: [
-        { position: { x: 2, y: 2 }, number: 1 },
-        { position: { x: 10, y: 2 }, number: 2 },
-        { position: { x: 6, y: 8 }, number: 3 }
-    ],
     startingPositions: [],
     tiles: [
         // Complex conveyor system

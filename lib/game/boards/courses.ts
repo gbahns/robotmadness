@@ -2,6 +2,7 @@ import { BoardDefinition, TileElement, LaserElement, WallElement } from '../type
 import { RISKY_EXCHANGE_DOCKING_BAY, DOCKING_BAY_4P, DOCKING_BAY_8P, DOCKING_BAY_WIDE, DOCKING_BAY_COMPACT, SIMPLE_FACTORY_FLOOR, CONVEYOR_FACTORY_FLOOR } from './dockingBayBoards';
 import { } from './factoryFloorBoards';
 import { EXCHANGE_FACTORY_FLOOR } from './officialBoards';
+import { Checkpoint } from '../types';
 
 // =============================================================================
 // OFFICIAL MULTI-BOARD COURSES (from RoboRally manual)
@@ -19,6 +20,7 @@ export interface CourseDefinition {
     minPlayers: number;
     maxPlayers: number;
     boards: string[]; // Array of board IDs, not embedded boards
+    checkpoints: Checkpoint[];
 }
 
 
@@ -30,7 +32,12 @@ export const OFFICIAL_RISKY_EXCHANGE: CourseDefinition = {
     difficulty: 'beginner',
     minPlayers: 2,
     maxPlayers: 8,
-    boards: ['exchange-factory-floor', 'risky-exchange-docking-bay'] // Individual boards, not combined!
+    boards: ['exchange-factory-floor', 'risky-exchange-docking-bay'], // Individual boards, not combined!
+    checkpoints: [
+        { position: { x: 7, y: 1 }, number: 1 },  // Top center of factory floor
+        { position: { x: 9, y: 7 }, number: 2 },  // Right side of factory floor
+        { position: { x: 1, y: 4 }, number: 3 },   // Left side of factory floor
+    ],
 };
 
 export const RISKY_EXCHANGE_COURSE: CourseDefinition = {
@@ -40,7 +47,8 @@ export const RISKY_EXCHANGE_COURSE: CourseDefinition = {
     difficulty: 'beginner',
     minPlayers: 2,
     maxPlayers: 8,
-    boards: ['risky-exchange-docking-bay', 'exchange-factory-floor']
+    boards: ['risky-exchange-docking-bay', 'exchange-factory-floor'],
+    checkpoints: [],
 };
 
 export const BURNOUT_COURSE: CourseDefinition = {
@@ -50,7 +58,8 @@ export const BURNOUT_COURSE: CourseDefinition = {
     difficulty: 'intermediate',
     minPlayers: 2,
     maxPlayers: 8,
-    boards: ['burnout-docking-bay', 'burnout-factory-floor']
+    boards: ['burnout-docking-bay', 'burnout-factory-floor'],
+    checkpoints: [],
 };
 
 export const HEAVY_TRAFFIC_COURSE: CourseDefinition = {
@@ -60,7 +69,8 @@ export const HEAVY_TRAFFIC_COURSE: CourseDefinition = {
     difficulty: 'intermediate',
     minPlayers: 2,
     maxPlayers: 8,
-    boards: ['heavy-traffic-docking-bay', 'heavy-traffic-factory-floor']
+    boards: ['heavy-traffic-docking-bay', 'heavy-traffic-factory-floor'],
+    checkpoints: [],
 };
 
 // Export array of official courses
@@ -81,7 +91,8 @@ export const BEGINNER_COMBINED_COURSE: CourseDefinition = {
     difficulty: 'beginner',
     minPlayers: 2,
     maxPlayers: 8,
-    boards: ['beginner-combined-board']
+    boards: ['beginner-combined-board'],
+    checkpoints: [],
 };
 
 export const INTERMEDIATE_COMBINED_COURSE: CourseDefinition = {
@@ -91,7 +102,8 @@ export const INTERMEDIATE_COMBINED_COURSE: CourseDefinition = {
     difficulty: 'intermediate',
     minPlayers: 2,
     maxPlayers: 8,
-    boards: ['intermediate-combined-board']
+    boards: ['intermediate-combined-board'],
+    checkpoints: [],
 };
 
 export const ADVANCED_COMBINED_COURSE: CourseDefinition = {
@@ -101,7 +113,8 @@ export const ADVANCED_COMBINED_COURSE: CourseDefinition = {
     difficulty: 'expert',
     minPlayers: 2,
     maxPlayers: 8,
-    boards: ['advanced-combined-board']
+    boards: ['advanced-combined-board'],
+    checkpoints: [],
 };
 
 export const COMBINED_COURSES: CourseDefinition[] = [
@@ -121,7 +134,12 @@ export const CHECKMATE_COURSE: CourseDefinition = {
     difficulty: 'beginner',
     minPlayers: 2,
     maxPlayers: 8,
-    boards: ['checkmate-board']
+    boards: ['checkmate-board'],
+    checkpoints: [
+        { position: { x: 6, y: 6 }, number: 1 },
+        { position: { x: 2, y: 2 }, number: 2 },
+        { position: { x: 10, y: 10 }, number: 3 }
+    ]
 };
 
 export const DIZZY_DASH_COURSE: CourseDefinition = {
@@ -131,7 +149,12 @@ export const DIZZY_DASH_COURSE: CourseDefinition = {
     difficulty: 'beginner',
     minPlayers: 2,
     maxPlayers: 8,
-    boards: ['dizzy-dash-board']
+    boards: ['dizzy-dash-board'],
+    checkpoints: [
+        { position: { x: 3, y: 3 }, number: 1 },
+        { position: { x: 9, y: 9 }, number: 2 },
+        { position: { x: 6, y: 6 }, number: 3 }
+    ]
 };
 
 export const ISLAND_HOP_COURSE: CourseDefinition = {
@@ -141,7 +164,12 @@ export const ISLAND_HOP_COURSE: CourseDefinition = {
     difficulty: 'intermediate',
     minPlayers: 2,
     maxPlayers: 8,
-    boards: ['island-hop-board']
+    boards: ['island-hop-board'],
+    checkpoints: [
+        { position: { x: 6, y: 2 }, number: 1 },
+        { position: { x: 10, y: 6 }, number: 2 },
+        { position: { x: 6, y: 10 }, number: 3 }
+    ]
 };
 
 export const SINGLE_BOARD_COURSE_DEFINITIONS: CourseDefinition[] = [
@@ -161,7 +189,12 @@ export const TEST_COURSE: CourseDefinition = {
     difficulty: 'beginner',
     minPlayers: 2,
     maxPlayers: 8,
-    boards: ['test']
+    boards: ['test'],
+    checkpoints: [
+        { position: { x: 6, y: 3 }, number: 1 },
+        { position: { x: 9, y: 9 }, number: 2 },
+        { position: { x: 3, y: 6 }, number: 3 }
+    ]
 };
 
 export const CONVEYOR_LOOP_COURSE: CourseDefinition = {
@@ -171,7 +204,10 @@ export const CONVEYOR_LOOP_COURSE: CourseDefinition = {
     difficulty: 'intermediate',
     minPlayers: 2,
     maxPlayers: 8,
-    boards: ['conveyor-loop-test']
+    boards: ['conveyor-loop-test'],
+    checkpoints: [
+        { position: { x: 5, y: 5 }, number: 1 },
+    ]
 };
 
 export const LASER_TEST_COURSE: CourseDefinition = {
@@ -181,7 +217,11 @@ export const LASER_TEST_COURSE: CourseDefinition = {
     difficulty: 'intermediate',
     minPlayers: 2,
     maxPlayers: 8,
-    boards: ['laser-arena']
+    boards: ['laser-arena'],
+    checkpoints: [
+        { position: { x: 4, y: 4 }, number: 1 },
+        { position: { x: 8, y: 8 }, number: 2 }
+    ]
 };
 
 export const LEGACY_COURSE_DEFINITIONS: CourseDefinition[] = [
@@ -248,7 +288,8 @@ export function createCombinedCourse(
         difficulty,
         minPlayers: 2,
         maxPlayers: Math.min(8, dockingBayBoard.startingPositions.length),
-        boards: [combinedBoard.id] // Reference the board ID, not the board itself
+        boards: [combinedBoard.id], // Reference the board ID, not the board itself
+        checkpoints: [],
     };
 
     return { board: combinedBoard, course };
@@ -320,7 +361,7 @@ export function combineBoardsVertically(topBoard: BoardDefinition, bottomBoard: 
         name: `${topBoard.name} with ${bottomBoard.name}`,
         width: Math.max(topBoard.width, bottomBoard.width),
         height: combinedHeight,
-        checkpoints: topBoard.checkpoints, // Usually only factory floor has checkpoints
+        //checkpoints: [], //topBoard.checkpoints, // Usually only factory floor has checkpoints
         startingPositions: offsetBottomStartingPositions, // Usually only docking bay has starting positions
         tiles: combinedTiles.length > 0 ? combinedTiles : undefined,
         lasers: combinedLasers.length > 0 ? combinedLasers : undefined,

@@ -91,7 +91,6 @@ export interface BoardDefinition {
   name: string;
   width: number;
   height: number;
-  checkpoints: Checkpoint[];
   startingPositions: StartingPosition[];
   tiles?: TileElement[];
   lasers?: LaserElement[];
