@@ -1,4 +1,5 @@
 ## Backlog
+* when all players are powered down the game gets stuck
 * hide the whole registers section and the player's hand when powered down?
 * starting space mini boards
 * somehow make checkpoints and possibly other board elements visible when a robot is sitting on them
@@ -92,3 +93,4 @@
 * when preparing the deck we need to leave out cards that are locked in player registers
 * when player elects to stay powered down it asks again
 * toggling power down should not reset your registers
+* fix conveyors, wrenches, and gears not rendering
