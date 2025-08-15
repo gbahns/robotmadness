@@ -122,7 +122,8 @@ export interface Board {
   tiles: Tile[][];
   checkpoints: Checkpoint[];
   startingPositions: StartingPosition[];
-  lasers?: Laser[]; // Add this line
+  walls?: WallElement[];
+  lasers?: Laser[];
 }
 
 export interface Laser {

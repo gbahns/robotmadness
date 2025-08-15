@@ -1,60 +1,68 @@
-import { Board, Tile, TileType, Direction, Checkpoint, StartingPosition, Laser } from '../types';
-import { BoardDefinition } from '../types';
+import { Board, BoardDefinition, Tile, TileType, Direction, Laser } from '../types';
 
 /**
  * Builds a Board object from a BoardDefinition
  */
-export function buildBoard(definition: BoardDefinition): Board {
-    // Initialize empty tile grid
-    const tiles: Tile[][] = Array(definition.height).fill(null).map((_, _y) =>
-        Array(definition.width).fill(null).map((_, x) => ({
-            position: { x, y: _y },
-            type: TileType.EMPTY,
-            walls: []
-        }))
-    );
+export function buildBoard(boardDef: BoardDefinition): Board {
+    // Initialize empty board
+    const tiles: Tile[][] = [];
+    for (let y = 0; y < boardDef.height; y++) {
+        const row: Tile[] = [];
+        for (let x = 0; x < boardDef.width; x++) {
+            row.push({
+                position: { x, y },
+                type: TileType.EMPTY,
+                walls: [] // Initialize empty walls array for each tile
+            });
+        }
+        tiles.push(row);
+    }
 
-    // Apply tile elements
-    if (definition.tiles) {
-        for (const tileElement of definition.tiles) {
-            const { x, y } = tileElement.position;
-            if (x >= 0 && x < definition.width && y >= 0 && y < definition.height) {
+    // Place special tiles
+    if (boardDef.tiles) {
+        for (const tileDef of boardDef.tiles) {
+            const { x, y } = tileDef.position;
+            if (x >= 0 && x < boardDef.width && y >= 0 && y < boardDef.height) {
                 tiles[y][x] = {
-                    ...tiles[y][x],
-                    type: tileElement.type,
-                    ...(tileElement.direction !== undefined && { direction: tileElement.direction }),
-                    ...(tileElement.rotate !== undefined && { rotate: tileElement.rotate }),
-                    ...(tileElement.registers !== undefined && { registers: tileElement.registers }),
+                    position: { x, y },
+                    type: tileDef.type,
+                    walls: [], // Will be populated below
+                    direction: tileDef.direction,
+                    rotate: tileDef.rotate,
+                    registers: tileDef.registers
                 };
             }
         }
     }
 
-    // Apply walls
-    if (definition.walls) {
-        for (const wall of definition.walls) {
-            const { x, y } = wall.position;
-            if (x >= 0 && x < definition.width && y >= 0 && y < definition.height) {
-                tiles[y][x].walls = wall.sides;
+    // Add walls to tiles
+    if (boardDef.walls) {
+        for (const wallDef of boardDef.walls) {
+            const { x, y } = wallDef.position;
+            if (x >= 0 && x < boardDef.width && y >= 0 && y < boardDef.height) {
+                // Add the wall sides to the tile's walls array
+                tiles[y][x].walls = [...tiles[y][x].walls, ...wallDef.sides];
             }
         }
     }
 
-    // Convert lasers to the format expected by the Board
-    const lasers: Laser[] = definition.lasers?.map(laser => ({
-        position: laser.position,
-        direction: laser.direction,
-        damage: laser.damage
-    })) || [];
+    // Build laser array if present
+    const lasers: Laser[] | undefined = boardDef.lasers ?
+        boardDef.lasers.map(laserDef => ({
+            position: laserDef.position,
+            direction: laserDef.direction,
+            damage: laserDef.damage
+        })) : undefined;
 
-    // Create the board
     const board: Board = {
-        width: definition.width,
-        height: definition.height,
+        width: boardDef.width,
+        height: boardDef.height,
         tiles,
-        checkpoints: [], //definition.checkpoints,
-        startingPositions: definition.startingPositions,
-        lasers: lasers.length > 0 ? lasers : undefined
+        checkpoints: [],
+        startingPositions: boardDef.startingPositions,
+        lasers,
+        // NEW: Pass walls directly to board for easier lookup
+        walls: boardDef.walls
     };
 
     return board;

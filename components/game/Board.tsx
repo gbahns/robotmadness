@@ -148,6 +148,19 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
     return undefined;
   };
 
+  // Get walls at a specific position
+  const getWallsAt = (x: number, y: number): Direction[] => {
+    if (!board.walls || !Array.isArray(board.walls)) {
+      return [];
+    }
+
+    const wall = board.walls.find(
+      (w: any) => w.position.x === x && w.position.y === y
+    );
+
+    return wall ? wall.sides : [];
+  };
+
   // Get laser at position (for enhanced boards)
   const getLaserAt = (x: number, y: number): Laser | undefined => {
     if (board.lasers && Array.isArray(board.lasers)) {
@@ -359,6 +372,67 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
         );
       }
       // Other tile types can be added here...
+    }
+
+    // Walls - NEW IMPLEMENTATION
+    const walls = getWallsAt(x, y);
+    if (walls && walls.length > 0) {
+      const wallThickness = 4; // pixels
+      const wallColor = '#facc15'; // yellow-400
+
+      walls.forEach((direction, index) => {
+        let wallStyle: React.CSSProperties = {
+          position: 'absolute',
+          backgroundColor: wallColor,
+          zIndex: 10, // Above tiles but below robots
+        };
+
+        switch (direction) {
+          case Direction.UP:
+            wallStyle = {
+              ...wallStyle,
+              top: 0,
+              left: 0,
+              right: 0,
+              height: `${wallThickness}px`,
+            };
+            break;
+          case Direction.RIGHT:
+            wallStyle = {
+              ...wallStyle,
+              top: 0,
+              right: 0,
+              bottom: 0,
+              width: `${wallThickness}px`,
+            };
+            break;
+          case Direction.DOWN:
+            wallStyle = {
+              ...wallStyle,
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: `${wallThickness}px`,
+            };
+            break;
+          case Direction.LEFT:
+            wallStyle = {
+              ...wallStyle,
+              top: 0,
+              left: 0,
+              bottom: 0,
+              width: `${wallThickness}px`,
+            };
+            break;
+        }
+
+        elements.push(
+          <div
+            key={`wall-${direction}`}
+            style={wallStyle}
+          />
+        );
+      });
     }
 
     // Checkpoints
