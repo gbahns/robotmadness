@@ -1,5 +1,5 @@
 import React from 'react';
-import { BoardDefinition } from '@/lib/game/boards/factoryFloorBoards';
+import { BoardDefinition } from '@/lib/game/types';
 import { Board } from '@/lib/game/types';
 
 interface BoardPreviewProps {

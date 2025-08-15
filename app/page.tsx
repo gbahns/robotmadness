@@ -4,8 +4,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import BoardSelector from '@/components/BoardSelector';
-
 
 interface GameInfo {
   roomCode: string;

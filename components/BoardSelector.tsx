@@ -1,7 +1,7 @@
 // components/BoardSelector.tsx
 
 import React from 'react';
-import { ALL_COURSES, CourseDefinition } from '@/lib/game/boards/factoryFloorBoards';
+import { ALL_COURSES, CourseDefinition } from '@/lib/game/boards/courses';
 
 interface BoardSelectorProps {
     selectedBoardId: string;

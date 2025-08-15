@@ -1,7 +1,6 @@
 // components/game/Board.tsx
 import React, { useEffect, useState, useRef } from 'react';
 import { Board as BoardType, Player, Direction, Position, Tile, Checkpoint, Laser, TileType } from '@/lib/game/types';
-import { TileElement } from '@/lib/game/boards/factoryFloorBoards';
 import RobotLaserAnimation, { RobotLaserShot } from './RobotLaserAnimation';
 import Robot from './Robot';
 import { socketClient } from '@/lib/socket';
