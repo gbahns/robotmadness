@@ -32,16 +32,7 @@ export const CHECKMATE_BOARD: BoardDefinition = {
     name: 'Checkmate',
     width: 12,
     height: 12,
-    startingPositions: [
-        { position: { x: 0, y: 0 }, direction: Direction.RIGHT },
-        { position: { x: 11, y: 0 }, direction: Direction.LEFT },
-        { position: { x: 11, y: 11 }, direction: Direction.LEFT },
-        { position: { x: 0, y: 11 }, direction: Direction.RIGHT },
-        { position: { x: 5, y: 0 }, direction: Direction.DOWN },
-        { position: { x: 6, y: 0 }, direction: Direction.DOWN },
-        { position: { x: 5, y: 11 }, direction: Direction.UP },
-        { position: { x: 6, y: 11 }, direction: Direction.UP }
-    ],
+    startingPositions: [],
     tiles: [
         // Central pit area
         { position: { x: 5, y: 5 }, type: TileType.PIT },
@@ -72,16 +63,7 @@ export const DIZZY_DASH_BOARD: BoardDefinition = {
     name: 'Dizzy Dash',
     width: 12,
     height: 12,
-    startingPositions: [
-        { position: { x: 0, y: 5 }, direction: Direction.RIGHT },
-        { position: { x: 0, y: 6 }, direction: Direction.RIGHT },
-        { position: { x: 11, y: 5 }, direction: Direction.LEFT },
-        { position: { x: 11, y: 6 }, direction: Direction.LEFT },
-        { position: { x: 5, y: 0 }, direction: Direction.DOWN },
-        { position: { x: 6, y: 0 }, direction: Direction.DOWN },
-        { position: { x: 5, y: 11 }, direction: Direction.UP },
-        { position: { x: 6, y: 11 }, direction: Direction.UP }
-    ],
+    startingPositions: [],
     tiles: [
         // Multiple gear clusters for confusion
         { position: { x: 2, y: 2 }, type: TileType.GEAR_CW },
@@ -125,16 +107,7 @@ export const ISLAND_HOP_BOARD: BoardDefinition = {
     name: 'Island Hop',
     width: 12,
     height: 12,
-    startingPositions: [
-        { position: { x: 1, y: 1 }, direction: Direction.UP },
-        { position: { x: 10, y: 1 }, direction: Direction.UP },
-        { position: { x: 10, y: 10 }, direction: Direction.DOWN },
-        { position: { x: 1, y: 10 }, direction: Direction.DOWN },
-        { position: { x: 5, y: 5 }, direction: Direction.RIGHT },
-        { position: { x: 6, y: 6 }, direction: Direction.LEFT },
-        { position: { x: 3, y: 3 }, direction: Direction.DOWN },
-        { position: { x: 8, y: 8 }, direction: Direction.UP }
-    ],
+    startingPositions: [],
     tiles: [
         // Central "island" of pits
         { position: { x: 5, y: 5 }, type: TileType.PIT },
