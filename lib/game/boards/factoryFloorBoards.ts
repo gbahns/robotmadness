@@ -1,6 +1,7 @@
 import { Board, Checkpoint, StartingPosition, TileType, Direction, BoardDefinition } from '../types';
 import { buildBoard } from './boardBuilder';
 import { OFFICIAL_BOARD_DEFINITIONS } from './officialBoards';
+import { DOCKING_BAY_BOARDS } from './dockingBayBoards';
 
 // =============================================================================
 // BOARD DEFINITIONS (Individual Boards)
@@ -211,6 +212,7 @@ const SINGLE_BOARD_DEFINITIONS: BoardDefinition[] = [
 export const ALL_BOARD_DEFINITIONS: BoardDefinition[] = [
     ...SINGLE_BOARD_DEFINITIONS,
     ...OFFICIAL_BOARD_DEFINITIONS,
+    ...DOCKING_BAY_BOARDS,
 ];
 
 // Get board definition by ID

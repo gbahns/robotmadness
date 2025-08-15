@@ -22,7 +22,7 @@ export interface CourseDefinition {
 }
 
 
-// OFFICIAL RISKY EXCHANGE COURSE - References the combined board
+// OFFICIAL RISKY EXCHANGE COURSE - References the individual boards
 export const OFFICIAL_RISKY_EXCHANGE: CourseDefinition = {
     id: 'official_risky_exchange',
     name: 'Risky Exchange (Official)',
@@ -30,7 +30,7 @@ export const OFFICIAL_RISKY_EXCHANGE: CourseDefinition = {
     difficulty: 'beginner',
     minPlayers: 2,
     maxPlayers: 8,
-    boards: ['risky-exchange-combined'] // Reference to combined board ID
+    boards: ['exchange-factory-floor', 'risky-exchange-docking-bay'] // Individual boards, not combined!
 };
 
 export const RISKY_EXCHANGE_COURSE: CourseDefinition = {
@@ -388,14 +388,14 @@ export function combineBoardsVertically(dockingBay: BoardDefinition, factoryFloo
 // from officialBoards.ts
 // =============================================================================
 // Combined board for Risky Exchange
-export const RISKY_EXCHANGE_COMBINED_BOARD = combineBoardsVertically(
-    RISKY_EXCHANGE_DOCKING_BAY,
-    EXCHANGE_FACTORY_FLOOR
-);
+// export const RISKY_EXCHANGE_COMBINED_BOARD = combineBoardsVertically(
+//     RISKY_EXCHANGE_DOCKING_BAY,
+//     EXCHANGE_FACTORY_FLOOR
+// );
 
-// Ensure the combined board has a proper ID
-RISKY_EXCHANGE_COMBINED_BOARD.id = 'risky-exchange-combined';
-RISKY_EXCHANGE_COMBINED_BOARD.name = 'Risky Exchange Combined';
+// // Ensure the combined board has a proper ID
+// RISKY_EXCHANGE_COMBINED_BOARD.id = 'risky-exchange-combined';
+// RISKY_EXCHANGE_COMBINED_BOARD.name = 'Risky Exchange Combined';
 
 
 // =============================================================================
@@ -440,7 +440,7 @@ const compactChallengeData = createCombinedCourse(
 
 // Export the board definitions
 export const COMBINED_BOARD_DEFINITIONS: BoardDefinition[] = [
-    RISKY_EXCHANGE_COMBINED_BOARD,
+    //RISKY_EXCHANGE_COMBINED_BOARD,
     simpleStartData.board,
     conveyorChaosData.board,
     wideEntryData.board,
