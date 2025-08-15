@@ -384,6 +384,19 @@ export function combineBoardsVertically(dockingBay: BoardDefinition, factoryFloo
 //     ISLAND_HOP_COURSE
 // ];
 
+// =============================================================================
+// from officialBoards.ts
+// =============================================================================
+// Combined board for Risky Exchange
+export const RISKY_EXCHANGE_COMBINED_BOARD = combineBoardsVertically(
+    RISKY_EXCHANGE_DOCKING_BAY,
+    EXCHANGE_FACTORY_FLOOR
+);
+
+// Ensure the combined board has a proper ID
+RISKY_EXCHANGE_COMBINED_BOARD.id = 'risky-exchange-combined';
+RISKY_EXCHANGE_COMBINED_BOARD.name = 'Risky Exchange Combined';
+
 
 // =============================================================================
 // From dockingBayBoards.ts
@@ -427,6 +440,7 @@ const compactChallengeData = createCombinedCourse(
 
 // Export the board definitions
 export const COMBINED_BOARD_DEFINITIONS: BoardDefinition[] = [
+    RISKY_EXCHANGE_COMBINED_BOARD,
     simpleStartData.board,
     conveyorChaosData.board,
     wideEntryData.board,
@@ -440,20 +454,6 @@ export const COMBINED_BOARD_DEFINITIONS: BoardDefinition[] = [
 //     wideEntryData.course,
 //     compactChallengeData.course
 // ];
-
-// =============================================================================
-// from officialBoards.ts
-// =============================================================================
-// Combined board for Risky Exchange
-export const RISKY_EXCHANGE_COMBINED_BOARD = combineBoardsVertically(
-    RISKY_EXCHANGE_DOCKING_BAY,
-    EXCHANGE_FACTORY_FLOOR
-);
-
-// Ensure the combined board has a proper ID
-RISKY_EXCHANGE_COMBINED_BOARD.id = 'risky-exchange-combined';
-RISKY_EXCHANGE_COMBINED_BOARD.name = 'Risky Exchange Combined';
-
 
 // Backward compatibility exports
 export const ALL_COURSES = ALL_COURSE_DEFINITIONS;
