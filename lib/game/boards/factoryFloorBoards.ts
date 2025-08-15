@@ -1,48 +1,6 @@
-import { Board, Checkpoint, StartingPosition, TileType, Direction } from '../types';
+import { Board, Checkpoint, StartingPosition, TileType, Direction, BoardDefinition } from '../types';
 import { buildBoard } from './boardBuilder';
-import { DOCKING_BAY_BOARDS, COMBINED_COURSES, COMBINED_BOARD_DEFINITIONS } from './dockingBayBoards';
-import { OFFICIAL_BOARD_DEFINITIONS, OFFICIAL_COURSE_DEFINITIONS } from './officialBoards';
-
-export interface CourseDefinition {
-    id: string;
-    name: string;
-    description: string;
-    difficulty: 'beginner' | 'intermediate' | 'expert';
-    minPlayers: number;
-    maxPlayers: number;
-    boards: string[]; // Array of board IDs, not embedded boards
-}
-
-export interface BoardDefinition {
-    id: string;
-    name: string;
-    width: number;
-    height: number;
-    checkpoints: Checkpoint[];
-    startingPositions: StartingPosition[];
-    tiles?: TileElement[];
-    lasers?: LaserElement[];
-    walls?: WallElement[];
-}
-
-export interface TileElement {
-    position: { x: number; y: number };
-    type: TileType;
-    direction?: Direction;
-    rotate?: 'clockwise' | 'counterclockwise';
-    registers?: number[]; // For pushers
-}
-
-export interface LaserElement {
-    position: { x: number; y: number };
-    direction: Direction;
-    damage: number;
-}
-
-export interface WallElement {
-    position: { x: number; y: number };
-    sides: Direction[]; // Which sides of the tile have walls
-}
+import { OFFICIAL_BOARD_DEFINITIONS } from './officialBoards';
 
 // =============================================================================
 // BOARD DEFINITIONS (Individual Boards)
@@ -253,66 +211,7 @@ const SINGLE_BOARD_DEFINITIONS: BoardDefinition[] = [
 export const ALL_BOARD_DEFINITIONS: BoardDefinition[] = [
     ...SINGLE_BOARD_DEFINITIONS,
     ...OFFICIAL_BOARD_DEFINITIONS,
-    ...DOCKING_BAY_BOARDS,
-    ...COMBINED_BOARD_DEFINITIONS
 ];
-
-// =============================================================================
-// COURSE DEFINITIONS (References to Boards)
-// =============================================================================
-
-export const CHECKMATE_COURSE: CourseDefinition = {
-    id: 'checkmate',
-    name: 'Checkmate',
-    description: 'Another easy course—just push the other robots into pits.',
-    difficulty: 'beginner',
-    minPlayers: 2,
-    maxPlayers: 8,
-    boards: ['checkmate-board'] // Reference to board ID
-};
-
-export const DIZZY_DASH_COURSE: CourseDefinition = {
-    id: 'dizzy_dash',
-    name: 'Dizzy Dash',
-    description: 'Whoops, was that the flag over there? Don\'t worry—it\'s still an easy course.',
-    difficulty: 'beginner',
-    minPlayers: 2,
-    maxPlayers: 8,
-    boards: ['dizzy-dash-board'] // Reference to board ID
-};
-
-export const ISLAND_HOP_COURSE: CourseDefinition = {
-    id: 'island_hop',
-    name: 'Island Hop',
-    description: 'Over the island or around?',
-    difficulty: 'intermediate',
-    minPlayers: 2,
-    maxPlayers: 8,
-    boards: ['island-hop-board'] // Reference to board ID
-};
-
-// Single board course definitions
-const SINGLE_BOARD_COURSE_DEFINITIONS: CourseDefinition[] = [
-    CHECKMATE_COURSE,
-    DIZZY_DASH_COURSE,
-    ISLAND_HOP_COURSE
-];
-
-// All course definitions combined
-export const ALL_COURSE_DEFINITIONS: CourseDefinition[] = [
-    ...OFFICIAL_COURSE_DEFINITIONS, // Official courses first!
-    ...SINGLE_BOARD_COURSE_DEFINITIONS,
-    ...COMBINED_COURSES // Now properly separated!
-];
-
-// =============================================================================
-// HELPER FUNCTIONS
-// =============================================================================
-
-// Get course by ID
-export function getCourseById(courseId: string): CourseDefinition | undefined {
-    return ALL_COURSE_DEFINITIONS.find(course => course.id === courseId);
-}
 
 // Get board definition by ID
 export function getBoardDefinitionById(boardId: string): BoardDefinition | undefined {
@@ -328,15 +227,6 @@ export function getBoardById(boardId: string): Board {
     return buildBoard(TEST_BOARD);
 }
 
-// Get all boards for a course
-export function getBoardsForCourse(courseId: string): BoardDefinition[] {
-    const course = getCourseById(courseId);
-    if (!course) return [];
-
-    return course.boards
-        .map(boardId => getBoardDefinitionById(boardId))
-        .filter((board): board is BoardDefinition => board !== undefined);
-}
 
 // Create empty board
 export function createEmptyBoard(width: number = 12, height: number = 12): Board {
@@ -356,7 +246,3 @@ export function createEmptyBoard(width: number = 12, height: number = 12): Board
         startingPositions: []
     };
 }
-
-// Backward compatibility exports
-export const ALL_COURSES = ALL_COURSE_DEFINITIONS;
-export const COURSES = ALL_COURSE_DEFINITIONS;

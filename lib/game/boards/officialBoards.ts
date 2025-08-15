@@ -1,10 +1,5 @@
-import { CourseDefinition, BoardDefinition, TileElement, LaserElement, WallElement } from './factoryFloorBoards';
+import { BoardDefinition } from '../types';
 import { Direction, TileType } from '../types';
-import { combineBoardsVertically } from './dockingBayBoards';
-
-// =============================================================================
-// BOARD DEFINITIONS
-// =============================================================================
 
 // ACCURATE EXCHANGE FACTORY FLOOR BOARD from official rulebook
 export const EXCHANGE_FACTORY_FLOOR: BoardDefinition = {
@@ -135,72 +130,7 @@ export const EXCHANGE_FACTORY_FLOOR: BoardDefinition = {
     ]
 };
 
-// ACCURATE DOCKING BAY for Risky Exchange (8 starting positions)
-export const RISKY_EXCHANGE_DOCKING_BAY: BoardDefinition = {
-    id: 'risky-exchange-docking-bay',
-    name: 'Risky Exchange Docking Bay',
-    width: 12,
-    height: 4,
-    checkpoints: [], // No checkpoints on docking bays
-    startingPositions: [
-        // Starting positions 1-8 as shown in the official image
-        { position: { x: 3, y: 1 }, direction: Direction.UP },  // Position 1
-        { position: { x: 1, y: 1 }, direction: Direction.UP },  // Position 2  
-        { position: { x: 5, y: 1 }, direction: Direction.UP },  // Position 3
-        { position: { x: 7, y: 1 }, direction: Direction.UP },  // Position 4
-        { position: { x: 9, y: 1 }, direction: Direction.UP },  // Position 5
-        { position: { x: 11, y: 1 }, direction: Direction.UP }, // Position 6
-        { position: { x: 0, y: 1 }, direction: Direction.UP },  // Position 7
-        { position: { x: 10, y: 1 }, direction: Direction.UP }  // Position 8
-    ],
-    tiles: [
-        // Simple conveyors leading from docking bay to factory floor
-        { position: { x: 1, y: 2 }, type: TileType.CONVEYOR, direction: Direction.UP },
-        { position: { x: 3, y: 2 }, type: TileType.CONVEYOR, direction: Direction.UP },
-        { position: { x: 5, y: 2 }, type: TileType.CONVEYOR, direction: Direction.UP },
-        { position: { x: 7, y: 2 }, type: TileType.CONVEYOR, direction: Direction.UP },
-        { position: { x: 9, y: 2 }, type: TileType.CONVEYOR, direction: Direction.UP },
-        { position: { x: 11, y: 2 }, type: TileType.CONVEYOR, direction: Direction.UP },
-        { position: { x: 0, y: 2 }, type: TileType.CONVEYOR, direction: Direction.UP },
-        { position: { x: 10, y: 2 }, type: TileType.CONVEYOR, direction: Direction.UP }
-    ],
-    lasers: [],
-    walls: []
-};
-
-// Combined board for Risky Exchange
-export const RISKY_EXCHANGE_COMBINED_BOARD = combineBoardsVertically(
-    RISKY_EXCHANGE_DOCKING_BAY,
-    EXCHANGE_FACTORY_FLOOR
-);
-
-// Ensure the combined board has a proper ID
-RISKY_EXCHANGE_COMBINED_BOARD.id = 'risky-exchange-combined';
-RISKY_EXCHANGE_COMBINED_BOARD.name = 'Risky Exchange Combined';
-
 // All official board definitions
 export const OFFICIAL_BOARD_DEFINITIONS: BoardDefinition[] = [
     EXCHANGE_FACTORY_FLOOR,
-    RISKY_EXCHANGE_DOCKING_BAY,
-    RISKY_EXCHANGE_COMBINED_BOARD
-];
-
-// =============================================================================
-// COURSE DEFINITIONS
-// =============================================================================
-
-// OFFICIAL RISKY EXCHANGE COURSE - References the combined board
-export const OFFICIAL_RISKY_EXCHANGE: CourseDefinition = {
-    id: 'official_risky_exchange',
-    name: 'Risky Exchange (Official)',
-    description: 'An easy course to start on, but don\'t fall off the edge! Based on the official RoboRally rulebook.',
-    difficulty: 'beginner',
-    minPlayers: 2,
-    maxPlayers: 8,
-    boards: ['risky-exchange-combined'] // Reference to combined board ID
-};
-
-// All official course definitions
-export const OFFICIAL_COURSE_DEFINITIONS: CourseDefinition[] = [
-    OFFICIAL_RISKY_EXCHANGE
 ];

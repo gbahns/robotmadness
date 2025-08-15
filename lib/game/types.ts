@@ -86,6 +86,37 @@ export interface GameState {
   cardsDealt: boolean;
 }
 
+export interface BoardDefinition {
+  id: string;
+  name: string;
+  width: number;
+  height: number;
+  checkpoints: Checkpoint[];
+  startingPositions: StartingPosition[];
+  tiles?: TileElement[];
+  lasers?: LaserElement[];
+  walls?: WallElement[];
+}
+
+export interface TileElement {
+  position: { x: number; y: number };
+  type: TileType;
+  direction?: Direction;
+  rotate?: 'clockwise' | 'counterclockwise';
+  registers?: number[]; // For pushers
+}
+
+export interface LaserElement {
+  position: { x: number; y: number };
+  direction: Direction;
+  damage: number;
+}
+
+export interface WallElement {
+  position: { x: number; y: number };
+  sides: Direction[]; // Which sides of the tile have walls
+}
+
 export interface Board {
   width: number;
   height: number;

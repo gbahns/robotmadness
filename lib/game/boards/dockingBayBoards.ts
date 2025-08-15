@@ -1,5 +1,38 @@
-import { CourseDefinition, BoardDefinition, TileElement, LaserElement, WallElement } from './factoryFloorBoards';
+import { BoardDefinition, TileElement, LaserElement, WallElement } from '../types';
 import { Direction, TileType } from '../types';
+
+// ACCURATE DOCKING BAY for Risky Exchange (8 starting positions)
+export const RISKY_EXCHANGE_DOCKING_BAY: BoardDefinition = {
+    id: 'risky-exchange-docking-bay',
+    name: 'Risky Exchange Docking Bay',
+    width: 12,
+    height: 4,
+    checkpoints: [], // No checkpoints on docking bays
+    startingPositions: [
+        // Starting positions 1-8 as shown in the official image
+        { position: { x: 3, y: 1 }, direction: Direction.UP },  // Position 1
+        { position: { x: 1, y: 1 }, direction: Direction.UP },  // Position 2  
+        { position: { x: 5, y: 1 }, direction: Direction.UP },  // Position 3
+        { position: { x: 7, y: 1 }, direction: Direction.UP },  // Position 4
+        { position: { x: 9, y: 1 }, direction: Direction.UP },  // Position 5
+        { position: { x: 11, y: 1 }, direction: Direction.UP }, // Position 6
+        { position: { x: 0, y: 1 }, direction: Direction.UP },  // Position 7
+        { position: { x: 10, y: 1 }, direction: Direction.UP }  // Position 8
+    ],
+    tiles: [
+        // Simple conveyors leading from docking bay to factory floor
+        { position: { x: 1, y: 2 }, type: TileType.CONVEYOR, direction: Direction.UP },
+        { position: { x: 3, y: 2 }, type: TileType.CONVEYOR, direction: Direction.UP },
+        { position: { x: 5, y: 2 }, type: TileType.CONVEYOR, direction: Direction.UP },
+        { position: { x: 7, y: 2 }, type: TileType.CONVEYOR, direction: Direction.UP },
+        { position: { x: 9, y: 2 }, type: TileType.CONVEYOR, direction: Direction.UP },
+        { position: { x: 11, y: 2 }, type: TileType.CONVEYOR, direction: Direction.UP },
+        { position: { x: 0, y: 2 }, type: TileType.CONVEYOR, direction: Direction.UP },
+        { position: { x: 10, y: 2 }, type: TileType.CONVEYOR, direction: Direction.UP }
+    ],
+    lasers: [],
+    walls: []
+};
 
 export const DOCKING_BAY_4P: BoardDefinition = {
     id: 'docking-bay-4p',
@@ -123,105 +156,6 @@ export const DOCKING_BAY_BOARDS: BoardDefinition[] = [
     DOCKING_BAY_COMPACT
 ];
 
-/**
- * Combines a docking bay board with a factory floor board vertically.
- * The docking bay is placed at the bottom (higher y coordinates) with starting positions,
- * and the factory floor is placed above it.
- */
-export function combineBoardsVertically(dockingBay: BoardDefinition, factoryFloor: BoardDefinition): BoardDefinition {
-    const combinedHeight = factoryFloor.height + dockingBay.height;
-
-    // Offset all docking bay elements by the factory floor height
-    const offsetDockingBayTiles: TileElement[] = (dockingBay.tiles || []).map(tile => ({
-        ...tile,
-        position: {
-            x: tile.position.x,
-            y: tile.position.y + factoryFloor.height
-        }
-    }));
-
-    const offsetDockingBayLasers: LaserElement[] = (dockingBay.lasers || []).map(laser => ({
-        ...laser,
-        position: {
-            x: laser.position.x,
-            y: laser.position.y + factoryFloor.height
-        }
-    }));
-
-    const offsetDockingBayWalls: WallElement[] = (dockingBay.walls || []).map(wall => ({
-        ...wall,
-        position: {
-            x: wall.position.x,
-            y: wall.position.y + factoryFloor.height
-        }
-    }));
-
-    const offsetDockingBayStartingPositions = dockingBay.startingPositions.map(sp => ({
-        ...sp,
-        position: {
-            x: sp.position.x,
-            y: sp.position.y + factoryFloor.height
-        }
-    }));
-
-    // Combine all elements
-    const combinedTiles: TileElement[] = [
-        ...(factoryFloor.tiles || []),
-        ...offsetDockingBayTiles
-    ];
-
-    const combinedLasers: LaserElement[] = [
-        ...(factoryFloor.lasers || []),
-        ...offsetDockingBayLasers
-    ];
-
-    const combinedWalls: WallElement[] = [
-        ...(factoryFloor.walls || []),
-        ...offsetDockingBayWalls
-    ];
-
-    return {
-        id: `${factoryFloor.id}-with-${dockingBay.id}`,
-        name: `${factoryFloor.name} with ${dockingBay.name}`,
-        width: Math.max(factoryFloor.width, dockingBay.width), // Use the wider board
-        height: combinedHeight,
-        checkpoints: factoryFloor.checkpoints, // Only factory floor has checkpoints
-        startingPositions: offsetDockingBayStartingPositions, // Only docking bay has starting positions
-        tiles: combinedTiles.length > 0 ? combinedTiles : undefined,
-        lasers: combinedLasers.length > 0 ? combinedLasers : undefined,
-        walls: combinedWalls.length > 0 ? combinedWalls : undefined
-    };
-}
-
-/**
- * Creates a complete course with docking bay + factory floor combination
- * Returns both the combined board definition and course definition
- */
-export function createCombinedCourse(
-    courseId: string,
-    courseName: string,
-    description: string,
-    difficulty: 'beginner' | 'intermediate' | 'expert',
-    factoryFloorBoard: BoardDefinition,
-    dockingBayBoard: BoardDefinition = DOCKING_BAY_4P
-): { board: BoardDefinition; course: CourseDefinition } {
-    const combinedBoard = combineBoardsVertically(dockingBayBoard, factoryFloorBoard);
-    // Ensure the combined board has a proper ID for referencing
-    combinedBoard.id = `${courseId}-board`;
-    combinedBoard.name = `${courseName} Board`;
-
-    const course: CourseDefinition = {
-        id: courseId,
-        name: courseName,
-        description,
-        difficulty,
-        minPlayers: 2,
-        maxPlayers: Math.min(8, dockingBayBoard.startingPositions.length),
-        boards: [combinedBoard.id] // Reference the board ID, not the board itself
-    };
-
-    return { board: combinedBoard, course };
-}
 
 // Example factory floor boards for combination
 export const SIMPLE_FACTORY_FLOOR: BoardDefinition = {
@@ -316,56 +250,3 @@ export const CONVEYOR_FACTORY_FLOOR: BoardDefinition = {
         { position: { x: 7, y: 6 }, sides: [Direction.UP] }
     ]
 };
-
-// Create combined course data
-const simpleStartData = createCombinedCourse(
-    'simple-start',
-    'Simple Start',
-    'A beginner-friendly course with basic elements and a standard docking bay.',
-    'beginner',
-    SIMPLE_FACTORY_FLOOR,
-    DOCKING_BAY_4P
-);
-
-const conveyorChaosData = createCombinedCourse(
-    'conveyor-chaos',
-    'Conveyor Chaos',
-    'Navigate through complex conveyor belts in this intermediate challenge.',
-    'intermediate',
-    CONVEYOR_FACTORY_FLOOR,
-    DOCKING_BAY_8P
-);
-
-const wideEntryData = createCombinedCourse(
-    'wide-entry',
-    'Wide Entry',
-    'A course with a wide docking bay allowing for interesting starting strategies.',
-    'beginner',
-    SIMPLE_FACTORY_FLOOR,
-    DOCKING_BAY_WIDE
-);
-
-const compactChallengeData = createCombinedCourse(
-    'compact-challenge',
-    'Compact Challenge',
-    'Start from a compact docking bay and navigate the conveyor factory floor.',
-    'intermediate',
-    CONVEYOR_FACTORY_FLOOR,
-    DOCKING_BAY_COMPACT
-);
-
-// Export the board definitions
-export const COMBINED_BOARD_DEFINITIONS: BoardDefinition[] = [
-    simpleStartData.board,
-    conveyorChaosData.board,
-    wideEntryData.board,
-    compactChallengeData.board
-];
-
-// Export the course definitions
-export const COMBINED_COURSES: CourseDefinition[] = [
-    simpleStartData.course,
-    conveyorChaosData.course,
-    wideEntryData.course,
-    compactChallengeData.course
-];

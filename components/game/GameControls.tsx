@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { socketClient } from '@/lib/socket';
-import { ALL_COURSES, getBoardById, TEST_BOARD } from '@/lib/game/boards/factoryFloorBoards';
+import { getBoardById, TEST_BOARD } from '@/lib/game/boards/factoryFloorBoards';
+import { ALL_COURSES } from '@/lib/game/boards/courses';
 import BoardPreview from './BoardPreview';
 import PowerDownButton from './PowerDownButton';
 import { Player } from '@/lib/game/types';
