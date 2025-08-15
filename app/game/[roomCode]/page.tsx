@@ -5,6 +5,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { GameState, ProgramCard, Player, PowerState } from '@/lib/game/types';
 import { socketClient } from '@/lib/socket';
 import Board from '@/components/game/Board';
+import Course from '@/components/game/Course';
 import Hand from '@/components/game/Hand';
 import ProgramRegisters from '@/components/game/ProgramRegisters';
 import GameContent from '@/components/game/GameContent';
@@ -678,8 +679,8 @@ export default function GamePage() {
             <div className="flex-1 flex gap-6 min-h-0">
               {/* Game Board - takes most space - removed gray container - responsive container*/}
               <div className="flex-1 flex items-center justify-center">
-                <Board
-                  board={gameState?.board || previewBoard}
+                <Course
+                  courseId={selectedCourse}
                   players={gameState?.players || {}}
                   currentPlayerId={playerIdRef.current}
                   isHost={isHost}
