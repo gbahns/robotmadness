@@ -1,5 +1,3 @@
-// lib/game/boards/officialBoards.ts - Separated board and course definitions
-
 import { CourseDefinition, BoardDefinition, TileElement, LaserElement, WallElement } from './factoryFloorBoards';
 import { Direction, TileType } from '../types';
 import { combineBoardsVertically } from './dockingBayBoards';

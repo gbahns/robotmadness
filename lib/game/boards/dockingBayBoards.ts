@@ -1,5 +1,3 @@
-// lib/game/boards/dockingBayBoards.ts - Replace your existing file with this
-
 import { CourseDefinition, BoardDefinition, TileElement, LaserElement, WallElement } from './factoryFloorBoards';
 import { Direction, TileType } from '../types';
 
