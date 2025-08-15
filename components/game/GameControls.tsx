@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { socketClient } from '@/lib/socket';
 import { getBoardById, TEST_BOARD } from '@/lib/game/boards/factoryFloorBoards';
-import { ALL_COURSES } from '@/lib/game/boards/courses';
 import BoardPreview from './BoardPreview';
 import PowerDownButton from './PowerDownButton';
 import { Player } from '@/lib/game/types';
+import { ALL_COURSES, getCourseById } from '@/lib/game/boards/courses';
+import CoursePreview from './CoursePreview';
 
 interface GameControlsProps {
   isHost: boolean;
@@ -25,23 +26,25 @@ export default function GameControls({ isHost, roomCode, playerCount, currentPla
     setInternalSelectedCourse(courseId);
     onCourseChange?.(courseId);
 
-    // Only emit board selection to server if host and not from socket event
+    // Only emit course selection to server if host and not from socket event
     if (isHost && !fromSocket) {
       socketClient.emit('select-board', { roomCode, boardId: courseId });
     }
   };
 
   if (!isHost || gameState?.phase !== 'waiting') {
-    // Show selected board info for non-hosts in waiting phase
+    // Show selected course info for non-hosts in waiting phase
     if (gameState?.phase === 'waiting' && selectedCourse) {
-      const courseInfo = ALL_COURSES.find(c => c.boards.some(b => b === selectedCourse));
-      const boardName = selectedCourse === 'test' ? 'Test Board' : courseInfo?.name || 'Unknown Board';
+      //const courseInfo = ALL_COURSES.find(c => c.boards.some(b => b === selectedCourse));
+      //const boardName = selectedCourse === 'test' ? 'Test Board' : courseInfo?.name || 'Unknown Board';
+      const courseInfo = getCourseById(selectedCourse);
+      const courseName = selectedCourse === 'test' ? 'Test Course' : courseInfo?.name || 'Unknown Course';
 
       return (
         <div className="bg-gray-800 rounded-lg p-6 text-center space-y-2">
           <p className="text-gray-400">Waiting for host to start the game...</p>
           <p className="text-sm text-gray-500">
-            Selected course: <span className="text-white font-semibold">{boardName}</span>
+            Selected course: <span className="text-white font-semibold">{courseName}</span>
           </p>
           {courseInfo && (
             <p className="text-xs text-gray-600">{courseInfo.description}</p>
@@ -75,8 +78,8 @@ export default function GameControls({ isHost, roomCode, playerCount, currentPla
   }
 
   // Find the selected course details
-  const selectedBoard = getBoardById(selectedCourse) || TEST_BOARD;
-  const courseInfo = ALL_COURSES.find(c => c.boards.some(b => b === selectedCourse));
+  const courseInfo = getCourseById(selectedCourse);
+  //const selectedBoard = courseInfo ? getBoardById(courseInfo.boards[0]) : getBoardById('test');
 
   return (
     <div className="bg-gray-800 rounded-lg p-6 space-y-4">
@@ -91,21 +94,21 @@ export default function GameControls({ isHost, roomCode, playerCount, currentPla
           <option value="test">Test Board</option>
           <optgroup label="Beginner Courses">
             {ALL_COURSES.filter(c => c.difficulty === 'beginner').map(course => (
-              <option key={course.id} value={course.boards[0]}>
+              <option key={course.id} value={course.id}>
                 {course.name}
               </option>
             ))}
           </optgroup>
           <optgroup label="Intermediate Courses">
             {ALL_COURSES.filter(c => c.difficulty === 'intermediate').map(course => (
-              <option key={course.id} value={course.boards[0]}>
+              <option key={course.id} value={course.id}>
                 {course.name}
               </option>
             ))}
           </optgroup>
           <optgroup label="Expert Courses">
             {ALL_COURSES.filter(c => c.difficulty === 'expert').map(course => (
-              <option key={course.id} value={course.boards[0]}>
+              <option key={course.id} value={course.id}>
                 {course.name}
               </option>
             ))}
@@ -124,12 +127,13 @@ export default function GameControls({ isHost, roomCode, playerCount, currentPla
         )}
       </div>
 
-      {/* Board Preview */}
-      {selectedBoard && (
-        <div className="mt-4">
-          <BoardPreview board={selectedBoard} size={250} />
+      {/* Course Preview */}
+      {selectedCourse && (
+        < div className="mt-4">
+          <CoursePreview courseId={selectedCourse} size={250} />
         </div>
-      )}
+      )
+      }
 
       <button
         onClick={() => {
@@ -143,9 +147,11 @@ export default function GameControls({ isHost, roomCode, playerCount, currentPla
         Start Game
       </button>
 
-      {playerCount < 2 && (
-        <p className="text-sm text-gray-500">Need at least 2 players to start</p>
-      )}
-    </div>
+      {
+        playerCount < 2 && (
+          <p className="text-sm text-gray-500">Need at least 2 players to start</p>
+        )
+      }
+    </div >
   );
 }
