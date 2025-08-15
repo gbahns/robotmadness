@@ -144,7 +144,7 @@ export default function GamePage() {
       socketClient.off('checkpoint-reached', handleCheckpointReached);
       socketClient.off('player-submitted', () => { });
       socketClient.off('robot-lasers-fired', () => { });
-      socketClient.off('board-selected', () => { });
+      socketClient.off('course-selected', () => { });
     };
   }, [roomCode]);
 
@@ -156,9 +156,9 @@ export default function GamePage() {
       setBoardPhase(data.phase);
     });
 
-    socketClient.on('board-selected', (data: { boardId: string; previewBoard: any }) => {
-      console.log('Board selected by host:', data.boardId);
-      setSelectedCourse(data.boardId);
+    socketClient.on('course-selected', (data: { courseId: string; previewBoard: any }) => {
+      console.log('Course selected by host:', data.courseId);
+      setSelectedCourse(data.courseId);
       if (data.previewBoard) {
         setPreviewBoard(data.previewBoard);
       }

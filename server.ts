@@ -4,6 +4,7 @@ import { Server, Socket } from 'socket.io';
 import next from 'next';
 import { GameState, ProgramCard, GamePhase, Board, Player, PowerState } from './lib/game/types';
 import { GameEngine, ServerGameState } from './lib/game/gameEngine';
+import { CourseDefinition } from './lib/game/boards/courses';
 
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });
@@ -24,7 +25,7 @@ interface ServerToClientEvents {
     'execution-update': (data: { message: string; playerId?: string; action?: string }) => void;
     'card-executed': (data: { playerId: string; playerName: string; card: ProgramCard; register: number }) => void;
     'game-ended': (data: { winner: string }) => void;
-    'board-selected': (data: { boardId: string, previewBoard: Board }) => void;
+    'course-selected': (data: { courseId: string, previewCourse: Board }) => void;
     'error': (data: { message: string }) => void;
     'player-submitted': (data: { playerId: string, playerName: string }) => void;
     'register-start': (data: { register: number }) => void;
@@ -37,11 +38,11 @@ interface ServerToClientEvents {
 }
 
 interface ClientToServerEvents {
-    'create-game': (data: { playerName: string; playerId: string; boardId?: string }, callback?: (response: { success: boolean; roomCode?: string; game?: any; error?: string }) => void) => void;
+    'create-game': (data: { playerName: string; playerId: string; courseId?: string }, callback?: (response: { success: boolean; roomCode?: string; game?: any; error?: string }) => void) => void;
     'join-game': (data: { roomCode: string; playerName: string; playerId: string }) => void;
     'leave-game': () => void;
     'start-game': (data: { roomCode: string; selectedCourse?: string }) => void;
-    'select-board': (data: { roomCode: string; boardId: string }) => void;
+    'select-course': (data: { roomCode: string; courseId: string }) => void;
     'submit-cards': (data: { roomCode: string; playerId: string; cards: (ProgramCard | null)[] }) => void;
     'reset-cards': (data: { roomCode: string; playerId: string; }) => void;
     'request-game-state': (roomCode: string) => void;
@@ -101,8 +102,8 @@ app.prepare().then(() => {
     io.on('connection', (socket: IoSocket) => {
         console.log('Client connected:', socket.id);
 
-        socket.on('create-game', ({ playerName, playerId: playerId, boardId }, callback) => {
-            console.log(`create-game event received: ${playerName}, playerId: ${playerId}, boardId: ${boardId}`);
+        socket.on('create-game', ({ playerName, playerId: playerId, courseId }, callback) => {
+            console.log(`create-game event received: ${playerName}, playerId: ${playerId}, courseId: ${courseId}`);
             if (!playerId || !playerName) {
                 if (callback) {
                     callback({ success: false, error: 'playerId and playerName are required' });
@@ -112,7 +113,7 @@ app.prepare().then(() => {
 
             try {
                 const roomCode = generateRoomCode();
-                console.log(`Creating game with room code: ${roomCode}, player: ${playerName}, boardId: ${boardId}`);
+                console.log(`Creating game with room code: ${roomCode}, player: ${playerName}, courseId: ${courseId}`);
                 const gameState = gameEngine.createGame(roomCode, "{playerName}'s Game");
                 gameEngine.addPlayerToGame(gameState, playerId, playerName);
 
@@ -132,7 +133,7 @@ app.prepare().then(() => {
                 } else {
                     socket.emit('game-state', gameState);
                 }
-                console.log(`Game created: ${roomCode} by ${playerName}` + (boardId ? ` with board ${boardId}` : ''));
+                console.log(`Game created: ${roomCode} by ${playerName}` + (courseId ? ` with course ${courseId}` : ''));
             } catch (error) {
                 console.error(`Error creating game: ${error}`);
                 if (callback) {
@@ -197,12 +198,12 @@ app.prepare().then(() => {
             }, 2000);
         });
 
-        socket.on('select-board', ({ roomCode, boardId }) => {
+        socket.on('select-course', ({ roomCode, courseId }) => {
             const gameState = games.get(roomCode);
             if (!gameState) return;
 
-            const previewBoard = gameEngine.selectBoard(gameState, boardId);
-            io.to(roomCode).emit('board-selected', { boardId, previewBoard });
+            const previewCourse = gameEngine.selectBoard(gameState, courseId);
+            io.to(roomCode).emit('course-selected', { courseId, previewCourse });
             io.to(roomCode).emit('game-state', gameState);
         });
 

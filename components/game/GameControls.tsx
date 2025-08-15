@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import { socketClient } from '@/lib/socket';
-import { getBoardById, TEST_BOARD } from '@/lib/game/boards/factoryFloorBoards';
-import BoardPreview from './BoardPreview';
 import PowerDownButton from './PowerDownButton';
 import { Player } from '@/lib/game/types';
 import { ALL_COURSES, getCourseById } from '@/lib/game/boards/courses';
@@ -28,15 +26,13 @@ export default function GameControls({ isHost, roomCode, playerCount, currentPla
 
     // Only emit course selection to server if host and not from socket event
     if (isHost && !fromSocket) {
-      socketClient.emit('select-board', { roomCode, boardId: courseId });
+      socketClient.emit('select-course', { roomCode, courseId });
     }
   };
 
   if (!isHost || gameState?.phase !== 'waiting') {
     // Show selected course info for non-hosts in waiting phase
     if (gameState?.phase === 'waiting' && selectedCourse) {
-      //const courseInfo = ALL_COURSES.find(c => c.boards.some(b => b === selectedCourse));
-      //const boardName = selectedCourse === 'test' ? 'Test Board' : courseInfo?.name || 'Unknown Board';
       const courseInfo = getCourseById(selectedCourse);
       const courseName = selectedCourse === 'test' ? 'Test Course' : courseInfo?.name || 'Unknown Course';
 
@@ -79,7 +75,6 @@ export default function GameControls({ isHost, roomCode, playerCount, currentPla
 
   // Find the selected course details
   const courseInfo = getCourseById(selectedCourse);
-  //const selectedBoard = courseInfo ? getBoardById(courseInfo.boards[0]) : getBoardById('test');
 
   return (
     <div className="bg-gray-800 rounded-lg p-6 space-y-4">
@@ -91,7 +86,7 @@ export default function GameControls({ isHost, roomCode, playerCount, currentPla
           onChange={(e) => setSelectedCourse(e.target.value)}
           className="p-2 rounded bg-gray-700 text-white border border-gray-600"
         >
-          <option value="test">Test Board</option>
+          <option value="test">Test Course</option>
           <optgroup label="Beginner Courses">
             {ALL_COURSES.filter(c => c.difficulty === 'beginner').map(course => (
               <option key={course.id} value={course.id}>
