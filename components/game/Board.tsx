@@ -1,7 +1,7 @@
 // components/game/Board.tsx
 import React, { useEffect, useState, useRef } from 'react';
 import { Board as BoardType, Player, Direction, Position, Tile, Checkpoint, Laser, TileType } from '@/lib/game/types';
-import { TileElement } from '@/lib/game/boards/boardDefinitions';
+import { TileElement } from '@/lib/game/boards/factoryFloorBoards';
 import RobotLaserAnimation, { RobotLaserShot } from './RobotLaserAnimation';
 import Robot from './Robot';
 import { socketClient } from '@/lib/socket';
@@ -124,16 +124,28 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
   };
 
   // Get tile element at position (for future enhanced boards)
-  const getTileAt = (x: number, y: number): TileElement | undefined => {
-    // Check if board has the enhanced tiles array
-    if (board.tiles && Array.isArray(board.tiles) && board.tiles.length > 0) {
-      // Check if it's a flat array of tile elements (enhanced board)
-      if ('position' in board.tiles[0]) {
-        return (board.tiles as any[]).find(
-          (tile: any) => tile.position?.x === x && tile.position?.y === y
-        );
-      }
+  // Get tile element at position (for enhanced boards)
+  const getTileAt = (x: number, y: number): Tile | undefined => {
+    // Check if board has the tiles array
+    if (!board.tiles || !Array.isArray(board.tiles)) {
+      return undefined;
     }
+
+    // Check if it's a 2D array (the expected format after buildBoard)
+    if (board.tiles.length > 0 && Array.isArray(board.tiles[0])) {
+      // It's a 2D array - this is the standard format
+      const row = board.tiles[y];
+      if (row && row[x]) {
+        return row[x] as Tile;
+      }
+    } else if (board.tiles.length > 0 && 'position' in board.tiles[0]) {
+      // It's a flat array (shouldn't happen after buildBoard, but handle it anyway)
+      const tile = (board.tiles as any[]).find(
+        (t: any) => t.position?.x === x && t.position?.y === y
+      );
+      return tile;
+    }
+
     return undefined;
   };
 

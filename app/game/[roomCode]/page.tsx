@@ -12,7 +12,7 @@ import ExecutionLog from '@/components/game/ExecutionLog';
 import { RobotLaserShot } from '@/components/game/RobotLaserAnimation';
 import GameControls from '@/components/game/GameControls';
 import ProgrammingControls from '@/components/game/ProgrammingControls';
-import { getBoardById, TEST_BOARD } from '@/lib/game/boards/boardDefinitions';
+import { getBoardById, TEST_BOARD } from '@/lib/game/boards/factoryFloorBoards';
 import PowerDownModal from '@/components/game/PowerDownModal';
 import { buildBoard } from '@/lib/game/boards/boardBuilder';
 

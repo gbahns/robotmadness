@@ -1,7 +1,7 @@
 // components/BoardSelector.tsx
 
 import React from 'react';
-import { ALL_COURSES, CourseDefinition } from '@/lib/game/boards/boardDefinitions';
+import { ALL_COURSES, CourseDefinition } from '@/lib/game/boards/factoryFloorBoards';
 
 interface BoardSelectorProps {
     selectedBoardId: string;
@@ -38,8 +38,8 @@ export default function BoardSelector({ selectedBoardId, onSelectBoard }: BoardS
                     return (
                         <button
                             key={course.id}
-                            onClick={() => onSelectBoard(board.id)}
-                            className={`p-4 rounded-lg border-2 text-left transition-all ${selectedBoardId === board.id
+                            onClick={() => onSelectBoard(board)}
+                            className={`p-4 rounded-lg border-2 text-left transition-all ${selectedBoardId === board
                                 ? 'border-green-500 bg-gray-800'
                                 : 'border-gray-600 bg-gray-900 hover:border-gray-500'
                                 }`}
@@ -56,7 +56,7 @@ export default function BoardSelector({ selectedBoardId, onSelectBoard }: BoardS
                                 <span className="mx-2">•</span>
                                 <span>{course.minPlayers}-{course.maxPlayers} players</span>
                                 <span className="mx-2">•</span>
-                                <span>{board.checkpoints.length} checkpoints</span>
+                                {/* <span>{board.checkpoints.length} checkpoints</span> */}
                             </div>
                         </button>
                     );
@@ -66,17 +66,17 @@ export default function BoardSelector({ selectedBoardId, onSelectBoard }: BoardS
             <div className="mt-4 p-4 bg-gray-800 rounded-lg">
                 <h4 className="text-sm font-semibold text-gray-300 mb-2">Selected Board Details</h4>
                 {selectedBoardId && (() => {
-                    const course = ALL_COURSES.find(c => c.boards.some(b => b.id === selectedBoardId));
-                    const board = course?.boards.find(b => b.id === selectedBoardId);
+                    const course = ALL_COURSES.find(c => c.boards.some(b => b === selectedBoardId));
+                    const board = course?.boards.find(b => b === selectedBoardId);
 
                     if (!board && selectedBoardId !== 'test') return null;
 
                     return (
                         <div className="text-xs text-gray-400 space-y-1">
-                            <p>Board: {selectedBoardId === 'test' ? 'Test Board' : board?.name}</p>
+                            <p>Board: {selectedBoardId === 'test' ? 'Test Board' : course?.name}</p>
                             <p>Size: 12×12</p>
-                            <p>Checkpoints: {selectedBoardId === 'test' ? '3' : board?.checkpoints.length}</p>
-                            <p>Starting Positions: {selectedBoardId === 'test' ? '8' : board?.startingPositions.length}</p>
+                            {/* <p>Checkpoints: {selectedBoardId === 'test' ? '3' : board?.checkpoints.length}</p>
+                            <p>Starting Positions: {selectedBoardId === 'test' ? '8' : board?.startingPositions.length}</p> */}
                         </div>
                     );
                 })()}

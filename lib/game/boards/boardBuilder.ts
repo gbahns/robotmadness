@@ -1,5 +1,5 @@
 import { Board, Tile, TileType, Direction, Checkpoint, StartingPosition, Laser } from '../types';
-import { BoardDefinition, TileElement, LaserElement, WallElement } from './boardDefinitions';
+import { BoardDefinition, TileElement, LaserElement, WallElement } from './factoryFloorBoards';
 
 /**
  * Builds a Board object from a BoardDefinition

@@ -1,5 +1,3 @@
-// lib/game/boards/boardDefinitions.ts - Final version with proper separation
-
 import { Board, Checkpoint, StartingPosition, TileType, Direction } from '../types';
 import { buildBoard } from './boardBuilder';
 import { DOCKING_BAY_BOARDS, COMBINED_COURSES, COMBINED_BOARD_DEFINITIONS } from './dockingBayBoards';

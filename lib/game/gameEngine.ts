@@ -1,6 +1,6 @@
 import { GameState, Player, ProgramCard, Tile, Direction, CardType, GamePhase, Board, PowerState } from './types';
 import { TileType } from './types/enums';
-import { getBoardById, BoardDefinition } from './boards/boardDefinitions';
+import { getBoardById, BoardDefinition } from './boards/factoryFloorBoards';
 import { GAME_CONFIG } from './constants';
 
 export interface ServerGameState extends GameState {

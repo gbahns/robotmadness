@@ -1,2 +1,2 @@
-export * from './boardDefinitions';
+export * from './factoryFloorBoards';
 export * from './boardBuilder';
