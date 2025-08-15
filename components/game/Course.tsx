@@ -61,23 +61,21 @@ export default function Course({
                 setBoard(buildBoard(boardDefs[0]!));
             } else {
                 // Multi-board course - combine them
-                // For now, assume it's docking bay + factory floor
-                // The course should specify board order, but we'll use a convention:
-                // If board ID contains 'docking', it goes on bottom
-                const sortedBoards = [...boardDefs].sort((a, b) => {
-                    if (a!.id.includes('docking')) return 1;
-                    if (b!.id.includes('docking')) return -1;
-                    return 0;
-                });
+                // The convention is: factory floor on top, docking bay on bottom
 
-                // Combine the boards vertically
-                const combinedBoardDef = sortedBoards.reduce((combined, boardDef) => {
-                    if (!combined) return boardDef!;
-                    return combineBoardsVertically(combined, boardDef!);
-                });
+                // Separate factory floors and docking bays
+                const factoryFloors = boardDefs.filter(b => !b!.id.includes('docking'));
+                const dockingBays = boardDefs.filter(b => b!.id.includes('docking'));
 
-                if (combinedBoardDef) {
+                // For Risky Exchange: combine factory floor (top) with docking bay (bottom)
+                if (factoryFloors.length > 0 && dockingBays.length > 0) {
+                    // combineBoardsVertically now expects (topBoard, bottomBoard)
+                    const combinedBoardDef = combineBoardsVertically(factoryFloors[0]!, dockingBays[0]!);
                     setBoard(buildBoard(combinedBoardDef));
+                } else {
+                    // Fallback: just use the first board if we can't identify the types
+                    console.warn('Could not identify factory floor and docking bay boards');
+                    setBoard(buildBoard(boardDefs[0]!));
                 }
             }
         }

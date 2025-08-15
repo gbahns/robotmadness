@@ -259,75 +259,74 @@ export function createCombinedCourse(
 // =============================================================================
 
 /**
- * Combines a docking bay board with a factory floor board vertically.
- * The docking bay is placed at the bottom (higher y coordinates) with starting positions,
- * and the factory floor is placed above it.
+ * Combines two boards vertically: first board on top, second board on bottom.
+ * @param topBoard - The board that will be placed on top (usually factory floor)
+ * @param bottomBoard - The board that will be placed on bottom (usually docking bay)
  */
-export function combineBoardsVertically(dockingBay: BoardDefinition, factoryFloor: BoardDefinition): BoardDefinition {
-    const combinedHeight = factoryFloor.height + dockingBay.height;
+export function combineBoardsVertically(topBoard: BoardDefinition, bottomBoard: BoardDefinition): BoardDefinition {
+    const combinedHeight = topBoard.height + bottomBoard.height;
 
-    // Offset all docking bay elements by the factory floor height
-    const offsetDockingBayTiles: TileElement[] = (dockingBay.tiles || []).map(tile => ({
+    // Offset all bottom board elements by the top board height
+    const offsetBottomTiles: TileElement[] = (bottomBoard.tiles || []).map(tile => ({
         ...tile,
         position: {
             x: tile.position.x,
-            y: tile.position.y + factoryFloor.height
+            y: tile.position.y + topBoard.height
         }
     }));
 
-    const offsetDockingBayLasers: LaserElement[] = (dockingBay.lasers || []).map(laser => ({
+    const offsetBottomLasers: LaserElement[] = (bottomBoard.lasers || []).map(laser => ({
         ...laser,
         position: {
             x: laser.position.x,
-            y: laser.position.y + factoryFloor.height
+            y: laser.position.y + topBoard.height
         }
     }));
 
-    const offsetDockingBayWalls: WallElement[] = (dockingBay.walls || []).map(wall => ({
+    const offsetBottomWalls: WallElement[] = (bottomBoard.walls || []).map(wall => ({
         ...wall,
         position: {
             x: wall.position.x,
-            y: wall.position.y + factoryFloor.height
+            y: wall.position.y + topBoard.height
         }
     }));
 
-    const offsetDockingBayStartingPositions = dockingBay.startingPositions.map(sp => ({
+    const offsetBottomStartingPositions = bottomBoard.startingPositions.map(sp => ({
         ...sp,
         position: {
             x: sp.position.x,
-            y: sp.position.y + factoryFloor.height
+            y: sp.position.y + topBoard.height
         }
     }));
 
     // Combine all elements
     const combinedTiles: TileElement[] = [
-        ...(factoryFloor.tiles || []),
-        ...offsetDockingBayTiles
+        ...(topBoard.tiles || []),
+        ...offsetBottomTiles
     ];
 
     const combinedLasers: LaserElement[] = [
-        ...(factoryFloor.lasers || []),
-        ...offsetDockingBayLasers
+        ...(topBoard.lasers || []),
+        ...offsetBottomLasers
     ];
 
     const combinedWalls: WallElement[] = [
-        ...(factoryFloor.walls || []),
-        ...offsetDockingBayWalls
+        ...(topBoard.walls || []),
+        ...offsetBottomWalls
     ];
 
     return {
-        id: `${factoryFloor.id}-with-${dockingBay.id}`,
-        name: `${factoryFloor.name} with ${dockingBay.name}`,
-        width: Math.max(factoryFloor.width, dockingBay.width), // Use the wider board
+        id: `${topBoard.id}-with-${bottomBoard.id}`,
+        name: `${topBoard.name} with ${bottomBoard.name}`,
+        width: Math.max(topBoard.width, bottomBoard.width),
         height: combinedHeight,
-        checkpoints: factoryFloor.checkpoints, // Only factory floor has checkpoints
-        startingPositions: offsetDockingBayStartingPositions, // Only docking bay has starting positions
+        checkpoints: topBoard.checkpoints, // Usually only factory floor has checkpoints
+        startingPositions: offsetBottomStartingPositions, // Usually only docking bay has starting positions
         tiles: combinedTiles.length > 0 ? combinedTiles : undefined,
         lasers: combinedLasers.length > 0 ? combinedLasers : undefined,
         walls: combinedWalls.length > 0 ? combinedWalls : undefined
     };
 }
-
 
 // Get all boards for a course
 // export function getBoardsForCourse(courseId: string): BoardDefinition[] {
