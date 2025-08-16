@@ -435,26 +435,26 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
       });
     }
 
-    // Checkpoints
-    // const checkpoint = board.checkpoints?.find(
-    //   (cp: Checkpoint) => cp.position.x === x && cp.position.y === y
-    // );
-    // if (checkpoint) {
-    //   elements.push(
-    //     <div key="checkpoint" className="absolute inset-0 flex items-center justify-center">
-    //       <div
-    //         className="bg-white rounded-full flex items-center justify-center text-black font-bold border-4 border-black"
-    //         style={{
-    //           width: `${checkpointSize}px`,
-    //           height: `${checkpointSize}px`,
-    //           fontSize: `${fontSize}px`
-    //         }}
-    //       >
-    //         {checkpoint.number}
-    //       </div>
-    //     </div>
-    //   );
-    //}
+    //Checkpoints
+    const checkpoint = course.definition.checkpoints?.find(
+      (cp: Checkpoint) => cp.position.x === x && cp.position.y === y
+    );
+    if (checkpoint) {
+      elements.push(
+        <div key="checkpoint" className="absolute inset-0 flex items-center justify-center">
+          <div
+            className="bg-white rounded-full flex items-center justify-center text-black font-bold border-4 border-black"
+            style={{
+              width: `${checkpointSize}px`,
+              height: `${checkpointSize}px`,
+              fontSize: `${fontSize}px`
+            }}
+          >
+            {checkpoint.number}
+          </div>
+        </div>
+      );
+    }
 
     // Starting positions (if no checkpoint there)
     const isStart = course.board.startingPositions.some(
