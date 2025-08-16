@@ -32,16 +32,7 @@ export default function CoursePreview({ courseId, size = 300 }: CoursePreviewPro
                 {course.definition.name} ({course.definition.boards.length} boards)
             </div>
             <div className={`flex ${course.definition.boards.length > 2 ? 'flex-wrap' : 'flex-col'} gap-2`}>
-                {course.definition.boards.map((board, index) => (
-                    <div key={index} className="relative">
-                        <div className="text-xs text-gray-500 mb-1">
-                            {index === 0 && course.definition.boards.length > 1 ? 'Factory Floor' :
-                                index === course.definition.boards.length - 1 && course.definition.boards.length > 1 ? 'Docking Bay' :
-                                    `Board ${index + 1}`}
-                        </div>
-                        <BoardPreview course={course} size={boardSize} />
-                    </div>
-                ))}
+                <BoardPreview course={course} size={boardSize} />
             </div>
         </div>
     );
