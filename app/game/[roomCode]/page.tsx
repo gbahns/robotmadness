@@ -33,13 +33,14 @@ export default function GamePage() {
   const [winner, setWinner] = useState<string | null>(null);
   const [boardPhase, setBoardPhase] = useState<string | null>(null);
   const [activeLasers, setActiveLasers] = useState<RobotLaserShot[]>([]);
-  const [selectedCourse, setSelectedCourse] = useState<string>('test');
+  const [selectedCourse, setSelectedCourse] = useState<string>();
   const [previewBoard, setPreviewBoard] = useState<any>(null);
   const [showPowerDownModal, setShowPowerDownModal] = useState(false);
 
   useEffect(() => {
     // Build preview board when course is selected
-    const course = getCourseById(selectedCourse) || TEST_BOARD;
+    if (!selectedCourse) return;
+    const course = getCourseById(selectedCourse);
     if (course) {
       setPreviewBoard(course);
     }
@@ -178,6 +179,7 @@ export default function GamePage() {
         }]);
       }
       setGameState(state);
+      setSelectedCourse(state.course.definition.id);
       setLoading(false);
 
       if (state.phase === 'programming' && state.players[playerIdRef.current]?.dealtCards?.length > 0) {
@@ -679,7 +681,7 @@ export default function GamePage() {
               {/* Game Board - takes most space - removed gray container - responsive container*/}
               <div className="flex-1 flex items-center justify-center">
                 <Course
-                  courseId={selectedCourse}
+                  courseId={selectedCourse || ""}
                   players={gameState?.players || {}}
                   currentPlayerId={playerIdRef.current}
                   isHost={isHost}

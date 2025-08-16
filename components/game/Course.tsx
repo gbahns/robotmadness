@@ -46,7 +46,11 @@ export default function Course({
 
         // Get course and its boards
         const courseDefinition = getCourseById(courseId);
-        buildCourse(courseDefinition);
+        const course = buildCourse(courseDefinition);
+        setBoard(course);
+        //setCourseName(courseDefinition.name);
+
+        console.log('Course built and set:', courseDefinition.name, 'Board size:', course.board.width, 'x', course.board.height);
 
         // if (courseDefinition) {
         //     setCourseName(courseDefinition.name);
