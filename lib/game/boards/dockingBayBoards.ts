@@ -22,60 +22,44 @@ export const RISKY_EXCHANGE_DOCKING_BAY: BoardDefinition = {
         { position: { x: 0, y: 2 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
         { position: { x: 1, y: 2 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
         { position: { x: 2, y: 2 }, type: TileType.CONVEYOR, direction: Direction.DOWN },
-        // Gap for starting position 3
-        { position: { x: 4, y: 2 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
-        // Starting positions 1 and 2 are at x:5,6
-        { position: { x: 7, y: 2 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
-        // Starting position 4 at x:8
-        { position: { x: 9, y: 2 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
-        { position: { x: 10, y: 2 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
-        { position: { x: 11, y: 2 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
-
-        // Row 3 (y=3) - Bottom row conveyors
         { position: { x: 2, y: 3 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
         { position: { x: 3, y: 3 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
         { position: { x: 4, y: 3 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
-        { position: { x: 5, y: 3 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
-        { position: { x: 6, y: 3 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
-        { position: { x: 7, y: 3 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
+
+        { position: { x: 11, y: 2 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
+        { position: { x: 10, y: 2 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
+        { position: { x: 9, y: 2 }, type: TileType.CONVEYOR, direction: Direction.DOWN },
+        { position: { x: 9, y: 3 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
         { position: { x: 8, y: 3 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
-        { position: { x: 9, y: 3 }, type: TileType.CONVEYOR, direction: Direction.UP }
+        { position: { x: 7, y: 3 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
+        // Starting position 4 at x:8
+
+        // Row 3 (y=3) - Bottom row conveyors
+        // { position: { x: 5, y: 3 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
+        // { position: { x: 6, y: 3 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
+        // { position: { x: 7, y: 3 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
+        // { position: { x: 8, y: 3 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
+        // { position: { x: 9, y: 3 }, type: TileType.CONVEYOR, direction: Direction.UP }
     ],
     lasers: [],
     walls: [
-        // Walls around starting position 5 (x:1, y:1)
+        // top row walls
+        { position: { x: 2, y: 0 }, sides: [Direction.UP] },
+        { position: { x: 4, y: 0 }, sides: [Direction.UP, Direction.LEFT] },
+        { position: { x: 7, y: 0 }, sides: [Direction.UP, Direction.RIGHT] },
+        { position: { x: 9, y: 0 }, sides: [Direction.UP] },
+
+        //second row walls - around starting positions 5 and 6
         { position: { x: 0, y: 1 }, sides: [Direction.RIGHT] },
         { position: { x: 2, y: 1 }, sides: [Direction.LEFT] },
-
-        // Walls around starting position 6 (x:10, y:1)
         { position: { x: 9, y: 1 }, sides: [Direction.RIGHT] },
         { position: { x: 11, y: 1 }, sides: [Direction.LEFT] },
 
+        // third and fourth row walls
+
         // Walls creating the conveyor path boundaries
-        { position: { x: 2, y: 2 }, sides: [Direction.RIGHT] },
-        { position: { x: 3, y: 2 }, sides: [Direction.LEFT, Direction.RIGHT] },
-        { position: { x: 4, y: 2 }, sides: [Direction.LEFT] },
-
-        { position: { x: 6, y: 2 }, sides: [Direction.RIGHT] },
-        { position: { x: 7, y: 2 }, sides: [Direction.LEFT, Direction.RIGHT] },
-        { position: { x: 8, y: 2 }, sides: [Direction.LEFT, Direction.RIGHT] },
-        { position: { x: 9, y: 2 }, sides: [Direction.LEFT] },
-
-        // Bottom edge walls
-        { position: { x: 2, y: 3 }, sides: [Direction.DOWN] },
-        { position: { x: 3, y: 3 }, sides: [Direction.DOWN] },
-        { position: { x: 4, y: 3 }, sides: [Direction.DOWN] },
-        { position: { x: 5, y: 3 }, sides: [Direction.DOWN, Direction.RIGHT] },
-        { position: { x: 6, y: 3 }, sides: [Direction.DOWN, Direction.LEFT] },
-        { position: { x: 7, y: 3 }, sides: [Direction.DOWN] },
-        { position: { x: 8, y: 3 }, sides: [Direction.DOWN] },
-        { position: { x: 9, y: 3 }, sides: [Direction.DOWN, Direction.RIGHT] },
-
-        // Outer boundary walls
-        { position: { x: 0, y: 0 }, sides: [Direction.LEFT, Direction.UP] },
-        { position: { x: 11, y: 0 }, sides: [Direction.RIGHT, Direction.UP] },
-        { position: { x: 0, y: 2 }, sides: [Direction.LEFT] },
-        { position: { x: 11, y: 2 }, sides: [Direction.RIGHT] }
+        { position: { x: 5, y: 2 }, sides: [Direction.RIGHT] },
+        { position: { x: 5, y: 3 }, sides: [Direction.RIGHT] },
     ]
 };
 
