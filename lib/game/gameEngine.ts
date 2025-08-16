@@ -1,6 +1,6 @@
 import { GameState, Player, ProgramCard, Tile, Direction, CardType, GamePhase, Board, PowerState } from './types';
 import { TileType } from './types/enums';
-import { getBoardById, BoardDefinition } from './boards/factoryFloorBoards';
+import { getBoardById } from './boards/factoryFloorBoards';
 import { GAME_CONFIG } from './constants';
 
 export interface ServerGameState extends GameState {
@@ -59,6 +59,8 @@ export class GameEngine {
     createGame(roomCode: string, name: string, boardId?: string): ServerGameState {
         console.log(`Creating game with room code: ${roomCode}, name: ${name}, boardId: ${boardId}`);
         const board = getBoardById(boardId || 'default') as Board;
+        console.log('creating game with board:', boardId, 'starting positions:', board.startingPositions);
+
         // If getBoardById could return undefined, provide a fallback:
         // const board = getBoardById(boardId || 'default') as Board ?? getBoardById('default') as Board;
 
@@ -93,12 +95,14 @@ export class GameEngine {
         const board = getBoardById(boardId);
         gameState.board = board;
         gameState.selectedBoard = boardId;
+        console.log(`Board selected: ${boardId} height:${board.height}, checkpoints:${board.checkpoints} starting positions:`, board.startingPositions);
         return board;
     }
 
     startGame(gameState: ServerGameState, selectedCourse: string): void {
         gameState.phase = GamePhase.STARTING;
         const startingPositions = [...gameState.board.startingPositions];
+        console.log(`Starting game with course: ${selectedCourse} ${gameState.selectedBoard} ${gameState.board}}, starting positions:`, startingPositions);
         for (const playerId in gameState.players) {
             const player = gameState.players[playerId];
             const startPos = startingPositions.shift();
@@ -192,10 +196,10 @@ export class GameEngine {
         }
 
         const deck = this.createDeck(lockedCards);
-        console.log('created deck', deck);
+        //console.log('created deck', deck);
 
         this.shuffleDeck(deck);
-        console.log('shuffled deck', deck);
+        //console.log('shuffled deck', deck);
 
         for (const playerId in gameState.players) {
             const player = gameState.players[playerId];

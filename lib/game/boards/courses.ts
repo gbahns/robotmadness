@@ -251,7 +251,9 @@ export const ALL_COURSE_DEFINITIONS: CourseDefinition[] = [
 // =============================================================================
 
 export function getCourseById(courseId: string): CourseDefinition | undefined {
-    return ALL_COURSE_DEFINITIONS.find(course => course.id === courseId);
+    const course = ALL_COURSE_DEFINITIONS.find(course => course.id === courseId);
+    console.log(`getCourseById(${courseId})`, course);
+    return course;
 }
 
 export function getCoursesByDifficulty(difficulty: 'beginner' | 'intermediate' | 'expert'): CourseDefinition[] {
@@ -361,8 +363,7 @@ export function combineBoardsVertically(topBoard: BoardDefinition, bottomBoard: 
         name: `${topBoard.name} with ${bottomBoard.name}`,
         width: Math.max(topBoard.width, bottomBoard.width),
         height: combinedHeight,
-        //checkpoints: [], //topBoard.checkpoints, // Usually only factory floor has checkpoints
-        startingPositions: offsetBottomStartingPositions, // Usually only docking bay has starting positions
+        startingPositions: offsetBottomStartingPositions,
         tiles: combinedTiles.length > 0 ? combinedTiles : undefined,
         lasers: combinedLasers.length > 0 ? combinedLasers : undefined,
         walls: combinedWalls.length > 0 ? combinedWalls : undefined
