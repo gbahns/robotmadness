@@ -144,7 +144,7 @@ export default function BoardPreview({ course, size = 300 }: BoardPreviewProps) 
             </div>
 
             {/* Legend */}
-            <div className="mt-2 text-xs text-gray-400 flex flex-wrap gap-2">
+            {/* <div className="mt-2 text-xs text-gray-400 flex flex-wrap gap-2">
                 <span className="flex items-center gap-1">
                     <span className="inline-block w-3 h-3 bg-green-600 opacity-50"></span> Start
                 </span>
@@ -166,7 +166,7 @@ export default function BoardPreview({ course, size = 300 }: BoardPreviewProps) 
                         <span className="inline-block w-3 h-3 bg-red-600"></span> Laser
                     </span>
                 )}
-            </div>
+            </div> */}
         </div>
     );
 }
