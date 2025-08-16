@@ -176,10 +176,11 @@ export function getBoardDefinitionById(boardId: string): BoardDefinition | undef
 // Get built board by ID (for game engine)
 export function getBoardById(boardId: string): Board {
     const boardDef = getBoardDefinitionById(boardId);
-    if (boardDef) {
-        return buildBoard(boardDef);
+    console.log(`getBoardById(${boardId})`, boardDef);
+    if (!boardDef) {
+        throw new Error(`Board with ID '${boardId}' not found`);
     }
-    return buildBoard(TEST_BOARD);
+    return buildBoard(boardDef);
 }
 
 
