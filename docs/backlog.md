@@ -1,4 +1,5 @@
 ## Backlog
+* rename BoardPreview to CoursePreview
 * when all players are powered down the game gets stuck
 * hide the whole registers section and the player's hand when powered down?
 * starting space mini boards
