@@ -1,5 +1,5 @@
-import { Board, Checkpoint, StartingPosition, TileType, Direction, BoardDefinition } from '../types';
-import { buildBoard } from './boardBuilder';
+import { Course, Checkpoint, StartingPosition, TileType, Direction, BoardDefinition } from '../types';
+//import { buildBoard } from './boardBuilder';
 import { OFFICIAL_BOARD_DEFINITIONS } from './officialBoards';
 import { DOCKING_BAY_BOARDS } from './dockingBayBoards';
 
@@ -173,32 +173,16 @@ export function getBoardDefinitionById(boardId: string): BoardDefinition | undef
     return ALL_BOARD_DEFINITIONS.find(board => board.id === boardId);
 }
 
-// Get built board by ID (for game engine)
-export function getBoardById(boardId: string): Board {
-    const boardDef = getBoardDefinitionById(boardId);
-    console.log(`getBoardById(${boardId})`, boardDef);
-    if (!boardDef) {
-        throw new Error(`Board with ID '${boardId}' not found`);
-    }
-    return buildBoard(boardDef);
-}
-
-
-// Create empty board
-export function createEmptyBoard(width: number = 12, height: number = 12): Board {
-    const tiles = Array(height).fill(null).map(() =>
-        Array(width).fill(null).map(() => ({
-            type: TileType.EMPTY,
-            position: { x: 0, y: 0 },
-            walls: []
-        }))
-    );
-
-    return {
-        width,
-        height,
-        tiles,
-        checkpoints: [],
-        startingPositions: []
-    };
-}
+//Get built board by ID (for game engine)
+//this needs to be refactored; not sure what it's purpose is
+//if we want to get a board by id, it should be to either include it in a course, in which case we shouldn't be doing that here
+//or it could be to view individual boards for design purposes
+//in either case we should just be returning BoardDefintion or Board, not Course
+// export function getBoardById(boardId: string): Course {
+//     const boardDef = getBoardDefinitionById(boardId);
+//     console.log(`getBoardById(${boardId})`, boardDef);
+//     if (!boardDef) {
+//         throw new Error(`Board with ID '${boardId}' not found`);
+//     }
+//     return buildBoard(boardDef);
+// }

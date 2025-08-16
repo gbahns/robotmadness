@@ -1,12 +1,12 @@
 // components/game/Board.tsx
 import React, { useEffect, useState, useRef } from 'react';
-import { Board as BoardType, Player, Direction, Position, Tile, Checkpoint, Laser, TileType } from '@/lib/game/types';
+import { BoardDefinition, Course, Player, Direction, Position, Tile, Checkpoint, Laser, TileType } from '@/lib/game/types';
 import RobotLaserAnimation, { RobotLaserShot } from './RobotLaserAnimation';
 import Robot from './Robot';
 import { socketClient } from '@/lib/socket';
 
 interface BoardProps {
-  board: BoardType;
+  course: Course;
   players: Record<string, Player>;
   currentPlayerId?: string;
   isHost?: boolean;
@@ -20,13 +20,13 @@ const DIRECTION_ARROWS = ['↑', '→', '↓', '←'];
 
 const ROBOT_COLORS = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan'];
 
-export default function Board({ board, players, activeLasers = [], currentPlayerId, isHost, gameState, roomCode }: BoardProps) {
+export default function Board({ course, players, activeLasers = [], currentPlayerId, isHost, gameState, roomCode }: BoardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [tileSize, setTileSize] = useState(50);
 
   useEffect(() => {
     const calculateTileSize = () => {
-      if (!containerRef.current || !board) return;
+      if (!containerRef.current || !course) return;
 
       const container = containerRef.current;
       const containerWidth = container.clientWidth;
@@ -34,8 +34,8 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
 
       // Calculate the maximum tile size that fits in the container
       // Leave some margin for the phase indicator below
-      const maxWidthTileSize = Math.floor(containerWidth / board.width);
-      const maxHeightTileSize = Math.floor((containerHeight - 60) / board.height); // 60px for phase indicator
+      const maxWidthTileSize = Math.floor(containerWidth / course.board.width);
+      const maxHeightTileSize = Math.floor((containerHeight - 60) / course.board.height); // 60px for phase indicator
 
       // Use the smaller of the two to ensure the board fits
       const newTileSize = Math.min(maxWidthTileSize, maxHeightTileSize, 80); // Cap at 80px max
@@ -56,16 +56,16 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
       window.removeEventListener('resize', calculateTileSize);
       resizeObserver.disconnect();
     };
-  }, [board]);
+  }, [course]);
 
   // Show pre-game controls when game hasn't started
-  if (!board || gameState?.phase === 'waiting') {
+  if (!course || gameState?.phase === 'waiting') {
     // Use players from gameState if available, as it's more up-to-date
     const currentPlayers = gameState?.players || players || {};
     const playerCount = Object.keys(currentPlayers).length;
 
     console.log('Board waiting state:', {
-      board: !!board,
+      board: !!course,
       phase: gameState?.phase,
       playerCount,
       isHost,
@@ -77,7 +77,7 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
     });
 
     // If we have a board (preview mode), show it instead of the waiting message
-    if (board) {
+    if (course) {
       // Continue to render the board normally - it will show the selected course layout
       // Just without any robots on it yet
     } else {
@@ -126,20 +126,20 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
   // Get tile element at position (for enhanced boards)
   const getTileAt = (x: number, y: number): Tile | undefined => {
     // Check if board has the tiles array
-    if (!board.tiles || !Array.isArray(board.tiles)) {
+    if (!course.board.tiles || !Array.isArray(course.board.tiles)) {
       return undefined;
     }
 
     // Check if it's a 2D array (the expected format after buildBoard)
-    if (board.tiles.length > 0 && Array.isArray(board.tiles[0])) {
+    if (course.board.tiles.length > 0 && Array.isArray(course.board.tiles[0])) {
       // It's a 2D array - this is the standard format
-      const row = board.tiles[y];
-      if (row && row[x]) {
+      const row = course.board.tiles[y];
+      if (row && Array.isArray(row) && row[x]) {
         return row[x] as Tile;
       }
-    } else if (board.tiles.length > 0 && 'position' in board.tiles[0]) {
+    } else if (course.board.tiles.length > 0 && 'position' in course.board.tiles[0]) {
       // It's a flat array (shouldn't happen after buildBoard, but handle it anyway)
-      const tile = (board.tiles as any[]).find(
+      const tile = (course.board.tiles as any[]).find(
         (t: any) => t.position?.x === x && t.position?.y === y
       );
       return tile;
@@ -150,11 +150,11 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
 
   // Get walls at a specific position
   const getWallsAt = (x: number, y: number): Direction[] => {
-    if (!board.walls || !Array.isArray(board.walls)) {
+    if (!course.board.walls || !Array.isArray(course.board.walls)) {
       return [];
     }
 
-    const wall = board.walls.find(
+    const wall = course.board.walls.find(
       (w: any) => w.position.x === x && w.position.y === y
     );
 
@@ -163,8 +163,8 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
 
   // Get laser at position (for enhanced boards)
   const getLaserAt = (x: number, y: number): Laser | undefined => {
-    if (board.lasers && Array.isArray(board.lasers)) {
-      return (board.lasers as any[]).find((laser: any) => laser.position?.x === x && laser.position?.y === y);
+    if (course.board.lasers && Array.isArray(course.board.lasers)) {
+      return (course.board.lasers as any[]).find((laser: any) => laser.position?.x === x && laser.position?.y === y);
     }
     return undefined;
   };
@@ -196,9 +196,9 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
     // Trace the full path until hitting board edge or wall
     while (
       currentX >= 0 &&
-      currentX < board.width &&
+      currentX < course.board.width &&
       currentY >= 0 &&
-      currentY < board.height
+      currentY < course.board.height
     ) {
       path.push({ x: currentX, y: currentY });
 
@@ -215,8 +215,8 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
   const getAllLaserBeams = (): { laser: Laser; path: Position[] }[] => {
     const beams: { laser: Laser; path: Position[] }[] = [];
 
-    if (board.lasers && Array.isArray(board.lasers)) {
-      board.lasers.forEach((laser: any) => {
+    if (course.board.lasers && Array.isArray(course.board.lasers)) {
+      course.board.lasers.forEach((laser: any) => {
         const path = calculateLaserBeamPath(laser);
         beams.push({ laser, path });
       });
@@ -436,37 +436,36 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
     }
 
     // Checkpoints
-    const checkpoint = board.checkpoints?.find(
-      (cp: Checkpoint) => cp.position.x === x && cp.position.y === y
+    // const checkpoint = board.checkpoints?.find(
+    //   (cp: Checkpoint) => cp.position.x === x && cp.position.y === y
+    // );
+    // if (checkpoint) {
+    //   elements.push(
+    //     <div key="checkpoint" className="absolute inset-0 flex items-center justify-center">
+    //       <div
+    //         className="bg-white rounded-full flex items-center justify-center text-black font-bold border-4 border-black"
+    //         style={{
+    //           width: `${checkpointSize}px`,
+    //           height: `${checkpointSize}px`,
+    //           fontSize: `${fontSize}px`
+    //         }}
+    //       >
+    //         {checkpoint.number}
+    //       </div>
+    //     </div>
+    //   );
+    //}
+
+    // Starting positions (if no checkpoint there)
+    const isStart = course.board.startingPositions.some(
+      sp => sp.position.x === x && sp.position.y === y
     );
-    if (checkpoint) {
+    if (isStart) {
       elements.push(
-        <div key="checkpoint" className="absolute inset-0 flex items-center justify-center">
-          <div
-            className="bg-white rounded-full flex items-center justify-center text-black font-bold border-4 border-black"
-            style={{
-              width: `${checkpointSize}px`,
-              height: `${checkpointSize}px`,
-              fontSize: `${fontSize}px`
-            }}
-          >
-            {checkpoint.number}
-          </div>
-        </div>
+        <div key="start" className="absolute inset-0 bg-green-800 opacity-50" />
       );
     }
 
-    // Starting positions (if no checkpoint there)
-    if (!checkpoint) {
-      const isStart = board.startingPositions.some(
-        sp => sp.position.x === x && sp.position.y === y
-      );
-      if (isStart) {
-        elements.push(
-          <div key="start" className="absolute inset-0 bg-green-800 opacity-50" />
-        );
-      }
-    }
 
     // Laser source wall indicator
     // Laser source wall indicator
@@ -835,13 +834,13 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
       <div
         className="relative bg-gray-900"
         style={{
-          width: board.width * tileSize,
-          height: board.height * tileSize
+          width: course.board.width * tileSize,
+          height: course.board.height * tileSize
         }}
       >
         {/* Render tiles */}
-        {Array.from({ length: board.height }, (_, y) => (
-          Array.from({ length: board.width }, (_, x) => (
+        {Array.from({ length: course.board.height }, (_, y) => (
+          Array.from({ length: course.board.width }, (_, x) => (
             <div
               key={`${x}-${y}`}
               className="absolute"
@@ -870,9 +869,9 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
 
       {/* Current phase indicator */}
       {/* @ts-ignore - gameState might be passed through parent */}
-      {(board as any).phase === 'executing' && (
+      {(course as any).phase === 'executing' && (
         <div className="mt-4 p-2 bg-yellow-600 text-black rounded">
-          Executing Register {((board as any).currentRegister || 0) + 1} of 5
+          Executing Register {((course as any).currentRegister || 0) + 1} of 5
         </div>
       )}
     </div>

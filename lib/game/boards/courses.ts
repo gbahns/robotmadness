@@ -1,8 +1,6 @@
-import { BoardDefinition, TileElement, LaserElement, WallElement } from '../types';
-import { RISKY_EXCHANGE_DOCKING_BAY, DOCKING_BAY_4P, DOCKING_BAY_8P, DOCKING_BAY_WIDE, DOCKING_BAY_COMPACT, SIMPLE_FACTORY_FLOOR, CONVEYOR_FACTORY_FLOOR } from './dockingBayBoards';
-import { } from './factoryFloorBoards';
-import { EXCHANGE_FACTORY_FLOOR } from './officialBoards';
-import { Checkpoint } from '../types';
+import { BoardDefinition, CourseDefinition, Course, TileElement, LaserElement, WallElement, Tile, Laser, TileType } from '../types';
+import { DOCKING_BAY_4P, DOCKING_BAY_8P, DOCKING_BAY_WIDE, DOCKING_BAY_COMPACT, SIMPLE_FACTORY_FLOOR, CONVEYOR_FACTORY_FLOOR } from './dockingBayBoards';
+import { getBoardDefinitionById } from './factoryFloorBoards';
 
 // =============================================================================
 // OFFICIAL MULTI-BOARD COURSES (from RoboRally manual)
@@ -11,18 +9,6 @@ import { Checkpoint } from '../types';
 // =============================================================================
 // COURSE DEFINITIONS
 // =============================================================================
-
-export interface CourseDefinition {
-    id: string;
-    name: string;
-    description: string;
-    difficulty: 'beginner' | 'intermediate' | 'expert';
-    minPlayers: number;
-    maxPlayers: number;
-    boards: string[]; // Array of board IDs, not embedded boards
-    checkpoints: Checkpoint[];
-}
-
 
 // OFFICIAL RISKY EXCHANGE COURSE - References the individual boards
 export const OFFICIAL_RISKY_EXCHANGE: CourseDefinition = {
@@ -250,8 +236,11 @@ export const ALL_COURSE_DEFINITIONS: CourseDefinition[] = [
 // HELPER FUNCTIONS
 // =============================================================================
 
-export function getCourseById(courseId: string): CourseDefinition | undefined {
+export function getCourseById(courseId: string): CourseDefinition {
     const course = ALL_COURSE_DEFINITIONS.find(course => course.id === courseId);
+    if (!course) {
+        throw new Error(`Course with ID ${courseId} not found`);
+    }
     console.log(`getCourseById(${courseId})`, course);
     return course;
 }
@@ -264,6 +253,102 @@ export function getCoursesForPlayerCount(playerCount: number): CourseDefinition[
     return ALL_COURSE_DEFINITIONS.filter(
         course => playerCount >= course.minPlayers && playerCount <= course.maxPlayers
     );
+}
+
+export function buildCourse(courseDef: CourseDefinition): Course {
+    // Get all board definitions
+    const boardDefs = courseDef.boards
+        .map(id => getBoardDefinitionById(id))
+        .filter(Boolean) as BoardDefinition[];
+
+    if (boardDefs.length === 0) {
+        throw new Error(`No valid boards found for course: ${courseDef.id}`);
+    }
+
+    // Separate factory floors and docking bays
+    const factoryFloors = boardDefs.filter(b => !b.id.includes('docking'));
+    const dockingBays = boardDefs.filter(b => b.id.includes('docking'));
+
+    let combinedBoard: BoardDefinition;
+
+    if (boardDefs.length === 1) {
+        combinedBoard = boardDefs[0];
+    } else if (factoryFloors.length > 0 && dockingBays.length > 0) {
+        combinedBoard = combineBoardsVertically(factoryFloors[0], dockingBays[0]);
+
+        // If there are multiple factory floors, combine them too
+        for (let i = 1; i < factoryFloors.length; i++) {
+            combinedBoard = combineBoardsVertically(combinedBoard, factoryFloors[i]);
+        }
+    } else {
+        throw new Error(`Invalid board configuration for course: ${courseDef.id}`);
+    }
+
+    const tiles: Tile[][] = [];
+    for (let y = 0; y < combinedBoard.height; y++) {
+        const row: Tile[] = [];
+        for (let x = 0; x < combinedBoard.width; x++) {
+            row.push({
+                position: { x, y },
+                type: TileType.EMPTY,
+                walls: [] // Initialize empty walls array for each tile
+            });
+        }
+        tiles.push(row);
+    }
+
+    // Place special tiles
+    if (combinedBoard.tiles) {
+        for (const tileDef of combinedBoard.tiles) {
+            const { x, y } = tileDef.position;
+            if (x >= 0 && x < combinedBoard.width && y >= 0 && y < combinedBoard.height) {
+                tiles[y][x] = {
+                    position: { x, y },
+                    type: tileDef.type,
+                    walls: [], // Will be populated below
+                    direction: tileDef.direction,
+                    rotate: tileDef.rotate,
+                    registers: tileDef.registers
+                };
+            }
+        }
+    }
+
+    // Add walls to tiles
+    if (combinedBoard.walls) {
+        for (const wallDef of combinedBoard.walls) {
+            const { x, y } = wallDef.position;
+            if (x >= 0 && x < combinedBoard.width && y >= 0 && y < combinedBoard.height) {
+                // Add the wall sides to the tile's walls array
+                tiles[y][x].walls = [...tiles[y][x].walls, ...wallDef.sides];
+            }
+        }
+    }
+
+    // Build laser array if present
+    const lasers: Laser[] | undefined = combinedBoard.lasers ?
+        combinedBoard.lasers.map(laserDef => ({
+            position: laserDef.position,
+            direction: laserDef.direction,
+            damage: laserDef.damage
+        })) : undefined;
+
+    const course: Course = {
+        definition: courseDef,
+        board: {
+            width: combinedBoard.width,
+            height: combinedBoard.height,
+            tiles,
+            startingPositions: combinedBoard.startingPositions,
+            lasers,
+            // NEW: Pass walls directly to board for easier lookup
+            walls: combinedBoard.walls
+        }
+    };
+
+    // Build the board from the combined definition
+    //const course = buildBoard(combinedBoard);
+    return course;
 }
 
 /**

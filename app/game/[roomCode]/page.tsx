@@ -4,7 +4,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { GameState, ProgramCard, Player, PowerState } from '@/lib/game/types';
 import { socketClient } from '@/lib/socket';
-import Board from '@/components/game/Board';
 import Course from '@/components/game/Course';
 import Hand from '@/components/game/Hand';
 import ProgramRegisters from '@/components/game/ProgramRegisters';
@@ -13,9 +12,9 @@ import ExecutionLog from '@/components/game/ExecutionLog';
 import { RobotLaserShot } from '@/components/game/RobotLaserAnimation';
 import GameControls from '@/components/game/GameControls';
 import ProgrammingControls from '@/components/game/ProgrammingControls';
-import { getBoardById, TEST_BOARD } from '@/lib/game/boards/factoryFloorBoards';
+import { TEST_BOARD } from '@/lib/game/boards/factoryFloorBoards';
 import PowerDownModal from '@/components/game/PowerDownModal';
-import { buildBoard } from '@/lib/game/boards/boardBuilder';
+import { getCourseById } from '@/lib/game/boards/courses';
 
 export default function GamePage() {
   const params = useParams();
@@ -40,9 +39,9 @@ export default function GamePage() {
 
   useEffect(() => {
     // Build preview board when course is selected
-    const board = getBoardById(selectedCourse) || TEST_BOARD;
-    if (board) {
-      setPreviewBoard(board);
+    const course = getCourseById(selectedCourse) || TEST_BOARD;
+    if (course) {
+      setPreviewBoard(course);
     }
   }, [selectedCourse]);
 

@@ -81,7 +81,7 @@ export interface GameState {
   phase: GamePhase;
   currentRegister: number;
   players: Record<string, Player>;
-  board: Board;
+  course: Course;
   roundNumber: number;
   cardsDealt: boolean;
 }
@@ -91,10 +91,21 @@ export interface BoardDefinition {
   name: string;
   width: number;
   height: number;
-  startingPositions: StartingPosition[];
   tiles?: TileElement[];
   lasers?: LaserElement[];
   walls?: WallElement[];
+  startingPositions: StartingPosition[];
+}
+
+export interface CourseDefinition {
+  id: string;
+  name: string;
+  description: string;
+  difficulty: 'beginner' | 'intermediate' | 'expert';
+  minPlayers: number;
+  maxPlayers: number;
+  boards: string[]; // Array of board IDs, not embedded boards
+  checkpoints: Checkpoint[];
 }
 
 export interface TileElement {
@@ -116,14 +127,23 @@ export interface WallElement {
   sides: Direction[]; // Which sides of the tile have walls
 }
 
-export interface Board {
-  width: number;
-  height: number;
-  tiles: Tile[][];
-  checkpoints: Checkpoint[];
-  startingPositions: StartingPosition[];
-  walls?: WallElement[];
-  lasers?: Laser[];
+/**
+ * Course - A compiled, playable game surface
+ * References its definition for metadata, contains the built board
+ */
+export interface Course {
+  definition: CourseDefinition;
+
+  board: {
+    width: number;
+    height: number;
+    tiles: Tile[][];
+    startingPositions: StartingPosition[];
+    walls?: WallElement[];
+    lasers?: Laser[];
+  }
+
+  // Note: checkpoints come from definition.checkpoints
 }
 
 export interface Laser {

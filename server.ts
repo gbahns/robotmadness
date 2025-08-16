@@ -2,9 +2,8 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import next from 'next';
-import { GameState, ProgramCard, GamePhase, Board, Player, PowerState } from './lib/game/types';
+import { GameState, ProgramCard, GamePhase, Course, Player, PowerState } from './lib/game/types';
 import { GameEngine, ServerGameState } from './lib/game/gameEngine';
-import { CourseDefinition } from './lib/game/boards/courses';
 
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });
@@ -25,7 +24,7 @@ interface ServerToClientEvents {
     'execution-update': (data: { message: string; playerId?: string; action?: string }) => void;
     'card-executed': (data: { playerId: string; playerName: string; card: ProgramCard; register: number }) => void;
     'game-ended': (data: { winner: string }) => void;
-    'course-selected': (data: { courseId: string, previewCourse: Board }) => void;
+    'course-selected': (data: { courseId: string, previewCourse: Course }) => void;
     'error': (data: { message: string }) => void;
     'player-submitted': (data: { playerId: string, playerName: string }) => void;
     'register-start': (data: { register: number }) => void;
@@ -102,49 +101,49 @@ app.prepare().then(() => {
     io.on('connection', (socket: IoSocket) => {
         console.log('Client connected:', socket.id);
 
-        socket.on('create-game', ({ playerName, playerId: playerId, courseId }, callback) => {
-            console.log(`create-game event received: ${playerName}, playerId: ${playerId}, courseId: ${courseId}`);
-            if (!playerId || !playerName) {
-                if (callback) {
-                    callback({ success: false, error: 'playerId and playerName are required' });
-                }
-                return;
-            }
+        // socket.on('create-game', ({ playerName, playerId: playerId, courseId }, callback) => {
+        //     console.log(`create-game event received: ${playerName}, playerId: ${playerId}, courseId: ${courseId}`);
+        //     if (!playerId || !playerName) {
+        //         if (callback) {
+        //             callback({ success: false, error: 'playerId and playerName are required' });
+        //         }
+        //         return;
+        //     }
 
-            try {
-                const roomCode = generateRoomCode();
-                console.log(`Creating game with room code: ${roomCode}, player: ${playerName}, courseId: ${courseId}`);
-                const gameState = gameEngine.createGame(roomCode, "{playerName}'s Game");
-                gameEngine.addPlayerToGame(gameState, playerId, playerName);
+        //     try {
+        //         const roomCode = generateRoomCode();
+        //         console.log(`Creating game with room code: ${roomCode}, player: ${playerName}, courseId: ${courseId}`);
+        //         const gameState = gameEngine.createGame(roomCode, "{playerName}'s Game");
+        //         gameEngine.addPlayerToGame(gameState, playerId, playerName);
 
-                games.set(roomCode, gameState);
+        //         games.set(roomCode, gameState);
 
-                socket.join(roomCode);
-                socket.join(playerId);
-                socket.data.roomCode = roomCode;
-                socket.data.playerId = playerId;
+        //         socket.join(roomCode);
+        //         socket.join(playerId);
+        //         socket.data.roomCode = roomCode;
+        //         socket.data.playerId = playerId;
 
-                if (callback) {
-                    callback({
-                        success: true,
-                        roomCode,
-                        game: gameState
-                    });
-                } else {
-                    socket.emit('game-state', gameState);
-                }
-                console.log(`Game created: ${roomCode} by ${playerName}` + (courseId ? ` with course ${courseId}` : ''));
-            } catch (error) {
-                console.error(`Error creating game: ${error}`);
-                if (callback) {
-                    callback({
-                        success: false,
-                        error: error instanceof Error ? error.message : 'An unknown error occurred'
-                    });
-                }
-            }
-            console.log('create-game event exit');
-        });
+        //         if (callback) {
+        //             callback({
+        //                 success: true,
+        //                 roomCode,
+        //                 game: gameState
+        //             });
+        //         } else {
+        //             socket.emit('game-state', gameState);
+        //         }
+        //         console.log(`Game created: ${roomCode} by ${playerName}` + (courseId ? ` with course ${courseId}` : ''));
+        //     } catch (error) {
+        //         console.error(`Error creating game: ${error}`);
+        //         if (callback) {
+        //             callback({
+        //                 success: false,
+        //                 error: error instanceof Error ? error.message : 'An unknown error occurred'
+        //             });
+        //         }
+        //     }
+        //     console.log('create-game event exit');
+        // });
 
         socket.on('join-game', ({ roomCode, playerName, playerId }) => {
             try {
@@ -184,7 +183,7 @@ app.prepare().then(() => {
             console.log(`Starting game ${roomCode} with course: ${selectedCourse}`);
 
             // Ensure the board is set based on the selected course
-            gameEngine.selectBoard(gameState, selectedCourse);
+            gameEngine.selectCourse(gameState, selectedCourse);
 
             gameEngine.startGame(gameState, selectedCourse);
 
@@ -202,7 +201,8 @@ app.prepare().then(() => {
             const gameState = games.get(roomCode);
             if (!gameState) return;
 
-            const previewCourse = gameEngine.selectBoard(gameState, courseId);
+            gameEngine.selectCourse(gameState, courseId);
+            var previewCourse = gameState.course;
             io.to(roomCode).emit('course-selected', { courseId, previewCourse });
             io.to(roomCode).emit('game-state', gameState);
         });

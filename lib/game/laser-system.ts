@@ -1,5 +1,4 @@
-// lib/game/laser-system.ts
-import { GameState, Player, Position, Board, GamePhase } from './types';
+import { GameState, Player, Position, Course, GamePhase } from './types';
 
 export interface LaserSource {
     position: Position;
@@ -42,8 +41,8 @@ export function getAllLaserSources(gameState: GameState): LaserSource[] {
     const sources: LaserSource[] = [];
 
     // Add board lasers
-    if (gameState.board.lasers) {
-        gameState.board.lasers.forEach(laser => {
+    if (gameState.course.board.lasers) {
+        gameState.course.board.lasers.forEach(laser => {
             sources.push({
                 position: laser.position,
                 direction: laser.direction,
@@ -73,7 +72,7 @@ export function getAllLaserSources(gameState: GameState): LaserSource[] {
  * Check if there's a wall between two adjacent positions
  * REQ-LASER-3: Lasers blocked by walls
  */
-function hasWallBetween(from: Position, to: Position, board: Board): boolean {
+function hasWallBetween(from: Position, to: Position, board: Course): boolean {
     // TODO: Implement wall checking when wall system is implemented
     // For now, return false (no walls)
     return false;
@@ -214,13 +213,13 @@ export function applyLaserDamage(gameState: GameState): void {
 /**
  * Get visual laser beam data for rendering
  */
-export function getLaserBeamsForRendering(board: Board, players: Record<string, Player>): LaserBeam[] {
+export function getLaserBeamsForRendering(course: Course, players: Record<string, Player>): LaserBeam[] {
     // Create a minimal game state for beam calculation
     const gameState: GameState = {
         id: 'temp-laser-calc',
         roomCode: 'temp',
         name: 'Laser Calculation',
-        board,
+        course: course,
         players,
         phase: GamePhase.EXECUTING,
         currentRegister: 0,

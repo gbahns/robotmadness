@@ -1,15 +1,16 @@
 import React from 'react';
 import { BoardDefinition } from '@/lib/game/types';
-import { Board } from '@/lib/game/types';
+import { Course } from '@/lib/game/types';
 
 interface BoardPreviewProps {
-    board: Board;
+    course: Course;
     size?: number; // Size of the preview in pixels
 }
 
 const DIRECTION_ARROWS = ['↑', '→', '↓', '←'];
 
-export default function BoardPreview({ board, size = 300 }: BoardPreviewProps) {
+export default function BoardPreview({ course, size = 300 }: BoardPreviewProps) {
+    const board = course.board;
     const tileSize = Math.floor(size / Math.max(board.width, board.height));
     const boardWidth = board.width * tileSize;
     const boardHeight = board.height * tileSize;
@@ -23,7 +24,7 @@ export default function BoardPreview({ board, size = 300 }: BoardPreviewProps) {
 
     // Create a map of checkpoints
     const checkpointMap = new Map<string, number>();
-    board.checkpoints.forEach(cp => {
+    course.definition.checkpoints.forEach(cp => {
         const key = `${cp.position.x},${cp.position.y}`;
         checkpointMap.set(key, cp.number);
     });

@@ -1,11 +1,10 @@
-import { GameState, Player, ProgramCard, Tile, Direction, CardType, GamePhase, Board, PowerState } from './types';
+import { GameState, Player, ProgramCard, Tile, Direction, CardType, GamePhase, Course, PowerState } from './types';
 import { TileType } from './types/enums';
-import { getBoardById } from './boards/factoryFloorBoards';
 import { GAME_CONFIG } from './constants';
+import { buildCourse, getCourseById, OFFICIAL_RISKY_EXCHANGE } from './boards/courses';
 
 export interface ServerGameState extends GameState {
     host: string;
-    selectedBoard: string;
     winner?: string;
     allPlayersDead?: boolean;
     waitingForPowerDownDecisions?: string[];
@@ -56,13 +55,12 @@ export class GameEngine {
         };
     }
 
-    createGame(roomCode: string, name: string, boardId?: string): ServerGameState {
-        console.log(`Creating game with room code: ${roomCode}, name: ${name}, boardId: ${boardId}`);
-        const board = getBoardById(boardId || 'default') as Board;
-        console.log('creating game with board:', boardId, 'starting positions:', board.startingPositions);
+    createGame(roomCode: string, name: string): ServerGameState {
+        console.log(`Creating game with room code: ${roomCode}, name: ${name}`);
 
-        // If getBoardById could return undefined, provide a fallback:
-        // const board = getBoardById(boardId || 'default') as Board ?? getBoardById('default') as Board;
+        const courseDefinition = getCourseById(OFFICIAL_RISKY_EXCHANGE.id);
+        const course: Course = buildCourse(courseDefinition);
+        //this.selectCourse(gameState, courseId);
 
         const gameState: ServerGameState = {
             id: roomCode,
@@ -71,11 +69,10 @@ export class GameEngine {
             phase: GamePhase.WAITING,
             currentRegister: 0,
             players: {},
-            board: board,
+            course: course,
             roundNumber: 0,
             cardsDealt: false,
             host: '',
-            selectedBoard: boardId || 'default',
         };
 
         return gameState;
@@ -91,18 +88,26 @@ export class GameEngine {
         delete gameState.players[playerId];
     }
 
-    selectBoard(gameState: ServerGameState, boardId: string): Board {
-        const board = getBoardById(boardId);
-        gameState.board = board;
-        gameState.selectedBoard = boardId;
-        console.log(`Board selected: ${boardId} height:${board.height}, checkpoints:${board.checkpoints} starting positions:`, board.startingPositions);
-        return board;
+    // selectBoard(gameState: ServerGameState, boardId: string): Board {
+    //     const board = getBoardById(boardId);
+    //     gameState.board = board;
+    //     gameState.selectedBoard = boardId;
+    //     console.log(`Board selected: ${boardId} height:${board.height}, checkpoints:${board.checkpoints} starting positions:`, board.startingPositions);
+    //     return board;
+    // }
+
+    selectCourse(gameState: ServerGameState, courseId: string): void {
+        console.log(`Selecting course: ${courseId}`);
+        const courseDefinition = getCourseById(courseId);
+        console.log(`Found course: ${courseDefinition.name} with boards: ${courseDefinition.boards.join(', ')}`);
+        gameState.course = buildCourse(courseDefinition);
+        console.log(`Course selected: ${courseId}, board height: ${gameState.course.board.height}`);
     }
 
     startGame(gameState: ServerGameState, selectedCourse: string): void {
         gameState.phase = GamePhase.STARTING;
-        const startingPositions = [...gameState.board.startingPositions];
-        console.log(`Starting game with course: ${selectedCourse} ${gameState.selectedBoard} ${gameState.board}}, starting positions:`, startingPositions);
+        const startingPositions = [...gameState.course.board.startingPositions];
+        console.log(`Starting game with course: ${selectedCourse} ${gameState.course.definition.name}, starting positions:`, startingPositions);
         for (const playerId in gameState.players) {
             const player = gameState.players[playerId];
             const startPos = startingPositions.shift();
@@ -419,8 +424,8 @@ export class GameEngine {
             const newX = player.position.x + vector.x;
             const newY = player.position.y + vector.y;
 
-            if (newX < 0 || newX >= gameState.board.width ||
-                newY < 0 || newY >= gameState.board.height) {
+            if (newX < 0 || newX >= gameState.course.board.width ||
+                newY < 0 || newY >= gameState.course.board.height) {
                 this.destroyRobot(gameState, player, 'fell off board');
                 break;
             }
@@ -435,7 +440,7 @@ export class GameEngine {
                 }
             }
 
-            if (newX >= 0 && newX < gameState.board.width && newY >= 0 && newY < gameState.board.height) {
+            if (newX >= 0 && newX < gameState.course.board.width && newY >= 0 && newY < gameState.course.board.height) {
                 player.position.x = newX;
                 player.position.y = newY;
             } else {
@@ -450,8 +455,8 @@ export class GameEngine {
         const newX = playerToPush.position.x + vector.x;
         const newY = playerToPush.position.y + vector.y;
 
-        if (newX < 0 || newX >= gameState.board.width ||
-            newY < 0 || newY >= gameState.board.height) {
+        if (newX < 0 || newX >= gameState.course.board.width ||
+            newY < 0 || newY >= gameState.course.board.height) {
             this.destroyRobot(gameState, playerToPush, 'fell off board');
             return true; // Pushed off the board
         }
@@ -509,7 +514,7 @@ export class GameEngine {
             if ((player as any).isDead) {
                 if (player.lives > 0) {
                     console.log(`${player.name} is respawning.`);
-                    const startPos = gameState.board.startingPositions[Object.keys(gameState.players).indexOf(player.id) % gameState.board.startingPositions.length];
+                    const startPos = gameState.course.board.startingPositions[Object.keys(gameState.players).indexOf(player.id) % gameState.course.board.startingPositions.length];
                     player.position = { ...startPos.position };
                     player.direction = startPos.direction;
                     (player as any).isDead = false;
@@ -557,7 +562,7 @@ export class GameEngine {
 
         resolvedMovements.forEach(movement => {
             const { player, to, fromTile } = movement;
-            if (to.x < 0 || to.x >= gameState.board.width || to.y < 0 || to.y >= gameState.board.height) {
+            if (to.x < 0 || to.x >= gameState.course.board.width || to.y < 0 || to.y >= gameState.course.board.height) {
                 this.destroyRobot(gameState, player, 'fell off board');
                 return;
             }
@@ -644,8 +649,8 @@ export class GameEngine {
             return damages.get(playerId);
         };
 
-        if (gameState.board.lasers) {
-            gameState.board.lasers.forEach(laser => {
+        if (gameState.course.board.lasers) {
+            gameState.course.board.lasers.forEach(laser => {
                 const hits = this.traceLaser(gameState, laser.position.x, laser.position.y, laser.direction, laser.damage || 1);
                 hits.forEach(hit => {
                     getDamageInfo(hit.player.id).boardDamage += hit.damage;
@@ -663,7 +668,7 @@ export class GameEngine {
             const path: any[] = [];
             let x = startX;
             let y = startY;
-            while (x >= 0 && x < gameState.board.width && y >= 0 && y < gameState.board.height) {
+            while (x >= 0 && x < gameState.course.board.width && y >= 0 && y < gameState.course.board.height) {
                 path.push({ x, y });
                 if (this.getPlayerAt(gameState, x, y)) break;
                 const tile = this.getTileAt(gameState, x, y);
@@ -721,7 +726,7 @@ export class GameEngine {
         const vector = this.DIRECTION_VECTORS[direction];
         let x = startX;
         let y = startY;
-        while (x >= 0 && x < gameState.board.width && y >= 0 && y < gameState.board.height) {
+        while (x >= 0 && x < gameState.course.board.width && y >= 0 && y < gameState.course.board.height) {
             const player = this.getPlayerAt(gameState, x, y);
             if (player) {
                 hits.push({ player, damage });
@@ -745,13 +750,13 @@ export class GameEngine {
         Object.values(gameState.players).forEach(player => {
             if (player.lives <= 0) return;
             console.log(`${player.name} checking for checkpoints at position (${player.position.x}, ${player.position.y})`);
-            const checkpoint = gameState.board.checkpoints.find(cp => cp.position.x === player.position.x && cp.position.y === player.position.y);
+            const checkpoint = gameState.course.definition.checkpoints.find(cp => cp.position.x === player.position.x && cp.position.y === player.position.y);
             if (checkpoint && checkpoint.number === player.checkpointsVisited + 1) {
                 player.checkpointsVisited++;
                 console.log(`${player.name} reached checkpoint ${checkpoint.number}!`);
                 this.io.to(gameState.roomCode).emit('checkpoint-reached', { playerName: player.name, checkpointNumber: checkpoint.number });
                 (player as any).respawnPosition = { position: { ...player.position }, direction: player.direction };
-                if (player.checkpointsVisited === gameState.board.checkpoints.length) {
+                if (player.checkpointsVisited === gameState.course.definition.checkpoints.length) {
                     gameState.winner = player.name;
                     gameState.phase = GamePhase.ENDED;
                     console.log(`${player.name} wins the game!`);
@@ -766,8 +771,8 @@ export class GameEngine {
     }
 
     getTileAt(gameState: ServerGameState, x: number, y: number): Tile | undefined {
-        if (!gameState.board.tiles) return undefined;
-        return gameState.board.tiles[y] && gameState.board.tiles[y][x];
+        if (!gameState.course.board.tiles) return undefined;
+        return gameState.course.board.tiles[y] && gameState.course.board.tiles[y][x];
     }
 
     executionLog(gameState: ServerGameState, message: string): void {
