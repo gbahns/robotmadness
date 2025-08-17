@@ -3,6 +3,7 @@ import { TileType } from './types/enums';
 import { GAME_CONFIG } from './constants';
 import { buildCourse, getCourseById, OFFICIAL_RISKY_EXCHANGE } from './boards/courses';
 import { hasWallBetween } from './wall-utils';
+import { getTileAt as getCanonicalTileAt } from './tile-utils';
 
 export interface ServerGameState extends GameState {
     host: string;
@@ -943,8 +944,7 @@ export class GameEngine {
     }
 
     getTileAt(gameState: ServerGameState, x: number, y: number): Tile | undefined {
-        if (!gameState.course.board.tiles) return undefined;
-        return gameState.course.board.tiles[y] && gameState.course.board.tiles[y][x];
+        return getCanonicalTileAt(gameState.course.board, x, y);
     }
 
     executionLog(gameState: ServerGameState, message: string): void {

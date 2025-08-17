@@ -1,5 +1,5 @@
 import { GameState, Player, Position, Course, GamePhase } from './types';
-import { getTileAt } from './wall-utils';
+import { getTileAt } from './tile-utils';
 
 export interface LaserSource {
     position: Position;
@@ -156,8 +156,8 @@ export function traceLaserBeam(source: LaserSource, gameState: GameState): Laser
             ? beam.path[beam.path.length - 1]
             : source.position;
 
-        // Check for wall blocking the path (for positions after the first)
-        if (beam.path.length > 0 && hasWallBetween(previousPos, currentPos, gameState.course.board)) {
+        // Check if entry to this tile is blocked by a wall
+        if (hasWallBetween(previousPos, currentPos, gameState.course.board)) {
             beam.hitTarget = {
                 type: 'wall',
                 position: previousPos
@@ -165,17 +165,18 @@ export function traceLaserBeam(source: LaserSource, gameState: GameState): Laser
             break;
         }
 
+        // Add this position to the path
         beam.path.push(currentPos);
 
-        // Check for robot blocking the path (for damage calculation)
-        const robot = getRobotAt(currentPos, gameState.players);
-        if (robot) {
+        // Check if there's a robot at this position
+        const hitRobot = getRobotAt(currentPos, gameState.players);
+        if (hitRobot) {
             beam.hitTarget = {
                 type: 'robot',
                 position: currentPos,
-                playerId: robot.id
+                playerId: hitRobot.id
             };
-            break; // Stop here for damage calculation
+            break;
         }
 
         // Move to next position
@@ -187,52 +188,32 @@ export function traceLaserBeam(source: LaserSource, gameState: GameState): Laser
 }
 
 /**
- * Calculate all laser beams for current game state
- */
-export function calculateAllLaserBeams(gameState: GameState): LaserBeam[] {
-    const sources = getAllLaserSources(gameState);
-    return sources.map(source => traceLaserBeam(source, gameState));
-}
-
-/**
- * Calculate damage from all lasers
- * REQ-LASER-4: 1 hit = 1 damage
- * REQ-LASER-5: Fire simultaneously
+ * Calculate damage for all players from all laser sources
+ * REQ-LASER-4: Damage calculation and application
  */
 export function calculateLaserDamage(gameState: GameState): LaserDamage[] {
-    const beams = calculateAllLaserBeams(gameState);
-    const damageMap = new Map<string, LaserDamage[]>();
+    const damages: LaserDamage[] = [];
+    const sources = getAllLaserSources(gameState);
 
-    // Collect all damage for each player
-    beams.forEach(beam => {
+    sources.forEach(source => {
+        const beam = traceLaserBeam(source, gameState);
+
         if (beam.hitTarget?.type === 'robot' && beam.hitTarget.playerId) {
-            const playerId = beam.hitTarget.playerId;
-
-            if (!damageMap.has(playerId)) {
-                damageMap.set(playerId, []);
-            }
-
-            damageMap.get(playerId)!.push({
-                playerId,
-                damage: beam.source.damage,
-                source: beam.source.type,
-                sourcePlayerId: beam.source.playerId
+            damages.push({
+                playerId: beam.hitTarget.playerId,
+                damage: source.damage,
+                source: source.type,
+                sourcePlayerId: source.playerId
             });
         }
     });
 
-    // Convert to array
-    const allDamage: LaserDamage[] = [];
-    damageMap.forEach(damages => {
-        allDamage.push(...damages);
-    });
-
-    return allDamage;
+    return damages;
 }
 
 /**
  * Apply laser damage to players
- * REQ-LASER-4: Each laser hit = 1 damage token
+ * REQ-LASER-4: Damage application
  */
 export function applyLaserDamage(gameState: GameState): void {
     const damages = calculateLaserDamage(gameState);
@@ -242,31 +223,28 @@ export function applyLaserDamage(gameState: GameState): void {
         if (player && player.lives > 0) {
             player.damage += damage.damage;
 
-            // Check if destroyed (REQ-DMG-2: 10 damage = destroyed)
+            // Check if robot is destroyed
             if (player.damage >= 10) {
-                // Handle robot destruction (implemented elsewhere)
-                console.log(`Player ${damage.playerId} destroyed by laser damage`);
+                player.lives--;
+                player.damage = 0;
+
+                // *******************************************
+                // I don't think we need to do anything here; robot destruction should be detected and handled in centralized
+                // game engine logic (is it?)
+                // *******************************************
+                // Reset to last checkpoint or starting position
+                // if ((player as any).respawnPosition) {
+                //     player.position = (player as any).respawnPosition.position;
+                //     player.direction = (player as any).respawnPosition.direction;
+                // } else {
+                //     // Find starting position for this player
+                //     const startPos = gameState.course.board.startingPositions.find(sp => sp.number === player.startingPosition.number);
+                //     if (startPos) {
+                //         player.position = { ...startPos.position };
+                //         player.direction = startPos.direction;
+                //     }
+                // }
             }
         }
     });
-}
-
-/**
- * Get visual laser beam data for rendering
- */
-export function getLaserBeamsForRendering(course: Course, players: Record<string, Player>): LaserBeam[] {
-    // Create a minimal game state for beam calculation
-    const gameState: GameState = {
-        id: 'temp-laser-calc',
-        roomCode: 'temp',
-        name: 'Laser Calculation',
-        course: course,
-        players,
-        phase: GamePhase.EXECUTING,
-        currentRegister: 0,
-        roundNumber: 1,
-        cardsDealt: false
-    };
-
-    return calculateAllLaserBeams(gameState);
 }

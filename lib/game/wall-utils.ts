@@ -1,4 +1,5 @@
 import { Position, Direction, WallElement, Tile, Course } from './types';
+import { getTileAt } from './tile-utils';
 
 /**
  * Check if there's a wall blocking movement from one position to another adjacent position
@@ -33,21 +34,6 @@ export function hasWallBetween(from: Position, to: Position, board: Course['boar
     }
 
     return false;
-}
-
-/**
- * Get tile at a specific position
- */
-export function getTileAt(board: Course['board'], x: number, y: number): Tile | undefined {
-    if (!board.tiles || !Array.isArray(board.tiles)) {
-        return undefined;
-    }
-
-    if (y >= 0 && y < board.tiles.length && x >= 0 && x < board.tiles[y].length) {
-        return board.tiles[y][x];
-    }
-
-    return undefined;
 }
 
 /**

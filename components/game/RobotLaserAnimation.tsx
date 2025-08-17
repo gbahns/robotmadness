@@ -1,7 +1,7 @@
 // /components/game/RobotLaserAnimation.tsx
 import React, { useEffect, useState } from 'react';
 import { Player, Position } from '@/lib/game/types';
-import { getTileAt } from '@/lib/game/wall-utils';
+import { getTileAt } from '@/lib/game/tile-utils';
 
 export interface RobotLaserShot {
     shooterId: string;

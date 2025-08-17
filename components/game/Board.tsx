@@ -4,6 +4,7 @@ import { BoardDefinition, Course, Player, Direction, Position, Tile, Checkpoint,
 import RobotLaserAnimation, { RobotLaserShot } from './RobotLaserAnimation';
 import Robot from './Robot';
 import { socketClient } from '@/lib/socket';
+import { getTileAt as getCanonicalTileAt } from '@/lib/game/tile-utils';
 
 interface BoardProps {
   course: Course;
@@ -122,30 +123,8 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
     return Object.keys(players).indexOf(playerId);
   };
 
-  // Get tile element at position (for future enhanced boards)
-  // Get tile element at position (for enhanced boards)
   const getTileAt = (x: number, y: number): Tile | undefined => {
-    // Check if board has the tiles array
-    if (!course.board.tiles || !Array.isArray(course.board.tiles)) {
-      return undefined;
-    }
-
-    // Check if it's a 2D array (the expected format after buildBoard)
-    if (course.board.tiles.length > 0 && Array.isArray(course.board.tiles[0])) {
-      // It's a 2D array - this is the standard format
-      const row = course.board.tiles[y];
-      if (row && Array.isArray(row) && row[x]) {
-        return row[x] as Tile;
-      }
-    } else if (course.board.tiles.length > 0 && 'position' in course.board.tiles[0]) {
-      // It's a flat array (shouldn't happen after buildBoard, but handle it anyway)
-      const tile = (course.board.tiles as any[]).find(
-        (t: any) => t.position?.x === x && t.position?.y === y
-      );
-      return tile;
-    }
-
-    return undefined;
+    return getCanonicalTileAt(course.board, x, y);
   };
 
   // Get walls at a specific position
