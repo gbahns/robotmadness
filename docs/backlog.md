@@ -6,7 +6,6 @@
 * hide the whole registers section and the player's hand when powered down?
 * somehow make checkpoints and possibly other board elements visible when a robot is sitting on them
 * tooltips so a player can hover their mouse pointer over a tile and see what's there when a robot is sitting on it
-* respawn robots on their archive marker
 * server got stuck resetting or dealing cards for next turn; one robot had 9 damage, might be related to that
 * fix it so resetting your program doesn't affect other players
 * pushers
@@ -36,6 +35,7 @@
 * make the execution delay configurable
 
 ## In Progress
+* respawn robots on their archive marker
 * one player resetting their programmed registers should not reset other players programmed registers
 * when your damage is cleared locked registers need to be cleared accordingly
 * other players don't see your intent to power down until the cards are submitted.  in the official rules, when one player's decision to power down might be affected by another player's decision, the playwers announce in clockwise order. in our automated implementation we don't need this; each player makes their decision independently.

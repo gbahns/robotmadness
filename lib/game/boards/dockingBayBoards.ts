@@ -1,7 +1,7 @@
 import { BoardDefinition, TileElement, LaserElement, WallElement } from '../types';
 import { Direction, TileType } from '../types';
 
-export const RISKY_EXCHANGE_DOCKING_BAY: BoardDefinition = {
+export const DOCKING_BAY_1: BoardDefinition = {
     id: 'risky-exchange-docking-bay',
     name: 'Risky Exchange Docking Bay',
     width: 12,
@@ -212,7 +212,7 @@ export const DOCKING_BAY_BOARDS: BoardDefinition[] = [
     DOCKING_BAY_8P,
     DOCKING_BAY_WIDE,
     DOCKING_BAY_COMPACT,
-    RISKY_EXCHANGE_DOCKING_BAY
+    DOCKING_BAY_1
 ];
 
 
