@@ -43,6 +43,7 @@ export class GameEngine {
             userId: playerId,
             name: playerName,
             position: { x: -1, y: -1 }, // Temporary position
+            archiveMarker: { x: -1, y: -1 }, // Archive marker for respawn
             direction: Direction.DOWN,
             damage: 0,
             lives: 3,
@@ -107,16 +108,39 @@ export class GameEngine {
 
     startGame(gameState: ServerGameState, selectedCourse: string): void {
         gameState.phase = GamePhase.STARTING;
+
+        // Get available starting positions (in order 1, 2, 3, etc.)
         const startingPositions = [...gameState.course.board.startingPositions];
-        console.log(`Starting game with course: ${selectedCourse} ${gameState.course.definition.name}, starting positions:`, startingPositions);
-        for (const playerId in gameState.players) {
-            const player = gameState.players[playerId];
-            const startPos = startingPositions.shift();
-            if (startPos) {
-                player.position = startPos.position;
-                player.direction = startPos.direction;
-            }
+        console.log(`Starting game with course: ${selectedCourse} ${gameState.course.definition.name}, available positions:`, startingPositions.length);
+
+        // Get all player IDs and shuffle them to randomize player order
+        const playerIds = Object.keys(gameState.players);
+        for (let i = playerIds.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [playerIds[i], playerIds[j]] = [playerIds[j], playerIds[i]];
         }
+
+        // Assign positions to players in the randomized order
+        playerIds.forEach((playerId, index) => {
+            const player = gameState.players[playerId];
+            const startPos = startingPositions[index]; // Position 1 goes to first player, 2 to second, etc.
+
+            if (startPos) {
+                // Set initial position
+                player.position = { ...startPos.position };
+                player.direction = startPos.direction;
+
+                // Set archive position to starting position
+                player.archiveMarker = { ...startPos.position };
+
+                // Store which dock number they started at
+                player.startingPosition = startPos;
+
+                console.log(`${player.name} assigned to Starting Position ${startPos.number} at (${startPos.position.x}, ${startPos.position.y})`);
+            } else {
+                console.warn(`No starting position available for ${player.name}`);
+            }
+        });
     }
 
     dealCardsToPlayer(roomCode: string, player: Player, deck: ProgramCard[]): void {
@@ -533,39 +557,31 @@ export class GameEngine {
     }
 
     respawnDeadRobots(gameState: ServerGameState) {
-        const playerIds = Object.keys(gameState.players);
-
         Object.values(gameState.players).forEach(player => {
             if ((player as any).isDead) {
                 if (player.lives > 0) {
-                    console.log(`${player.name} is respawning.`);
+                    console.log(`${player.name} is respawning at their archive marker.`);
 
-                    // Find the player's original starting position based on their join order
-                    const playerIndex = playerIds.indexOf(player.id);
+                    // Respawn at archive position
+                    player.position = { ...player.archiveMarker };
+                    player.direction = Direction.UP; // Reset direction to default
 
-                    if (playerIndex >= 0 && playerIndex < gameState.course.board.startingPositions.length) {
-                        const startPos = gameState.course.board.startingPositions[playerIndex];
-                        player.position = { ...startPos.position };
-                        player.direction = startPos.direction;
+                    console.log(`${player.name} respawned at archive position (${player.archiveMarker.x}, ${player.archiveMarker.y})`);
 
-                        console.log(`${player.name} respawned to Dock ${playerIndex + 1} at (${startPos.position.x}, ${startPos.position.y})`);
-                    } else {
-                        console.warn(`No starting position found for ${player.name} (index ${playerIndex})`);
-                        // Fallback to first starting position
-                        const fallbackPos = gameState.course.board.startingPositions[0];
-                        player.position = { ...fallbackPos.position };
-                        player.direction = fallbackPos.direction;
-                    }
-
+                    // Robot is no longer dead
                     (player as any).isDead = false;
+
+                    // Robots reenter with 2 damage tokens (per rules)
+                    player.damage = 2;
 
                     this.io.to(gameState.roomCode).emit('robot-respawned', {
                         playerName: player.name,
                         position: player.position,
-                        direction: player.direction
+                        direction: player.direction,
+                        damage: player.damage
                     });
                 } else {
-                    console.log(`${player.name} has no lives left.`);
+                    console.log(`${player.name} has no lives left and is eliminated.`);
                 }
             }
         });
@@ -839,25 +855,91 @@ export class GameEngine {
     async checkCheckpoints(gameState: ServerGameState) {
         Object.values(gameState.players).forEach(player => {
             if (player.lives <= 0) return;
+
             console.log(`${player.name} checking for checkpoints at position (${player.position.x}, ${player.position.y})`);
-            const checkpoint = gameState.course.definition.checkpoints.find(cp => cp.position.x === player.position.x && cp.position.y === player.position.y);
+
+            const checkpoint = gameState.course.definition.checkpoints.find(
+                cp => cp.position.x === player.position.x && cp.position.y === player.position.y
+            );
+
             if (checkpoint && checkpoint.number === player.checkpointsVisited + 1) {
                 player.checkpointsVisited++;
                 console.log(`${player.name} reached checkpoint ${checkpoint.number}!`);
-                this.io.to(gameState.roomCode).emit('checkpoint-reached', { playerName: player.name, checkpointNumber: checkpoint.number });
-                (player as any).respawnPosition = { position: { ...player.position }, direction: player.direction };
+
+                // Update archive position when touching a checkpoint
+                this.updateArchivePosition(gameState, player);
+
+                this.executionLog(gameState, `${player.name} reached checkpoint ${checkpoint.number}!`);
+
                 if (player.checkpointsVisited === gameState.course.definition.checkpoints.length) {
                     gameState.winner = player.name;
-                    gameState.phase = GamePhase.ENDED;
                     console.log(`${player.name} wins the game!`);
-                    this.io.to(gameState.roomCode).emit('game-over', { winner: player.name });
+                    this.io.to(gameState.roomCode).emit('game-won', { winner: player.name });
                 }
+            } else if (checkpoint) {
+                // Still update archive position even if checkpoint is out of order
+                this.updateArchivePosition(gameState, player);
             }
+
+            // Also check for repair sites to update archive position
             const tile = this.getTileAt(gameState, player.position.x, player.position.y);
-            if (tile && (tile.type === TileType.REPAIR)) {
-                (player as any).respawnPosition = { position: { ...player.position }, direction: player.direction };
+            if (tile && (tile.type === TileType.REPAIR || tile.type === TileType.OPTION)) {
+                this.updateArchivePosition(gameState, player);
             }
         });
+    }
+
+    async executeRepairs(gameState: ServerGameState) {
+        Object.values(gameState.players).forEach(player => {
+            if (player.lives <= 0 || player.powerState === PowerState.OFF) return;
+
+            const tile = this.getTileAt(gameState, player.position.x, player.position.y);
+            if (!tile) return;
+
+            if (tile.type === TileType.REPAIR) {
+                if (player.damage > 0) {
+                    player.damage--;
+                    this.executionLog(gameState, `${player.name} repaired 1 damage`);
+                }
+                // Update archive position at repair site
+                this.updateArchivePosition(gameState, player);
+            } else if (tile.type === TileType.OPTION) {
+                if (player.damage > 0) {
+                    player.damage--;
+                    this.executionLog(gameState, `${player.name} repaired 1 damage and drew option card`);
+                }
+                // Update archive position at upgrade site
+                this.updateArchivePosition(gameState, player);
+            }
+        });
+
+        this.io.to(gameState.roomCode).emit('game-state', gameState);
+    }
+
+    updateArchivePosition(gameState: ServerGameState, player: Player): void {
+        // Update archive position when robot ends register on flag or repair site
+        const tile = this.getTileAt(gameState, player.position.x, player.position.y);
+
+        // Check if on a checkpoint/flag
+        const checkpoint = gameState.course.definition.checkpoints.find(
+            cp => cp.position.x === player.position.x && cp.position.y === player.position.y
+        );
+
+        // Check if on a repair site
+        const isRepairSite = tile && (tile.type === TileType.REPAIR || tile.type === TileType.OPTION);
+
+        if (checkpoint || isRepairSite) {
+            player.archiveMarker = { ...player.position };
+
+            const locationType = checkpoint ? `checkpoint ${checkpoint.number}` : 'repair site';
+            console.log(`${player.name} updated archive position to (${player.position.x}, ${player.position.y}) at ${locationType}`);
+
+            this.io.to(gameState.roomCode).emit('archive-updated', {
+                playerName: player.name,
+                position: player.archiveMarker,
+                locationType
+            });
+        }
     }
 
     getTileAt(gameState: ServerGameState, x: number, y: number): Tile | undefined {

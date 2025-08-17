@@ -36,7 +36,7 @@ const testGameState = {
         null, null, null, null
       ],
       isDead: false,
-      respawnPosition: { position: { x: 0, y: 0 }, direction: 3 }
+      archiveMarker: { position: { x: 0, y: 0 }, direction: 3 }
     }
   }
 };

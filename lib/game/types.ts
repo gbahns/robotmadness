@@ -54,7 +54,8 @@ export interface Player {
   isVirtual?: boolean;
   isDisconnected?: boolean;
   submitted?: boolean;
-  respawnPosition?: StartingPosition;
+  startingPosition?: StartingPosition
+  archiveMarker: Position;
   isDead?: boolean;
 
   // Cards
