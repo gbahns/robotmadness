@@ -3,14 +3,11 @@
 * consolidate getTileAt methods (or clarify why there are multiple different implementations)
 * when all players are powered down the game gets stuck
 * hide the whole registers section and the player's hand when powered down?
-* starting space mini boards
 * somehow make checkpoints and possibly other board elements visible when a robot is sitting on them
 * tooltips so a player can hover their mouse pointer over a tile and see what's there when a robot is sitting on it
 * respawn robots on their archive marker
 * server got stuck resetting or dealing cards for next turn; one robot had 9 damage, might be related to that
 * fix it so resetting your program doesn't affect other players
-* fix it so the robots don't show up on the board in preview mode
-* walls
 * pushers
 * wrenches
 * hammers
@@ -84,6 +81,8 @@
 * change the card colors - needs some thought - e.g. I don't like red for U-Turn
 * make the U-Turn the same color as the other turns
 * orient the U-Turn arrow like an upside-down U
+* walls
+
 
 ## Defect Fix History
 * damage isn't reducing number of cards dealt
@@ -96,3 +95,4 @@
 * when player elects to stay powered down it asks again
 * toggling power down should not reset your registers
 * fix conveyors, wrenches, and gears not rendering
+* fix it so the robots don't show up on the board in preview mode

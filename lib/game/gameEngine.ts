@@ -555,6 +555,7 @@ export class GameEngine {
 
     async executeBoardElements(gameState: ServerGameState) {
         console.log('Executing board elements...');
+        await this.executeConveyorBelts(gameState, true, false);
         await this.executeConveyorBelts(gameState, true, true);
         await this.executePushers(gameState);
         await this.executeGears(gameState);
