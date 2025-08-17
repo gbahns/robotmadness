@@ -176,8 +176,7 @@ export default function RobotLaserAnimation({ players, activeLasers, tileSize }:
                                 transform: `translate(-50%, -50%) rotate(${i * 45}deg) translateY(-15px)`,
                                 animation: `sparkFly 0.5s ease-out`,
                                 animationDelay: `${i * 0.05}s`,
-                                '--rotation': `${i * 45}deg`
-                            } as React.CSSProperties}
+                            }}
                         />
                     ))}
 
@@ -200,72 +199,23 @@ export default function RobotLaserAnimation({ players, activeLasers, tileSize }:
             );
         }
 
-        return <>{elements}</>;
+        return elements;
     };
 
-    // Add CSS animations via style tag
-    useEffect(() => {
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes laserFire {
-                0% {
-                    opacity: 0;
-                    transform: scale(0.5, 1);
-                }
-                10% {
-                    opacity: 1;
-                    transform: scale(1, 1);
-                }
-                90% {
-                    opacity: 1;
-                    transform: scale(1, 1);
-                }
-                100% {
-                    opacity: 0;
-                    transform: scale(1, 0.5);
-                }
-            }
-
-            @keyframes laserGlow {
-                0% {
-                    opacity: 0;
-                }
-                10% {
-                    opacity: 0.6;
-                }
-                90% {
-                    opacity: 0.6;
-                }
-                100% {
-                    opacity: 0;
-                }
-            }
-
-            @keyframes laserHit {
-                0% {
-                    opacity: 0;
-                    transform: scale(0.5);
-                }
-                20% {
-                    opacity: 1;
-                    transform: scale(1.2);
-                }
-                100% {
-                    opacity: 0;
-                    transform: scale(1.5);
-                }
-            }
-        `;
-        document.head.appendChild(style);
-
-        return () => {
-            document.head.removeChild(style);
-        };
-    }, []);
-
+    // Return a single container with all laser elements
     return (
         <>
-            {visibleLasers.map((laser) => renderLaserBeam(laser))}
+            {visibleLasers.map((laser) => {
+                const elements = renderLaserBeam(laser);
+                if (!elements) return null;
+
+                // Return a fragment with a unique key for each laser
+                return (
+                    <React.Fragment key={`laser-group-${laser.shooterId}-${laser.timestamp}`}>
+                        {elements}
+                    </React.Fragment>
+                );
+            })}
         </>
     );
 }

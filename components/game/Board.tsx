@@ -770,12 +770,12 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
     return elements;
   };
 
-  // In components/game/Board.tsx, update the renderLaserBeams function to add explosion effects:
-
-  // Render laser beams with explosion effects
   const renderLaserBeams = () => {
     const beams = getAllLaserBeams();
     const allElements: React.ReactElement[] = [];
+
+    // Only show explosions during execution phase
+    const shouldShowExplosions = gameState?.phase === 'executing';
 
     beams.forEach((beam, beamIndex) => {
       // Skip robot lasers if handled by RobotLaserAnimation
@@ -783,33 +783,54 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
         return;
       }
 
-      // Check if the laser hit something (robot or wall)
+      // Determine if the laser actually hit something
       let hitInfo: { type: 'robot' | 'wall'; position: Position } | null = null;
 
-      if (beam.path.length > 0) {
+      // Only check for hits if we're in execution phase
+      if (shouldShowExplosions && beam.path.length > 0) {
         const lastPos = beam.path[beam.path.length - 1];
 
-        // Check if laser stopped because it hit a robot
+        // Check if there's a robot at the last position
         if (isBlockedByRobot(lastPos.x, lastPos.y)) {
           hitInfo = { type: 'robot', position: lastPos };
-        }
-        // Check if laser stopped because of a wall
-        else if (beam.path.length > 1) {
-          // If the path is shorter than expected, it likely hit a wall
-          const nextX = lastPos.x + [0, 1, 0, -1][beam.laser.direction];
-          const nextY = lastPos.y + [-1, 0, 1, 0][beam.laser.direction];
+        } else {
+          // Check if the laser stopped due to a wall
+          // First, check if laser could have continued further
+          const laserDir = beam.laser.direction;
+          const dx = [0, 1, 0, -1][laserDir];
+          const dy = [-1, 0, 1, 0][laserDir];
+          const nextX = lastPos.x + dx;
+          const nextY = lastPos.y + dy;
 
-          // Check if we're at the board edge or if there's a wall
-          if (nextX < 0 || nextX >= course.board.width ||
-            nextY < 0 || nextY >= course.board.height) {
-            // Hit board edge
-          } else {
-            // Check for wall at the last position
-            const tile = getTileAt(lastPos.x, lastPos.y);
-            if (tile && tile.walls && tile.walls.includes(beam.laser.direction)) {
+          // If next position would be on the board, check why we stopped
+          if (nextX >= 0 && nextX < course.board.width &&
+            nextY >= 0 && nextY < course.board.height) {
+            // We stopped before the edge - check for wall
+            const fromPos = lastPos;
+            const toPos = { x: nextX, y: nextY };
+
+            // Check if there's a wall blocking the path forward
+            const lastTile = getTileAt(lastPos.x, lastPos.y);
+            if (lastTile && lastTile.walls && lastTile.walls.includes(laserDir)) {
+              // Wall on current tile blocking exit
               hitInfo = { type: 'wall', position: lastPos };
+            } else {
+              // Check if wall on next tile blocking entry
+              const nextTile = getTileAt(nextX, nextY);
+              const oppositeDir = (laserDir + 2) % 4;
+              if (nextTile && nextTile.walls && nextTile.walls.includes(oppositeDir)) {
+                hitInfo = { type: 'wall', position: lastPos };
+              }
             }
           }
+          // If we reached the board edge naturally, no explosion needed
+        }
+      } else if (shouldShowExplosions && beam.path.length === 0) {
+        // Laser has no path - it might be blocked immediately at source
+        // Check if there's a wall at the source blocking the laser
+        const sourceTile = getTileAt(beam.laser.position.x, beam.laser.position.y);
+        if (sourceTile && sourceTile.walls && sourceTile.walls.includes(beam.laser.direction)) {
+          hitInfo = { type: 'wall', position: beam.laser.position };
         }
       }
 
@@ -851,7 +872,7 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
           left += (tileSize - beamWidth) / 2;
         }
 
-        // Render beam segment
+        // Render beam segment (single or double)
         if (isDoubleLaser) {
           const spacing = 6;
           const singleBeamWidth = 3;
@@ -903,15 +924,18 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
         }
       });
 
-      // Add explosion effect if laser hit something
+      // Only add explosion effect if we actually hit something
       if (hitInfo) {
         const explosionX = hitInfo.position.x * tileSize + tileSize / 2;
         const explosionY = hitInfo.position.y * tileSize + tileSize / 2;
         const isRobotHit = hitInfo.type === 'robot';
 
+        // Add a timestamp-based key to ensure explosions are unique per execution
+        const explosionKey = `explosion-${beamIndex}-${Date.now()}`;
+
         allElements.push(
           <div
-            key={`explosion-${beamIndex}`}
+            key={explosionKey}
             className="absolute pointer-events-none"
             style={{
               left: `${explosionX}px`,
@@ -922,7 +946,7 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
           >
             {/* Explosion burst */}
             <div
-              className="absolute animate-ping"
+              className="absolute"
               style={{
                 width: isRobotHit ? '60px' : '40px',
                 height: isRobotHit ? '60px' : '40px',
@@ -931,14 +955,13 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
                 transform: 'translate(-50%, -50%)',
                 backgroundColor: isRobotHit ? 'rgba(255, 0, 0, 0.4)' : 'rgba(255, 165, 0, 0.4)',
                 borderRadius: '50%',
-                animationDuration: '0.75s',
-                animationIterationCount: 'infinite'
+                animation: 'explosionPulse 0.5s ease-out forwards'
               }}
             />
 
             {/* Impact core */}
             <div
-              className="absolute animate-pulse"
+              className="absolute"
               style={{
                 width: isRobotHit ? '30px' : '20px',
                 height: isRobotHit ? '30px' : '20px',
@@ -951,28 +974,10 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
                 borderRadius: '50%',
                 boxShadow: isRobotHit
                   ? '0 0 20px rgba(255, 0, 0, 0.8), 0 0 40px rgba(255, 255, 0, 0.6)'
-                  : '0 0 15px rgba(255, 165, 0, 0.8)'
+                  : '0 0 15px rgba(255, 165, 0, 0.8)',
+                animation: 'explosionCore 0.5s ease-out forwards'
               }}
             />
-
-            {/* Sparks */}
-            {[...Array(6)].map((_, i) => (
-              <div
-                key={`spark-${i}`}
-                className="absolute animate-ping"
-                style={{
-                  width: '4px',
-                  height: '4px',
-                  left: '50%',
-                  top: '50%',
-                  backgroundColor: isRobotHit ? '#ffff00' : '#ffa500',
-                  borderRadius: '50%',
-                  transform: `translate(-50%, -50%) rotate(${i * 60}deg) translateY(-20px)`,
-                  animationDelay: `${i * 0.1}s`,
-                  animationDuration: '1s'
-                }}
-              />
-            ))}
           </div>
         );
       }
