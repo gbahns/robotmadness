@@ -11,6 +11,19 @@ export const EXCHANGE_FACTORY_FLOOR: BoardDefinition = {
     tiles: [
         // MAIN EXPRESS CONVEYOR SYSTEM - Yellow/orange conveyors from the image
 
+        // Top-left corner: 2 rows x 4 columns of rotating conveyors
+        // First row: clockwise rotating conveyors in a circle
+        { position: { x: 0, y: 0 }, type: TileType.CONVEYOR, direction: Direction.RIGHT, rotate: 'clockwise' },
+        { position: { x: 1, y: 0 }, type: TileType.CONVEYOR, direction: Direction.DOWN, rotate: 'clockwise' },
+        { position: { x: 1, y: 1 }, type: TileType.CONVEYOR, direction: Direction.LEFT, rotate: 'clockwise' },
+        { position: { x: 0, y: 1 }, type: TileType.CONVEYOR, direction: Direction.UP, rotate: 'clockwise' },
+
+        // Second row: counterclockwise rotating express conveyors in a circle
+        { position: { x: 2, y: 0 }, type: TileType.CONVEYOR, direction: Direction.DOWN, rotate: 'counterclockwise' },
+        { position: { x: 3, y: 0 }, type: TileType.CONVEYOR, direction: Direction.LEFT, rotate: 'counterclockwise' },
+        { position: { x: 3, y: 1 }, type: TileType.CONVEYOR, direction: Direction.UP, rotate: 'counterclockwise' },
+        { position: { x: 2, y: 1 }, type: TileType.CONVEYOR, direction: Direction.RIGHT, rotate: 'counterclockwise' },
+
         // Top horizontal express conveyor row (going RIGHT)
         { position: { x: 0, y: 5 }, type: TileType.EXPRESS_CONVEYOR, direction: Direction.RIGHT },
         { position: { x: 1, y: 5 }, type: TileType.EXPRESS_CONVEYOR, direction: Direction.RIGHT },
@@ -64,7 +77,7 @@ export const EXCHANGE_FACTORY_FLOOR: BoardDefinition = {
         { position: { x: 11, y: 4 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
 
         // Bottom-right vertical blue conveyors (going UP)
-        { position: { x: 8, y: 7 }, type: TileType.CONVEYOR, direction: Direction.UP },
+        { position: { x: 8, y: 7 }, type: TileType.CONVEYOR, direction: Direction.RIGHT, rotate: 'clockwise' },
         { position: { x: 8, y: 8 }, type: TileType.CONVEYOR, direction: Direction.UP },
         { position: { x: 8, y: 9 }, type: TileType.CONVEYOR, direction: Direction.UP },
         { position: { x: 8, y: 10 }, type: TileType.CONVEYOR, direction: Direction.UP },
@@ -99,7 +112,6 @@ export const EXCHANGE_FACTORY_FLOOR: BoardDefinition = {
         { position: { x: 2, y: 9 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
 
         // GEAR TILES (rotating elements visible in corners)
-        { position: { x: 1, y: 1 }, type: TileType.GEAR_CW },
         { position: { x: 11, y: 11 }, type: TileType.GEAR_CCW },
         { position: { x: 1, y: 11 }, type: TileType.GEAR_CW },
         { position: { x: 11, y: 1 }, type: TileType.GEAR_CCW },
