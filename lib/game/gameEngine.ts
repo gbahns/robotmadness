@@ -684,25 +684,61 @@ export class GameEngine {
         const robotLaserShots: any[] = [];
         Object.values(gameState.players).forEach(shooter => {
             if (shooter.lives <= 0 || shooter.powerState === PowerState.OFF) return;
+
             const vector = this.DIRECTION_VECTORS[shooter.direction];
-            const startX = shooter.position.x + vector.x;
-            const startY = shooter.position.y + vector.y;
-            const hits = this.traceLaser(gameState, startX, startY, shooter.direction, 1);
+
+            // Check if there's a wall immediately blocking the robot's laser from firing
+            const frontX = shooter.position.x + vector.x;
+            const frontY = shooter.position.y + vector.y;
+
+            // Check if robot has a wall in front blocking its laser
+            if (hasWallBetween(shooter.position, { x: frontX, y: frontY }, gameState.course.board)) {
+                // Robot's laser is blocked by wall immediately - can't fire
+                return;
+            }
+
+            // Trace the laser using the standard traceLaser function
+            // Start from the shooter's position, not one tile ahead
+            const hits = this.traceLaser(gameState, shooter.position.x, shooter.position.y, shooter.direction, 1);
+
+            // Build laser path for animation
             const path: any[] = [];
-            let x = startX;
-            let y = startY;
-            while (x >= 0 && x < gameState.course.board.width && y >= 0 && y < gameState.course.board.height) {
-                path.push({ x, y });
-                if (this.getPlayerAt(gameState, x, y)) break;
-                const tile = this.getTileAt(gameState, x, y);
-                if (tile && tile.walls && tile.walls.includes(shooter.direction)) break;
-                x += vector.x;
-                y += vector.y;
-                const nextTile = this.getTileAt(gameState, x, y);
-                if (nextTile && nextTile.walls && nextTile.walls.includes((shooter.direction + 2) % 4)) {
+            let x = frontX;
+            let y = frontY;
+
+            // Build the visual path, checking for walls and robots
+            while (x >= 0 && x < gameState.course.board.width &&
+                y >= 0 && y < gameState.course.board.height) {
+
+                // Check if we can enter this tile (wall blocking entry)
+                const fromPos = { x: x - vector.x, y: y - vector.y };
+                const toPos = { x, y };
+
+                if (hasWallBetween(fromPos, toPos, gameState.course.board)) {
+                    // Wall blocks entry to this tile
                     break;
                 }
+
+                path.push({ x, y });
+
+                // Check if we hit a robot
+                if (this.getPlayerAt(gameState, x, y)) break;
+
+                // Check if we can exit this tile (wall blocking exit)
+                const nextX = x + vector.x;
+                const nextY = y + vector.y;
+                if (nextX >= 0 && nextX < gameState.course.board.width &&
+                    nextY >= 0 && nextY < gameState.course.board.height) {
+                    if (hasWallBetween({ x, y }, { x: nextX, y: nextY }, gameState.course.board)) {
+                        // Wall blocks exit from this tile
+                        break;
+                    }
+                }
+
+                x += vector.x;
+                y += vector.y;
             }
+
             if (path.length > 0) {
                 robotLaserShots.push({
                     shooterId: shooter.id,
@@ -711,9 +747,13 @@ export class GameEngine {
                     timestamp: Date.now()
                 });
             }
+
             hits.forEach(hit => {
-                if (hit.player.id !== shooter.id) {
-                    getDamageInfo(hit.player.id).robotHits.push({ shooterName: shooter.name, damage: hit.damage });
+                if (hit.player.id !== shooter.id) { // Can't shoot yourself
+                    getDamageInfo(hit.player.id).robotHits.push({
+                        shooterName: shooter.name,
+                        damage: hit.damage
+                    });
                 }
             });
         });
