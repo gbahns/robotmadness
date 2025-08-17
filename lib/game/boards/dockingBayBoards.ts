@@ -8,14 +8,14 @@ export const RISKY_EXCHANGE_DOCKING_BAY: BoardDefinition = {
     height: 4,
     startingPositions: [
         // Reading from the board image with (0,0) at upper left
-        { position: { x: 5, y: 2 }, direction: Direction.UP },  // Position 1
-        { position: { x: 6, y: 2 }, direction: Direction.UP },  // Position 2
-        { position: { x: 3, y: 2 }, direction: Direction.UP },  // Position 3
-        { position: { x: 8, y: 2 }, direction: Direction.UP },  // Position 4
-        { position: { x: 1, y: 1 }, direction: Direction.UP },  // Position 5
-        { position: { x: 10, y: 1 }, direction: Direction.UP }, // Position 6
-        { position: { x: 0, y: 0 }, direction: Direction.UP },  // Position 7
-        { position: { x: 11, y: 0 }, direction: Direction.UP }  // Position 8
+        { number: 1, position: { x: 5, y: 2 }, direction: Direction.UP },  // Position 1
+        { number: 2, position: { x: 6, y: 2 }, direction: Direction.UP },  // Position 2
+        { number: 3, position: { x: 3, y: 2 }, direction: Direction.UP },  // Position 3
+        { number: 4, position: { x: 8, y: 2 }, direction: Direction.UP },  // Position 4
+        { number: 5, position: { x: 1, y: 1 }, direction: Direction.UP },  // Position 5
+        { number: 6, position: { x: 10, y: 1 }, direction: Direction.UP }, // Position 6
+        { number: 7, position: { x: 0, y: 0 }, direction: Direction.UP },  // Position 7
+        { number: 8, position: { x: 11, y: 0 }, direction: Direction.UP }  // Position 8
     ],
     tiles: [
         // Row 2 (y=2) - Main conveyor belt system
@@ -72,14 +72,14 @@ export const RISKY_EXCHANGE_DOCKING_BAY_INACCURATE: BoardDefinition = {
     height: 4,
     startingPositions: [
         // Starting positions 1-8 as shown in the official image
-        { position: { x: 3, y: 1 }, direction: Direction.UP },  // Position 1
-        { position: { x: 1, y: 1 }, direction: Direction.UP },  // Position 2  
-        { position: { x: 5, y: 1 }, direction: Direction.UP },  // Position 3
-        { position: { x: 7, y: 1 }, direction: Direction.UP },  // Position 4
-        { position: { x: 9, y: 1 }, direction: Direction.UP },  // Position 5
-        { position: { x: 11, y: 1 }, direction: Direction.UP }, // Position 6
-        { position: { x: 0, y: 1 }, direction: Direction.UP },  // Position 7
-        { position: { x: 10, y: 1 }, direction: Direction.UP }  // Position 8
+        { number: 1, position: { x: 3, y: 1 }, direction: Direction.UP },  // Position 1
+        { number: 1, position: { x: 1, y: 1 }, direction: Direction.UP },  // Position 2  
+        { number: 1, position: { x: 5, y: 1 }, direction: Direction.UP },  // Position 3
+        { number: 1, position: { x: 7, y: 1 }, direction: Direction.UP },  // Position 4
+        { number: 1, position: { x: 9, y: 1 }, direction: Direction.UP },  // Position 5
+        { number: 1, position: { x: 11, y: 1 }, direction: Direction.UP }, // Position 6
+        { number: 1, position: { x: 0, y: 1 }, direction: Direction.UP },  // Position 7
+        { number: 1, position: { x: 10, y: 1 }, direction: Direction.UP }  // Position 8
     ],
     tiles: [
         // Simple conveyors leading from docking bay to factory floor
@@ -102,10 +102,10 @@ export const DOCKING_BAY_4P: BoardDefinition = {
     width: 12,
     height: 4,
     startingPositions: [
-        { position: { x: 1, y: 0 }, direction: Direction.UP },
-        { position: { x: 4, y: 0 }, direction: Direction.UP },
-        { position: { x: 7, y: 0 }, direction: Direction.UP },
-        { position: { x: 10, y: 0 }, direction: Direction.UP }
+        { number: 1, position: { x: 1, y: 0 }, direction: Direction.UP },
+        { number: 1, position: { x: 4, y: 0 }, direction: Direction.UP },
+        { number: 1, position: { x: 7, y: 0 }, direction: Direction.UP },
+        { number: 1, position: { x: 10, y: 0 }, direction: Direction.UP }
     ],
     tiles: [
         // Simple conveyors leading out of the docking bay
@@ -125,15 +125,15 @@ export const DOCKING_BAY_8P: BoardDefinition = {
     height: 6,
     startingPositions: [
         // Front row
-        { position: { x: 1, y: 0 }, direction: Direction.UP },
-        { position: { x: 3, y: 0 }, direction: Direction.UP },
-        { position: { x: 5, y: 0 }, direction: Direction.UP },
-        { position: { x: 7, y: 0 }, direction: Direction.UP },
-        { position: { x: 9, y: 0 }, direction: Direction.UP },
-        { position: { x: 11, y: 0 }, direction: Direction.UP },
+        { number: 1, position: { x: 1, y: 0 }, direction: Direction.UP },
+        { number: 1, position: { x: 3, y: 0 }, direction: Direction.UP },
+        { number: 1, position: { x: 5, y: 0 }, direction: Direction.UP },
+        { number: 1, position: { x: 7, y: 0 }, direction: Direction.UP },
+        { number: 1, position: { x: 9, y: 0 }, direction: Direction.UP },
+        { number: 1, position: { x: 11, y: 0 }, direction: Direction.UP },
         // Back row
-        { position: { x: 2, y: 1 }, direction: Direction.UP },
-        { position: { x: 10, y: 1 }, direction: Direction.UP }
+        { number: 1, position: { x: 2, y: 1 }, direction: Direction.UP },
+        { number: 1, position: { x: 10, y: 1 }, direction: Direction.UP }
     ],
     tiles: [
         // Conveyors from front row
@@ -157,12 +157,12 @@ export const DOCKING_BAY_WIDE: BoardDefinition = {
     width: 12,
     height: 3,
     startingPositions: [
-        { position: { x: 0, y: 0 }, direction: Direction.UP },
-        { position: { x: 2, y: 0 }, direction: Direction.UP },
-        { position: { x: 4, y: 0 }, direction: Direction.UP },
-        { position: { x: 6, y: 0 }, direction: Direction.UP },
-        { position: { x: 8, y: 0 }, direction: Direction.UP },
-        { position: { x: 10, y: 0 }, direction: Direction.UP }
+        { number: 1, position: { x: 0, y: 0 }, direction: Direction.UP },
+        { number: 1, position: { x: 2, y: 0 }, direction: Direction.UP },
+        { number: 1, position: { x: 4, y: 0 }, direction: Direction.UP },
+        { number: 1, position: { x: 6, y: 0 }, direction: Direction.UP },
+        { number: 1, position: { x: 8, y: 0 }, direction: Direction.UP },
+        { number: 1, position: { x: 10, y: 0 }, direction: Direction.UP }
     ],
     tiles: [
         // Central conveyor line leading to factory floor
@@ -191,10 +191,10 @@ export const DOCKING_BAY_COMPACT: BoardDefinition = {
     width: 12,
     height: 2,
     startingPositions: [
-        { position: { x: 2, y: 0 }, direction: Direction.UP },
-        { position: { x: 4, y: 0 }, direction: Direction.UP },
-        { position: { x: 6, y: 0 }, direction: Direction.UP },
-        { position: { x: 8, y: 0 }, direction: Direction.UP }
+        { number: 1, position: { x: 2, y: 0 }, direction: Direction.UP },
+        { number: 1, position: { x: 4, y: 0 }, direction: Direction.UP },
+        { number: 1, position: { x: 6, y: 0 }, direction: Direction.UP },
+        { number: 1, position: { x: 8, y: 0 }, direction: Direction.UP }
     ],
     tiles: [
         // Simple exit conveyors

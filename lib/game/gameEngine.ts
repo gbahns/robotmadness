@@ -533,14 +533,32 @@ export class GameEngine {
     }
 
     respawnDeadRobots(gameState: ServerGameState) {
+        const playerIds = Object.keys(gameState.players);
+
         Object.values(gameState.players).forEach(player => {
             if ((player as any).isDead) {
                 if (player.lives > 0) {
                     console.log(`${player.name} is respawning.`);
-                    const startPos = gameState.course.board.startingPositions[Object.keys(gameState.players).indexOf(player.id) % gameState.course.board.startingPositions.length];
-                    player.position = { ...startPos.position };
-                    player.direction = startPos.direction;
+
+                    // Find the player's original starting position based on their join order
+                    const playerIndex = playerIds.indexOf(player.id);
+
+                    if (playerIndex >= 0 && playerIndex < gameState.course.board.startingPositions.length) {
+                        const startPos = gameState.course.board.startingPositions[playerIndex];
+                        player.position = { ...startPos.position };
+                        player.direction = startPos.direction;
+
+                        console.log(`${player.name} respawned to Dock ${playerIndex + 1} at (${startPos.position.x}, ${startPos.position.y})`);
+                    } else {
+                        console.warn(`No starting position found for ${player.name} (index ${playerIndex})`);
+                        // Fallback to first starting position
+                        const fallbackPos = gameState.course.board.startingPositions[0];
+                        player.position = { ...fallbackPos.position };
+                        player.direction = fallbackPos.direction;
+                    }
+
                     (player as any).isDead = false;
+
                     this.io.to(gameState.roomCode).emit('robot-respawned', {
                         playerName: player.name,
                         position: player.position,

@@ -167,6 +167,7 @@ export interface Checkpoint {
 }
 
 export interface StartingPosition {
+  number: number;
   position: Position;
   direction: Direction;
 }

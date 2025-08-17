@@ -572,13 +572,31 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
     }
 
     // Starting positions (if no checkpoint there)
-    const isStart = course.board.startingPositions.some(
+    const startingPosition = course.board.startingPositions.find(
       sp => sp.position.x === x && sp.position.y === y
     );
-    if (isStart) {
+    if (startingPosition) {
       elements.push(
-        <div key="start" className="absolute inset-0 bg-green-800 opacity-50" />
+        <div key="starting-pos" className="absolute inset-0">
+          {/* Background highlight */}
+          <div className="absolute inset-0 bg-green-600 opacity-30" />
+
+          {/* Position number */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div
+              className="bg-white text-black font-bold rounded-full flex items-center justify-center shadow-lg border-2 border-green-600"
+              style={{
+                width: tileSize * 0.6,
+                height: tileSize * 0.6,
+                fontSize: tileSize * 0.3
+              }}
+            >
+              {startingPosition.number}
+            </div>
+          </div>
+        </div>
       );
+
     }
 
 

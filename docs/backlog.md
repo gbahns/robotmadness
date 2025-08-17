@@ -1,4 +1,5 @@
 ## Backlog
+* player wins the game if all other robots are dead
 * rename BoardPreview to CoursePreview
 * consolidate getTileAt methods (or clarify why there are multiple different implementations)
 * when all players are powered down the game gets stuck
