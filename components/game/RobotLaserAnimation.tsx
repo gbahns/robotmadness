@@ -52,15 +52,13 @@ export default function RobotLaserAnimation({ players, activeLasers, tileSize }:
         const shooter = players[laser.shooterId];
         if (!shooter || laser.path.length === 0) return null;
 
-        // // Check if robot's laser is blocked immediately
-        // if (isRobotLaserBlocked(shooter, course)) {
-        //     return null; // Don't render the laser beam at all
-        // }
-
         // Direction vectors to determine laser orientation
         const isHorizontal = shooter.direction === 1 || shooter.direction === 3; // East or West
 
-        return laser.path.map((pos, index) => {
+        const elements = [];
+
+        // Render the laser beam path
+        laser.path.forEach((pos, index) => {
             const beamWidth = 3;
             const beamLength = tileSize;
 
@@ -78,7 +76,7 @@ export default function RobotLaserAnimation({ players, activeLasers, tileSize }:
             // Create a unique key for this beam segment
             const key = `robot-laser-${laser.shooterId}-${laser.timestamp}-${index}`;
 
-            return (
+            elements.push(
                 <React.Fragment key={key}>
                     {/* Main laser beam with animation */}
                     <div
@@ -111,29 +109,98 @@ export default function RobotLaserAnimation({ players, activeLasers, tileSize }:
                             animation: 'laserGlow 0.5s ease-out'
                         }}
                     />
-
-                    {/* Hit effect at the end of the beam if it hit a target */}
-                    {index === laser.path.length - 1 && laser.targetId && (
-                        <div
-                            className="absolute pointer-events-none"
-                            style={{
-                                left: `${pos.x * tileSize + tileSize / 2}px`,
-                                top: `${pos.y * tileSize + tileSize / 2}px`,
-                                width: '40px',
-                                height: '40px',
-                                marginLeft: '-20px',
-                                marginTop: '-20px',
-                                borderRadius: '50%',
-                                background: 'radial-gradient(circle at center, rgba(239, 68, 68, 0.8) 0%, rgba(220, 38, 38, 0.4) 50%, transparent 70%)',
-                                zIndex: 21,
-                                opacity: 0,
-                                animation: 'laserHit 0.5s ease-out'
-                            }}
-                        />
-                    )}
                 </React.Fragment>
             );
-        }).flat();
+        });
+
+        // Add explosion effect if laser hit a target
+        if (laser.targetId && laser.path.length > 0) {
+            const lastPos = laser.path[laser.path.length - 1];
+            const explosionX = lastPos.x * tileSize + tileSize / 2;
+            const explosionY = lastPos.y * tileSize + tileSize / 2;
+
+            elements.push(
+                <div
+                    key={`explosion-${laser.shooterId}-${laser.timestamp}`}
+                    className="absolute pointer-events-none"
+                    style={{
+                        left: `${explosionX}px`,
+                        top: `${explosionY}px`,
+                        transform: 'translate(-50%, -50%)',
+                        zIndex: 25
+                    }}
+                >
+                    {/* Explosion burst effect */}
+                    <div
+                        className="absolute"
+                        style={{
+                            width: '50px',
+                            height: '50px',
+                            left: '50%',
+                            top: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            backgroundColor: 'rgba(255, 0, 0, 0.4)',
+                            borderRadius: '50%',
+                            animation: 'robotHitExplosion 0.5s ease-out'
+                        }}
+                    />
+
+                    {/* Impact core */}
+                    <div
+                        className="absolute"
+                        style={{
+                            width: '25px',
+                            height: '25px',
+                            left: '50%',
+                            top: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            background: 'radial-gradient(circle, rgba(255,255,0,0.9) 0%, rgba(255,0,0,0.7) 40%, transparent 100%)',
+                            borderRadius: '50%',
+                            boxShadow: '0 0 25px rgba(255, 0, 0, 0.9), 0 0 50px rgba(255, 255, 0, 0.7)',
+                            animation: 'pulse 0.3s ease-in-out 2'
+                        }}
+                    />
+
+                    {/* Spark particles */}
+                    {[...Array(8)].map((_, i) => (
+                        <div
+                            key={`spark-${i}`}
+                            className="absolute"
+                            style={{
+                                width: '3px',
+                                height: '3px',
+                                left: '50%',
+                                top: '50%',
+                                backgroundColor: '#ffff00',
+                                borderRadius: '50%',
+                                transform: `translate(-50%, -50%) rotate(${i * 45}deg) translateY(-15px)`,
+                                animation: `sparkFly 0.5s ease-out`,
+                                animationDelay: `${i * 0.05}s`,
+                                '--rotation': `${i * 45}deg`
+                            } as React.CSSProperties}
+                        />
+                    ))}
+
+                    {/* Impact text */}
+                    <div
+                        className="absolute font-bold text-yellow-300"
+                        style={{
+                            left: '50%',
+                            top: '-20px',
+                            transform: 'translateX(-50%)',
+                            fontSize: '14px',
+                            textShadow: '0 0 10px rgba(255, 255, 0, 0.9)',
+                            animation: 'fadeUp 0.5s ease-out',
+                            pointerEvents: 'none'
+                        }}
+                    >
+                        HIT!
+                    </div>
+                </div>
+            );
+        }
+
+        return <>{elements}</>;
     };
 
     // Add CSS animations via style tag

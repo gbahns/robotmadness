@@ -770,24 +770,53 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
     return elements;
   };
 
-  // Render laser beams
+  // In components/game/Board.tsx, update the renderLaserBeams function to add explosion effects:
+
+  // Render laser beams with explosion effects
   const renderLaserBeams = () => {
     const beams = getAllLaserBeams();
-    return beams.map((beam, index) => {
-      // Skip robot lasers if we're also rendering them via RobotLaserAnimation
-      // (to avoid duplicate rendering)
+    const allElements: React.ReactElement[] = [];
+
+    beams.forEach((beam, beamIndex) => {
+      // Skip robot lasers if handled by RobotLaserAnimation
       if (beam.isRobotLaser) {
-        // Robot lasers are handled by RobotLaserAnimation component
-        return null;
+        return;
       }
 
-      // Create beam segments for each position in the path
-      return beam.path.map((pos, pathIndex) => {
+      // Check if the laser hit something (robot or wall)
+      let hitInfo: { type: 'robot' | 'wall'; position: Position } | null = null;
 
+      if (beam.path.length > 0) {
+        const lastPos = beam.path[beam.path.length - 1];
+
+        // Check if laser stopped because it hit a robot
+        if (isBlockedByRobot(lastPos.x, lastPos.y)) {
+          hitInfo = { type: 'robot', position: lastPos };
+        }
+        // Check if laser stopped because of a wall
+        else if (beam.path.length > 1) {
+          // If the path is shorter than expected, it likely hit a wall
+          const nextX = lastPos.x + [0, 1, 0, -1][beam.laser.direction];
+          const nextY = lastPos.y + [-1, 0, 1, 0][beam.laser.direction];
+
+          // Check if we're at the board edge or if there's a wall
+          if (nextX < 0 || nextX >= course.board.width ||
+            nextY < 0 || nextY >= course.board.height) {
+            // Hit board edge
+          } else {
+            // Check for wall at the last position
+            const tile = getTileAt(lastPos.x, lastPos.y);
+            if (tile && tile.walls && tile.walls.includes(beam.laser.direction)) {
+              hitInfo = { type: 'wall', position: lastPos };
+            }
+          }
+        }
+      }
+
+      // Render the laser beam path
+      beam.path.forEach((pos, pathIndex) => {
         const isHorizontal = beam.laser.direction === 1 || beam.laser.direction === 3;
         const isDoubleLaser = beam.laser.damage > 1;
-
-        // Calculate beam position and size
         const beamWidth = isDoubleLaser ? 8 : 4;
         const beamLength = tileSize;
 
@@ -795,42 +824,40 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
         let left = pos.x * tileSize;
         let top = pos.y * tileSize;
 
-        // Adjust starting position for source tile to emit from edge of block
+        // Adjust starting position for source tile
         if (pathIndex === 0) {
           const indicatorSize = Math.floor(tileSize * 0.2);
           const indicatorOffset = 2;
 
           switch (beam.laser.direction) {
-            case 0: // North - beam starts from top of block
+            case 0: // North
               top -= indicatorSize - indicatorOffset;
               break;
-            case 1: // East - beam starts from right of block  
+            case 1: // East
               left += indicatorSize - indicatorOffset;
               break;
-            case 2: // South - beam starts from bottom of block
+            case 2: // South
               top += indicatorSize - indicatorOffset;
               break;
-            case 3: // West - beam starts from left of block
+            case 3: // West
               left -= indicatorSize - indicatorOffset;
               break;
           }
         }
 
         if (isHorizontal) {
-          // Center vertically
           top += (tileSize - beamWidth) / 2;
         } else {
-          // Center horizontally
           left += (tileSize - beamWidth) / 2;
         }
-        // For double lasers, create two parallel beams
+
+        // Render beam segment
         if (isDoubleLaser) {
           const spacing = 6;
           const singleBeamWidth = 3;
 
-          return (
-            <div key={`laser-${index}-${pathIndex}`}>
-              {/* First beam */}
+          allElements.push(
+            <React.Fragment key={`laser-${beamIndex}-${pathIndex}`}>
               <div
                 className="absolute animate-pulse"
                 style={{
@@ -843,7 +870,6 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
                   zIndex: 10
                 }}
               />
-              {/* Second beam */}
               <div
                 className="absolute animate-pulse"
                 style={{
@@ -856,99 +882,103 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
                   zIndex: 10
                 }}
               />
-              {/* Glow effect for double laser */}
-              <div
-                className="absolute pointer-events-none"
-                style={{
-                  left: `${left - 6}px`,
-                  top: `${top - 6}px`,
-                  width: isHorizontal ? `${beamLength + 12}px` : `${beamWidth + 12}px`,
-                  height: isHorizontal ? `${beamWidth + 12}px` : `${beamLength + 12}px`,
-                  background: 'radial-gradient(ellipse at center, rgba(220, 38, 38, 0.3) 0%, transparent 70%)',
-                  filter: 'blur(6px)',
-                  zIndex: 9
-                }}
-              />
-            </div>
+            </React.Fragment>
           );
-        }
-
-        // Create gradient based on direction
-        const gradientId = `laser-gradient-${index}-${pathIndex}`;
-        const gradientStops = isDoubleLaser ? (
-          <>
-            <stop offset="0%" stopColor="#ef4444" stopOpacity="0.3" />
-            <stop offset="50%" stopColor="#dc2626" stopOpacity="0.8" />
-            <stop offset="100%" stopColor="#ef4444" stopOpacity="0.3" />
-          </>
-        ) : (
-          <>
-            <stop offset="0%" stopColor="#f87171" stopOpacity="0.2" />
-            <stop offset="50%" stopColor="#ef4444" stopOpacity="0.6" />
-            <stop offset="100%" stopColor="#f87171" stopOpacity="0.2" />
-          </>
-        );
-
-        return (
-          <div key={`laser-${index}-${pathIndex}`}>
-            <svg
-              className="absolute pointer-events-none"
+        } else {
+          allElements.push(
+            <div
+              key={`laser-${beamIndex}-${pathIndex}`}
+              className="absolute animate-pulse"
               style={{
                 left: `${left}px`,
                 top: `${top}px`,
                 width: isHorizontal ? `${beamLength}px` : `${beamWidth}px`,
                 height: isHorizontal ? `${beamWidth}px` : `${beamLength}px`,
+                backgroundColor: 'rgba(220, 38, 38, 0.7)',
+                boxShadow: '0 0 8px rgba(220, 38, 38, 0.8)',
                 zIndex: 10
               }}
-            >
-              <defs>
-                <linearGradient
-                  id={gradientId}
-                  x1="0%"
-                  y1="0%"
-                  x2={isHorizontal ? "100%" : "0%"}
-                  y2={isHorizontal ? "0%" : "100%"}
-                >
-                  {gradientStops}
-                </linearGradient>
-              </defs>
-              <rect
-                width="100%"
-                height="100%"
-                fill={`url(#${gradientId})`}
-                className="animate-pulse"
-              />
-              {isDoubleLaser && (
-                <rect
-                  width="100%"
-                  height="100%"
-                  fill="none"
-                  stroke="#dc2626"
-                  strokeWidth="1"
-                  strokeOpacity="0.5"
-                />
-              )}
-            </svg>
+            />
+          );
+        }
+      });
 
-            {/* Add glow effect */}
+      // Add explosion effect if laser hit something
+      if (hitInfo) {
+        const explosionX = hitInfo.position.x * tileSize + tileSize / 2;
+        const explosionY = hitInfo.position.y * tileSize + tileSize / 2;
+        const isRobotHit = hitInfo.type === 'robot';
+
+        allElements.push(
+          <div
+            key={`explosion-${beamIndex}`}
+            className="absolute pointer-events-none"
+            style={{
+              left: `${explosionX}px`,
+              top: `${explosionY}px`,
+              transform: 'translate(-50%, -50%)',
+              zIndex: 15
+            }}
+          >
+            {/* Explosion burst */}
             <div
-              className="absolute pointer-events-none animate-pulse"
+              className="absolute animate-ping"
               style={{
-                left: `${left - 4}px`,
-                top: `${top - 4}px`,
-                width: isHorizontal ? `${beamLength + 8}px` : `${beamWidth + 8}px`,
-                height: isHorizontal ? `${beamWidth + 8}px` : `${beamLength + 8}px`,
-                background: isDoubleLaser
-                  ? 'radial-gradient(ellipse at center, rgba(220, 38, 38, 0.3) 0%, transparent 70%)'
-                  : 'radial-gradient(ellipse at center, rgba(239, 68, 68, 0.2) 0%, transparent 70%)',
-                filter: 'blur(4px)',
-                zIndex: 9
+                width: isRobotHit ? '60px' : '40px',
+                height: isRobotHit ? '60px' : '40px',
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                backgroundColor: isRobotHit ? 'rgba(255, 0, 0, 0.4)' : 'rgba(255, 165, 0, 0.4)',
+                borderRadius: '50%',
+                animationDuration: '0.75s',
+                animationIterationCount: 'infinite'
               }}
             />
+
+            {/* Impact core */}
+            <div
+              className="absolute animate-pulse"
+              style={{
+                width: isRobotHit ? '30px' : '20px',
+                height: isRobotHit ? '30px' : '20px',
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                background: isRobotHit
+                  ? 'radial-gradient(circle, rgba(255,255,0,0.8) 0%, rgba(255,0,0,0.6) 50%, transparent 100%)'
+                  : 'radial-gradient(circle, rgba(255,255,0,0.8) 0%, rgba(255,165,0,0.6) 50%, transparent 100%)',
+                borderRadius: '50%',
+                boxShadow: isRobotHit
+                  ? '0 0 20px rgba(255, 0, 0, 0.8), 0 0 40px rgba(255, 255, 0, 0.6)'
+                  : '0 0 15px rgba(255, 165, 0, 0.8)'
+              }}
+            />
+
+            {/* Sparks */}
+            {[...Array(6)].map((_, i) => (
+              <div
+                key={`spark-${i}`}
+                className="absolute animate-ping"
+                style={{
+                  width: '4px',
+                  height: '4px',
+                  left: '50%',
+                  top: '50%',
+                  backgroundColor: isRobotHit ? '#ffff00' : '#ffa500',
+                  borderRadius: '50%',
+                  transform: `translate(-50%, -50%) rotate(${i * 60}deg) translateY(-20px)`,
+                  animationDelay: `${i * 0.1}s`,
+                  animationDuration: '1s'
+                }}
+              />
+            ))}
           </div>
         );
-      });
-    }).flat();
+      }
+    });
+
+    return allElements;
   };
 
   return (
