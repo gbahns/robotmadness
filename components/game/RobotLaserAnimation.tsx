@@ -1,6 +1,7 @@
 // /components/game/RobotLaserAnimation.tsx
 import React, { useEffect, useState } from 'react';
 import { Player, Position } from '@/lib/game/types';
+import { getTileAt } from '@/lib/game/wall-utils';
 
 export interface RobotLaserShot {
     shooterId: string;
@@ -14,6 +15,19 @@ interface RobotLaserAnimationProps {
     activeLasers: RobotLaserShot[];
     tileSize: number;
 }
+
+// Helper to check if a robot's laser is immediately blocked
+const isRobotLaserBlocked = (shooter: Player, course: any): boolean => {
+    // Get the tile the robot is on
+    const robotTile = getTileAt(course, shooter.position.x, shooter.position.y);
+
+    // Check if there's a wall blocking the robot's firing direction
+    if (robotTile && robotTile.walls && robotTile.walls.includes(shooter.direction)) {
+        return true; // Robot can't fire - wall in the way
+    }
+
+    return false;
+};
 
 export default function RobotLaserAnimation({ players, activeLasers, tileSize }: RobotLaserAnimationProps) {
     const [visibleLasers, setVisibleLasers] = useState<RobotLaserShot[]>([]);
@@ -37,6 +51,11 @@ export default function RobotLaserAnimation({ players, activeLasers, tileSize }:
     const renderLaserBeam = (laser: RobotLaserShot) => {
         const shooter = players[laser.shooterId];
         if (!shooter || laser.path.length === 0) return null;
+
+        // // Check if robot's laser is blocked immediately
+        // if (isRobotLaserBlocked(shooter, course)) {
+        //     return null; // Don't render the laser beam at all
+        // }
 
         // Direction vectors to determine laser orientation
         const isHorizontal = shooter.direction === 1 || shooter.direction === 3; // East or West

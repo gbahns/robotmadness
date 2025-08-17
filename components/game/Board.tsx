@@ -176,7 +176,6 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
     );
   };
 
-  // Calculate laser beam path from a laser source
   const calculateLaserBeamPath = (laser: Laser): Position[] => {
     const path: Position[] = [];
     let currentX = laser.position.x;
@@ -186,6 +185,13 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
     const dx = [0, 1, 0, -1];
     const dy = [-1, 0, 1, 0];
 
+    // Check if laser is immediately blocked by a wall at its source
+    const sourceTile = getTileAt(currentX, currentY);
+    if (sourceTile && sourceTile.walls && sourceTile.walls.includes(laser.direction)) {
+      // Laser blocked immediately, return empty path
+      return [];
+    }
+
     // Start from the laser source tile itself
     path.push({ x: currentX, y: currentY });
 
@@ -193,17 +199,35 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
     currentX += dx[laser.direction];
     currentY += dy[laser.direction];
 
-    // Trace the full path until hitting board edge or wall
+    // Trace the full path until hitting board edge, wall, or robot
     while (
       currentX >= 0 &&
       currentX < course.board.width &&
       currentY >= 0 &&
       currentY < course.board.height
     ) {
+      // Check if entry to this tile is blocked by a wall
+      const oppositeDirection = (laser.direction + 2) % 4;
+      const currentTile = getTileAt(currentX, currentY);
+      if (currentTile && currentTile.walls && currentTile.walls.includes(oppositeDirection)) {
+        // Wall blocks entry to this tile
+        break;
+      }
+
+      // Add this position to the path
       path.push({ x: currentX, y: currentY });
 
-      // TODO: Check if blocked by wall when wall system is implemented
-      // Walls would stop the beam, but robots don't
+      // Check if there's a robot at this position
+      if (isBlockedByRobot(currentX, currentY)) {
+        // Laser hits robot and stops here
+        break;
+      }
+
+      // Check if exit from this tile is blocked by a wall
+      if (currentTile && currentTile.walls && currentTile.walls.includes(laser.direction)) {
+        // Wall blocks exit from this tile
+        break;
+      }
 
       // Continue to next position
       currentX += dx[laser.direction];
@@ -211,18 +235,109 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
     }
 
     return path;
-  };  // Get all laser beams that should be rendered
-  const getAllLaserBeams = (): { laser: Laser; path: Position[] }[] => {
-    const beams: { laser: Laser; path: Position[] }[] = [];
+  };
 
+  // Get all laser beams that should be rendered (board lasers + robot lasers)
+  const getAllLaserBeams = (): { laser: Laser; path: Position[]; isRobotLaser?: boolean; shooterId?: string }[] => {
+    const beams: { laser: Laser; path: Position[]; isRobotLaser?: boolean; shooterId?: string }[] = [];
+
+    // Add board lasers
     if (course.board.lasers && Array.isArray(course.board.lasers)) {
       course.board.lasers.forEach((laser: any) => {
         const path = calculateLaserBeamPath(laser);
-        beams.push({ laser, path });
+        beams.push({ laser, path, isRobotLaser: false });
       });
     }
 
+    // Add robot lasers
+    Object.values(players).forEach((player: Player) => {
+      if (player.lives > 0) {
+        // Create a laser source from the robot's position and direction
+        const robotLaser: Laser = {
+          position: player.position,
+          direction: player.direction,
+          damage: 1 // Robot lasers always do 1 damage
+        };
+
+        const path = calculateRobotLaserPath(player);
+        if (path.length > 0) {
+          beams.push({
+            laser: robotLaser,
+            path,
+            isRobotLaser: true,
+            shooterId: player.id
+          });
+        }
+      }
+    });
+
     return beams;
+  };
+
+  // Calculate robot laser beam path (similar to board lasers but excludes the shooter)
+  const calculateRobotLaserPath = (shooter: Player): Position[] => {
+    const path: Position[] = [];
+    let currentX = shooter.position.x;
+    let currentY = shooter.position.y;
+
+    // Direction vectors: 0=North, 1=East, 2=South, 3=West
+    const dx = [0, 1, 0, -1];
+    const dy = [-1, 0, 1, 0];
+
+    // Check if laser is immediately blocked by a wall at robot's position
+    const sourceTile = getTileAt(currentX, currentY);
+    if (sourceTile && sourceTile.walls && sourceTile.walls.includes(shooter.direction)) {
+      // Robot's laser blocked immediately by wall
+      return [];
+    }
+
+    // Move to first tile in front of robot (don't include robot's own position)
+    currentX += dx[shooter.direction];
+    currentY += dy[shooter.direction];
+
+    // Trace the path until hitting board edge, wall, or another robot
+    while (
+      currentX >= 0 &&
+      currentX < course.board.width &&
+      currentY >= 0 &&
+      currentY < course.board.height
+    ) {
+      // Check if entry to this tile is blocked by a wall
+      const oppositeDirection = (shooter.direction + 2) % 4;
+      const currentTile = getTileAt(currentX, currentY);
+      if (currentTile && currentTile.walls && currentTile.walls.includes(oppositeDirection)) {
+        // Wall blocks entry to this tile
+        break;
+      }
+
+      // Add this position to the path
+      path.push({ x: currentX, y: currentY });
+
+      // Check if there's another robot at this position (not the shooter)
+      const robotAtPosition = Object.values(players).find(p =>
+        p.position.x === currentX &&
+        p.position.y === currentY &&
+        p.lives > 0 &&
+        p.id !== shooter.id
+      );
+
+      if (robotAtPosition) {
+        // Laser hits another robot and stops here
+        break;
+      }
+
+      // Check if exit from this tile is blocked by a wall
+      if (currentTile && currentTile.walls && currentTile.walls.includes(shooter.direction)) {
+        // Wall blocks exit from this tile
+        break;
+      }
+
+      // Continue to next position
+      currentX += dx[shooter.direction];
+      currentY += dy[shooter.direction];
+    }
+
+    return path;
   };
 
   // Calculate responsive sizes based on tile size
@@ -659,8 +774,16 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
   const renderLaserBeams = () => {
     const beams = getAllLaserBeams();
     return beams.map((beam, index) => {
+      // Skip robot lasers if we're also rendering them via RobotLaserAnimation
+      // (to avoid duplicate rendering)
+      if (beam.isRobotLaser) {
+        // Robot lasers are handled by RobotLaserAnimation component
+        return null;
+      }
+
       // Create beam segments for each position in the path
       return beam.path.map((pos, pathIndex) => {
+
         const isHorizontal = beam.laser.direction === 1 || beam.laser.direction === 3;
         const isDoubleLaser = beam.laser.damage > 1;
 

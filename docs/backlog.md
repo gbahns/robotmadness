@@ -1,5 +1,6 @@
 ## Backlog
 * rename BoardPreview to CoursePreview
+* consolidate getTileAt methods (or clarify why there are multiple different implementations)
 * when all players are powered down the game gets stuck
 * hide the whole registers section and the player's hand when powered down?
 * starting space mini boards

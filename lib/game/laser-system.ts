@@ -1,4 +1,5 @@
 import { GameState, Player, Position, Course, GamePhase } from './types';
+import { getTileAt } from './wall-utils';
 
 export interface LaserSource {
     position: Position;
@@ -72,9 +73,31 @@ export function getAllLaserSources(gameState: GameState): LaserSource[] {
  * Check if there's a wall between two adjacent positions
  * REQ-LASER-3: Lasers blocked by walls
  */
-function hasWallBetween(from: Position, to: Position, board: Course): boolean {
-    // TODO: Implement wall checking when wall system is implemented
-    // For now, return false (no walls)
+function hasWallBetween(from: Position, to: Position, board: Course['board']): boolean {
+    // Determine direction of movement
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+
+    let movementDirection: number;
+    if (dy === -1) movementDirection = 0; // North
+    else if (dx === 1) movementDirection = 1; // East
+    else if (dy === 1) movementDirection = 2; // South
+    else if (dx === -1) movementDirection = 3; // West
+    else return false; // Not adjacent positions
+
+    // Check if there's a wall on the 'from' tile blocking exit in the movement direction
+    const fromTile = getTileAt(board, from.x, from.y);
+    if (fromTile && fromTile.walls.includes(movementDirection)) {
+        return true;
+    }
+
+    // Check if there's a wall on the 'to' tile blocking entry from the opposite direction
+    const oppositeDirection = (movementDirection + 2) % 4;
+    const toTile = getTileAt(board, to.x, to.y);
+    if (toTile && toTile.walls.includes(oppositeDirection)) {
+        return true;
+    }
+
     return false;
 }
 
@@ -100,23 +123,41 @@ export function traceLaserBeam(source: LaserSource, gameState: GameState): Laser
     };
 
     const { dx, dy } = DIRECTION_VECTORS[source.direction];
+
+    // IMPORTANT: First check if there's a wall immediately blocking the laser from firing
+    // Check if the source position has a wall blocking the laser's exit direction
+    const firstStepPos = {
+        x: source.position.x + dx,
+        y: source.position.y + dy
+    };
+
+    // Check if laser is immediately blocked by a wall at the source
+    if (hasWallBetween(source.position, firstStepPos, gameState.course.board)) {
+        // Laser can't even fire - blocked immediately
+        beam.hitTarget = {
+            type: 'wall',
+            position: source.position
+        };
+        return beam; // Return empty path
+    }
+
     let currentX = source.position.x + dx;
     let currentY = source.position.y + dy;
 
     // Trace beam until it hits something or goes off board
     while (
         currentX >= 0 &&
-        currentX < gameState.board.width &&
+        currentX < gameState.course.board.width &&
         currentY >= 0 &&
-        currentY < gameState.board.height
+        currentY < gameState.course.board.height
     ) {
         const currentPos = { x: currentX, y: currentY };
         const previousPos = beam.path.length > 0
             ? beam.path[beam.path.length - 1]
             : source.position;
 
-        // Check for wall blocking the path
-        if (hasWallBetween(previousPos, currentPos, gameState.board)) {
+        // Check for wall blocking the path (for positions after the first)
+        if (beam.path.length > 0 && hasWallBetween(previousPos, currentPos, gameState.course.board)) {
             beam.hitTarget = {
                 type: 'wall',
                 position: previousPos

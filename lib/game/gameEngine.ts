@@ -2,6 +2,7 @@ import { GameState, Player, ProgramCard, Tile, Direction, CardType, GamePhase, C
 import { TileType } from './types/enums';
 import { GAME_CONFIG } from './constants';
 import { buildCourse, getCourseById, OFFICIAL_RISKY_EXCHANGE } from './boards/courses';
+import { hasWallBetween } from './wall-utils';
 
 export interface ServerGameState extends GameState {
     host: string;
@@ -421,54 +422,76 @@ export class GameEngine {
 
         for (let i = 0; i < moves; i++) {
             const vector = this.DIRECTION_VECTORS[direction];
+            const currentPos = { x: player.position.x, y: player.position.y };
             const newX = player.position.x + vector.x;
             const newY = player.position.y + vector.y;
+            const newPos = { x: newX, y: newY };
 
+            // Check if move is off the board
             if (newX < 0 || newX >= gameState.course.board.width ||
                 newY < 0 || newY >= gameState.course.board.height) {
                 this.destroyRobot(gameState, player, 'fell off board');
                 break;
             }
 
+            // Check for walls blocking the movement
+            if (hasWallBetween(currentPos, newPos, gameState.course.board)) {
+                // Movement blocked by wall, stop here
+                break;
+            }
+
+            // Check for other robots
             const occupant = this.getPlayerAt(gameState, newX, newY);
             if (occupant) {
+                // Try to push the other robot
                 const pushed = await this.pushRobot(gameState, occupant, direction);
                 if (!pushed) {
+                    // Can't push (blocked by wall or another robot), movement stops
                     break;
                 } else {
+                    // Successfully pushed, continue moving
                     this.executionLog(gameState, `${player.name} pushed ${occupant.name}`);
                 }
             }
 
-            if (newX >= 0 && newX < gameState.course.board.width && newY >= 0 && newY < gameState.course.board.height) {
-                player.position.x = newX;
-                player.position.y = newY;
-            } else {
-                this.destroyRobot(gameState, player, 'fell off board');
-                break;
-            }
+            // Movement is valid, update position
+            player.position.x = newX;
+            player.position.y = newY;
         }
     }
 
+
     async pushRobot(gameState: ServerGameState, playerToPush: Player, direction: Direction): Promise<boolean> {
         const vector = this.DIRECTION_VECTORS[direction];
+        const currentPos = { x: playerToPush.position.x, y: playerToPush.position.y };
         const newX = playerToPush.position.x + vector.x;
         const newY = playerToPush.position.y + vector.y;
+        const newPos = { x: newX, y: newY };
 
+        // Check if push would go off the board
         if (newX < 0 || newX >= gameState.course.board.width ||
             newY < 0 || newY >= gameState.course.board.height) {
             this.destroyRobot(gameState, playerToPush, 'fell off board');
             return true; // Pushed off the board
         }
 
+        // Check for walls blocking the push
+        if (hasWallBetween(currentPos, newPos, gameState.course.board)) {
+            // Can't push through wall
+            return false;
+        }
+
+        // Check for other robots in the push destination
         const occupant = this.getPlayerAt(gameState, newX, newY);
         if (occupant) {
+            // Try to push the next robot in the chain
             const pushed = await this.pushRobot(gameState, occupant, direction);
             if (!pushed) {
-                return false; // Blocked by another robot that couldn't be pushed
+                return false; // Chain pushing failed
             }
         }
 
+        // Push is valid, update position
         playerToPush.position.x = newX;
         playerToPush.position.y = newY;
         return true;
@@ -724,25 +747,33 @@ export class GameEngine {
     traceLaser(gameState: ServerGameState, startX: number, startY: number, direction: Direction, damage: number) {
         const hits: any[] = [];
         const vector = this.DIRECTION_VECTORS[direction];
-        let x = startX;
-        let y = startY;
-        while (x >= 0 && x < gameState.course.board.width && y >= 0 && y < gameState.course.board.height) {
+        let x = startX + vector.x;
+        let y = startY + vector.y;
+
+        while (x >= 0 && x < gameState.course.board.width &&
+            y >= 0 && y < gameState.course.board.height) {
+
+            // Check for wall blocking the laser path
+            const fromPos = { x: x - vector.x, y: y - vector.y };
+            const toPos = { x, y };
+
+            if (hasWallBetween(fromPos, toPos, gameState.course.board)) {
+                // Laser blocked by wall
+                break;
+            }
+
+            // Check for robot
             const player = this.getPlayerAt(gameState, x, y);
             if (player) {
                 hits.push({ player, damage });
-                break;
+                break; // Laser stops at first robot
             }
-            const tile = this.getTileAt(gameState, x, y);
-            if (tile && tile.walls && tile.walls.includes(direction)) {
-                break;
-            }
+
+            // Move to next position
             x += vector.x;
             y += vector.y;
-            const nextTile = this.getTileAt(gameState, x, y);
-            if (nextTile && nextTile.walls && nextTile.walls.includes((direction + 2) % 4)) {
-                break;
-            }
         }
+
         return hits;
     }
 
