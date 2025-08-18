@@ -23,7 +23,7 @@ interface ServerToClientEvents {
     'phase-change': (data: { phase: string }) => void;
     'execution-update': (data: { message: string; playerId?: string; action?: string }) => void;
     'card-executed': (data: { playerId: string; playerName: string; card: ProgramCard; register: number }) => void;
-    'game-ended': (data: { winner: string }) => void;
+    'game-over': (data: { winner: string }) => void;
     'course-selected': (data: { courseId: string, previewCourse: Course }) => void;
     'error': (data: { message: string }) => void;
     'player-submitted': (data: { playerId: string, playerName: string }) => void;
@@ -33,7 +33,6 @@ interface ServerToClientEvents {
     'power-down-option': (data: { message: string }) => void;
     'player-power-state-changed': (data: { playerId: string, playerName: string, powerState: PowerState, announcedPowerDown?: boolean }) => void;
     'respawn-power-down-option': (data: { message: string }) => void;
-    //'continue-power-down': (data: { roomCode: string, playerId: string, message: string }) => void;
 }
 
 interface ClientToServerEvents {
@@ -307,12 +306,16 @@ app.prepare().then(() => {
             }
         });
 
+        //player notifies the server when they have reset their cards
+        //server resets that player's cards in gameState
+        //server emits the current gameState - this was causing other players' cards to be reset so I commented it out
+        //server emits player-reset to let other players know (they don't currently handle this)
         socket.on('reset-cards', ({ roomCode, playerId }) => {
             const gameState = games.get(roomCode);
             if (!gameState || !gameState.players[playerId]) return;
 
             gameEngine.resetCards(gameState, playerId);
-            io.to(roomCode).emit('game-state', gameState);
+            //io.to(roomCode).emit('game-state', gameState);
             io.to(roomCode).emit('player-reset', { playerId, playerName: gameState.players[playerId].name });
         });
 

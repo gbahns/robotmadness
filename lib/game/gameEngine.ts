@@ -259,7 +259,18 @@ export class GameEngine {
         console.log(`PLAYER ${playerId} RESET CARDS`);
         const player = gameState.players[playerId];
         if (player) {
-            player.selectedCards = Array(5).fill(null);
+            // Calculate locked registers based on damage
+            const lockedCount = Math.max(0, player.damage - 4);
+
+            // Keep locked registers (at the end) unchanged
+            // Registers lock from 5 down to 1 (indices 4 down to 0)
+            // Only clear non-locked registers (from the beginning)
+            for (let i = 0; i < 5 - lockedCount; i++) {
+                player.selectedCards[i] = null;
+            }
+
+            player.submitted = false;
+            console.log(`Reset cards for ${player.name}. Locked registers: ${lockedCount}`);
         }
     }
 
@@ -318,7 +329,7 @@ export class GameEngine {
             // Check if game ended
             if (gameState.phase === 'ended') {
                 console.log(`Game ended! Winner: ${gameState.winner}`);
-                this.io.to(roomCode).emit('game-ended', { winner: gameState.winner || 'No winner' });
+                this.io.to(roomCode).emit('game-over', { winner: gameState.winner || 'No winner' });
                 return;
             }
 
@@ -872,10 +883,11 @@ export class GameEngine {
 
                 this.executionLog(gameState, `${player.name} reached checkpoint ${checkpoint.number}!`);
 
+                // Check if player has won
                 if (player.checkpointsVisited === gameState.course.definition.checkpoints.length) {
                     gameState.winner = player.name;
                     console.log(`${player.name} wins the game!`);
-                    this.io.to(gameState.roomCode).emit('game-won', { winner: player.name });
+                    this.io.to(gameState.roomCode).emit('game-over', { winner: player.name });
                 }
             } else if (checkpoint) {
                 // Still update archive position even if checkpoint is out of order
