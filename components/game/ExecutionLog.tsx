@@ -1,5 +1,3 @@
-// File: /components/game/ExecutionLog.tsx
-
 'use client';
 
 import React, { useEffect, useRef } from 'react';
@@ -16,6 +14,7 @@ interface ExecutionLogProps {
 }
 
 export default function ExecutionLog({ entries }: ExecutionLogProps) {
+    var id = 0;
     const scrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -73,7 +72,7 @@ export default function ExecutionLog({ entries }: ExecutionLogProps) {
                 ) : (
                     entries.map((entry) => (
                         <div
-                            key={entry.id}
+                            key={id++}
                             className={`text-sm ${getColorClass(entry.type)} flex items-start gap-2`}
                         >
                             <span className="flex-shrink-0">{getIcon(entry.type)}</span>
