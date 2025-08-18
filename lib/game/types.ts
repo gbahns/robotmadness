@@ -134,17 +134,16 @@ export interface WallElement {
  */
 export interface Course {
   definition: CourseDefinition;
+  board: Board;
+}
 
-  board: {
-    width: number;
-    height: number;
-    tiles: Tile[][];
-    startingPositions: StartingPosition[];
-    walls?: WallElement[];
-    lasers?: Laser[];
-  }
-
-  // Note: checkpoints come from definition.checkpoints
+export interface Board {
+  width: number;
+  height: number;
+  tiles: Tile[][];
+  startingPositions: StartingPosition[];
+  walls?: WallElement[];
+  lasers?: Laser[];
 }
 
 export interface Laser {

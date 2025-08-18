@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { getCourseById, buildCourse } from '@/lib/game/boards/courses';
-import { getBoardDefinitionById } from '@/lib/game/boards/factoryFloorBoards';
 import { Course as CourseType, Player } from '@/lib/game/types';
-import Board from './Board';
+import Board from './Board';  // Rename import to avoid naming conflict
+import CheckpointOverlay from './CheckpointOverlay';
 import { RobotLaserShot } from './RobotLaserAnimation';
 
 interface CourseProps {
@@ -24,28 +24,13 @@ export default function Course({
     roomCode,
     activeLasers = []
 }: CourseProps) {
-    const [course, setBoard] = useState<CourseType | null>(null);
-    const [courseName, setCourseName] = useState<string>('');
+    const [course, setCourse] = useState<CourseType | null>(null);
+    const [tileSize, setTileSize] = useState(50);
 
     useEffect(() => {
-        // Handle special test board case
-        if (courseId === 'test') {
-            const testCourse = getCourseById('test');
-            const testBoard = getBoardDefinitionById('test');
-            if (testBoard && testCourse) {
-                const builtBoard = buildCourse(testCourse);
-                setBoard(builtBoard);
-                setCourseName('Test Board');
-            }
-            return;
-        }
-
-        // Get course and its boards
         const courseDefinition = getCourseById(courseId);
-        const course = buildCourse(courseDefinition);
-        setBoard(course);
-
-        console.log('Course built and set:', courseDefinition.name, 'Board size:', course.board.width, 'x', course.board.height);
+        const builtCourse = buildCourse(courseDefinition);
+        setCourse(builtCourse);
     }, [courseId]);
 
     if (!course) {
@@ -53,23 +38,44 @@ export default function Course({
             <div className="flex items-center justify-center h-full">
                 <div className="text-center space-y-4">
                     <p className="text-xl text-gray-300">
-                        Loading course: {courseName || courseId}...
+                        Loading course: {courseId}...
                     </p>
                 </div>
             </div>
         );
     }
 
-    // Render the board with course-defined checkpoints
+    const handleTileSizeChange = (newTileSize: number) => {
+        setTileSize(newTileSize);
+    };
+
     return (
-        <Board
-            course={course}
-            players={players}
-            currentPlayerId={currentPlayerId}
-            isHost={isHost}
-            gameState={gameState}
-            roomCode={roomCode}
-            activeLasers={activeLasers}
-        />
+        <div className="relative">
+            {/* Board component renders the base board */}
+            <Board
+                board={course.board}  // board is already Board type
+                players={players}
+                currentPlayerId={currentPlayerId}
+                activeLasers={activeLasers}
+                onTileSizeChange={handleTileSizeChange}
+            />
+
+            {/* Checkpoint overlay - positioned absolutely over the board */}
+            <CheckpointOverlay
+                checkpoints={course.definition.checkpoints}
+                boardWidth={course.board.width}
+                boardHeight={course.board.height}
+                tileSize={tileSize}
+            />
+
+            {/* Course-specific controls or information could go here */}
+            {gameState?.phase === 'waiting' && isHost && (
+                <div className="absolute top-2 right-2 bg-gray-800 bg-opacity-90 p-2 rounded">
+                    <p className="text-sm text-gray-300">
+                        {course.definition.name}
+                    </p>
+                </div>
+            )}
+        </div>
     );
 }

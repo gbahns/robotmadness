@@ -5,15 +5,16 @@ import RobotLaserAnimation, { RobotLaserShot } from './RobotLaserAnimation';
 import Robot from './Robot';
 import { socketClient } from '@/lib/socket';
 import { getTileAt as getCanonicalTileAt } from '@/lib/game/tile-utils';
+import { Board as BoardType } from '@/lib/game/types';
+
 
 interface BoardProps {
-  course: Course;
+  board: BoardType;  // Use the Board type from types.ts
   players: Record<string, Player>;
   currentPlayerId?: string;
-  isHost?: boolean;
-  gameState?: any;
-  roomCode?: string;
+  tileSize?: number;
   activeLasers?: RobotLaserShot[];
+  onTileSizeChange?: (tileSize: number) => void;
 }
 
 // Direction mapping for visual arrows
@@ -21,13 +22,13 @@ const DIRECTION_ARROWS = ['↑', '→', '↓', '←'];
 
 const ROBOT_COLORS = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan'];
 
-export default function Board({ course, players, activeLasers = [], currentPlayerId, isHost, gameState, roomCode }: BoardProps) {
+export default function Board({ board, players, activeLasers = [], currentPlayerId }: BoardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [tileSize, setTileSize] = useState(50);
 
   useEffect(() => {
     const calculateTileSize = () => {
-      if (!containerRef.current || !course) return;
+      if (!containerRef.current) return;
 
       const container = containerRef.current;
       const containerWidth = container.clientWidth;
@@ -35,8 +36,8 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
 
       // Calculate the maximum tile size that fits in the container
       // Leave some margin for the phase indicator below
-      const maxWidthTileSize = Math.floor(containerWidth / course.board.width);
-      const maxHeightTileSize = Math.floor((containerHeight - 60) / course.board.height); // 60px for phase indicator
+      const maxWidthTileSize = Math.floor(containerWidth / board.width);
+      const maxHeightTileSize = Math.floor((containerHeight - 60) / board.height); // 60px for phase indicator
 
       // Use the smaller of the two to ensure the board fits
       const newTileSize = Math.min(maxWidthTileSize, maxHeightTileSize, 80); // Cap at 80px max
@@ -57,66 +58,66 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
       window.removeEventListener('resize', calculateTileSize);
       resizeObserver.disconnect();
     };
-  }, [course]);
+  }, [board]);
 
   // Show pre-game controls when game hasn't started
-  if (!course || gameState?.phase === 'waiting') {
-    // Use players from gameState if available, as it's more up-to-date
-    const currentPlayers = gameState?.players || players || {};
-    const playerCount = Object.keys(currentPlayers).length;
+  // if (!board || gameState?.phase === 'waiting') {
+  //   // Use players from gameState if available, as it's more up-to-date
+  //   const currentPlayers = gameState?.players || players || {};
+  //   const playerCount = Object.keys(currentPlayers).length;
 
-    console.log('Board waiting state:', {
-      board: !!course,
-      phase: gameState?.phase,
-      playerCount,
-      isHost,
-      currentPlayerId,
-      host: gameState?.host,
-      players: Object.keys(currentPlayers),
-      gameStateExists: !!gameState,
-      roomCodeExists: !!roomCode
-    });
+  //   console.log('Board waiting state:', {
+  //     board: !!board,
+  //     phase: gameState?.phase,
+  //     playerCount,
+  //     isHost,
+  //     currentPlayerId,
+  //     host: gameState?.host,
+  //     players: Object.keys(currentPlayers),
+  //     gameStateExists: !!gameState,
+  //     roomCodeExists: !!roomCode
+  //   });
 
-    // If we have a board (preview mode), show it instead of the waiting message
-    if (course) {
-      // Continue to render the board normally - it will show the selected course layout
-      // Just without any robots on it yet
-    } else {
-      return (
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center space-y-4">
-            <p className="text-xl text-gray-300">
-              Waiting for players to join...
-            </p>
-            <p className="text-lg text-gray-400">
-              {playerCount} / 8 players in lobby
-            </p>
+  //   // If we have a board (preview mode), show it instead of the waiting message
+  //   if (board) {
+  //     // Continue to render the board normally - it will show the selected course layout
+  //     // Just without any robots on it yet
+  //   } else {
+  //     return (
+  //       <div className="flex items-center justify-center h-full">
+  //         <div className="text-center space-y-4">
+  //           <p className="text-xl text-gray-300">
+  //             Waiting for players to join...
+  //           </p>
+  //           <p className="text-lg text-gray-400">
+  //             {playerCount} / 8 players in lobby
+  //           </p>
 
-            {isHost ? (
-              <>
-                <button
-                  onClick={() => {
-                    console.log('Start game clicked, roomCode:', roomCode);
-                    socketClient.emit('start-game', roomCode);
-                    console.log('Emitted start_game event');
-                  }}
-                  disabled={playerCount < 2}
-                  className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-8 py-3 rounded font-semibold text-lg"
-                >
-                  Start Game
-                </button>
-                {playerCount < 2 && (
-                  <p className="text-sm text-gray-500">Need at least 2 players to start</p>
-                )}
-              </>
-            ) : (
-              <p className="text-gray-400">Waiting for host to start game...</p>
-            )}
-          </div>
-        </div>
-      );
-    }
-  }
+  //           {isHost ? (
+  //             <>
+  //               <button
+  //                 onClick={() => {
+  //                   console.log('Start game clicked, roomCode:', roomCode);
+  //                   socketClient.emit('start-game', roomCode);
+  //                   console.log('Emitted start_game event');
+  //                 }}
+  //                 disabled={playerCount < 2}
+  //                 className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-8 py-3 rounded font-semibold text-lg"
+  //               >
+  //                 Start Game
+  //               </button>
+  //               {playerCount < 2 && (
+  //                 <p className="text-sm text-gray-500">Need at least 2 players to start</p>
+  //               )}
+  //             </>
+  //           ) : (
+  //             <p className="text-gray-400">Waiting for host to start game...</p>
+  //           )}
+  //         </div>
+  //       </div>
+  //     );
+  //   }
+  // }
 
   // Get player index for color assignment
   const getPlayerIndex = (playerId: string): number => {
@@ -124,16 +125,16 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
   };
 
   const getTileAt = (x: number, y: number): Tile | undefined => {
-    return getCanonicalTileAt(course.board, x, y);
+    return getCanonicalTileAt(board, x, y);
   };
 
   // Get walls at a specific position
   const getWallsAt = (x: number, y: number): Direction[] => {
-    if (!course.board.walls || !Array.isArray(course.board.walls)) {
+    if (!board.walls || !Array.isArray(board.walls)) {
       return [];
     }
 
-    const wall = course.board.walls.find(
+    const wall = board.walls.find(
       (w: any) => w.position.x === x && w.position.y === y
     );
 
@@ -142,8 +143,8 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
 
   // Get laser at position (for enhanced boards)
   const getLaserAt = (x: number, y: number): Laser | undefined => {
-    if (course.board.lasers && Array.isArray(course.board.lasers)) {
-      return (course.board.lasers as any[]).find((laser: any) => laser.position?.x === x && laser.position?.y === y);
+    if (board.lasers && Array.isArray(board.lasers)) {
+      return (board.lasers as any[]).find((laser: any) => laser.position?.x === x && laser.position?.y === y);
     }
     return undefined;
   };
@@ -181,9 +182,9 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
     // Trace the full path until hitting board edge, wall, or robot
     while (
       currentX >= 0 &&
-      currentX < course.board.width &&
+      currentX < board.width &&
       currentY >= 0 &&
-      currentY < course.board.height
+      currentY < board.height
     ) {
       // Check if entry to this tile is blocked by a wall
       const oppositeDirection = (laser.direction + 2) % 4;
@@ -221,8 +222,8 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
     const beams: { laser: Laser; path: Position[]; isRobotLaser?: boolean; shooterId?: string }[] = [];
 
     // Add board lasers
-    if (course.board.lasers && Array.isArray(course.board.lasers)) {
-      course.board.lasers.forEach((laser: any) => {
+    if (board.lasers && Array.isArray(board.lasers)) {
+      board.lasers.forEach((laser: any) => {
         const path = calculateLaserBeamPath(laser);
         beams.push({ laser, path, isRobotLaser: false });
       });
@@ -277,9 +278,9 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
     // Trace the path until hitting board edge, wall, or another robot
     while (
       currentX >= 0 &&
-      currentX < course.board.width &&
+      currentX < board.width &&
       currentY >= 0 &&
-      currentY < course.board.height
+      currentY < board.height
     ) {
       // Check if entry to this tile is blocked by a wall
       const oppositeDirection = (shooter.direction + 2) % 4;
@@ -589,28 +590,28 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
     }
 
     //Checkpoints
-    const checkpoint = course.definition.checkpoints?.find(
-      (cp: Checkpoint) => cp.position.x === x && cp.position.y === y
-    );
-    if (checkpoint) {
-      elements.push(
-        <div key="checkpoint" className="absolute inset-0 flex items-center justify-center">
-          <div
-            className="bg-white rounded-full flex items-center justify-center text-black font-bold border-4 border-black"
-            style={{
-              width: `${checkpointSize}px`,
-              height: `${checkpointSize}px`,
-              fontSize: `${fontSize}px`
-            }}
-          >
-            {checkpoint.number}
-          </div>
-        </div>
-      );
-    }
+    // const checkpoint = course.definition.checkpoints?.find(
+    //   (cp: Checkpoint) => cp.position.x === x && cp.position.y === y
+    // );
+    // if (checkpoint) {
+    //   elements.push(
+    //     <div key="checkpoint" className="absolute inset-0 flex items-center justify-center">
+    //       <div
+    //         className="bg-white rounded-full flex items-center justify-center text-black font-bold border-4 border-black"
+    //         style={{
+    //           width: `${checkpointSize}px`,
+    //           height: `${checkpointSize}px`,
+    //           fontSize: `${fontSize}px`
+    //         }}
+    //       >
+    //         {checkpoint.number}
+    //       </div>
+    //     </div>
+    //   );
+    // }
 
     // Starting positions (if no checkpoint there)
-    const startingPosition = course.board.startingPositions.find(
+    const startingPosition = board.startingPositions.find(
       sp => sp.position.x === x && sp.position.y === y
     );
     if (startingPosition) {
@@ -831,7 +832,8 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
     const allElements: React.ReactElement[] = [];
 
     // Only show explosions during execution phase
-    const shouldShowExplosions = gameState?.phase === 'executing';
+    //const shouldShowExplosions = gameState?.phase === 'executing';
+    const shouldShowExplosions = false;
 
     beams.forEach((beam, beamIndex) => {
       // Skip robot lasers if handled by RobotLaserAnimation
@@ -859,8 +861,8 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
           const nextY = lastPos.y + dy;
 
           // If next position would be on the board, check why we stopped
-          if (nextX >= 0 && nextX < course.board.width &&
-            nextY >= 0 && nextY < course.board.height) {
+          if (nextX >= 0 && nextX < board.width &&
+            nextY >= 0 && nextY < board.height) {
             // We stopped before the edge - check for wall
             const fromPos = lastPos;
             const toPos = { x: nextX, y: nextY };
@@ -1048,13 +1050,13 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
       <div
         className="relative bg-gray-900"
         style={{
-          width: course.board.width * tileSize,
-          height: course.board.height * tileSize
+          width: board.width * tileSize,
+          height: board.height * tileSize
         }}
       >
         {/* Render tiles */}
-        {Array.from({ length: course.board.height }, (_, y) => (
-          Array.from({ length: course.board.width }, (_, x) => (
+        {Array.from({ length: board.height }, (_, y) => (
+          Array.from({ length: board.width }, (_, x) => (
             <div
               key={`${x}-${y}`}
               className="absolute"
@@ -1083,11 +1085,11 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
 
       {/* Current phase indicator */}
       {/* @ts-ignore - gameState might be passed through parent */}
-      {(course as any).phase === 'executing' && (
+      {/* {(course as any).phase === 'executing' && (
         <div className="mt-4 p-2 bg-yellow-600 text-black rounded">
           Executing Register {((course as any).currentRegister || 0) + 1} of 5
         </div>
-      )}
+      )} */}
     </div>
   );
 }
