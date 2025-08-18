@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { getCourseById, buildCourse } from '@/lib/game/boards/courses';
-import { Course as CourseType, Player } from '@/lib/game/types';
-import Board from './Board';  // Rename import to avoid naming conflict
+import { Course as CourseType, Player, Board } from '@/lib/game/types';
+import BoardComponent from './Board';
 import CheckpointOverlay from './CheckpointOverlay';
 import { RobotLaserShot } from './RobotLaserAnimation';
 
@@ -26,12 +26,45 @@ export default function Course({
 }: CourseProps) {
     const [course, setCourse] = useState<CourseType | null>(null);
     const [tileSize, setTileSize] = useState(50);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const courseDefinition = getCourseById(courseId);
         const builtCourse = buildCourse(courseDefinition);
         setCourse(builtCourse);
     }, [courseId]);
+
+    // Calculate tile size based on container
+    useEffect(() => {
+        const calculateTileSize = () => {
+            if (!containerRef.current || !course) return;
+
+            const container = containerRef.current;
+            const containerWidth = container.clientWidth;
+            const containerHeight = container.clientHeight;
+
+            // Calculate the maximum tile size that fits in the container
+            const maxWidthTileSize = Math.floor(containerWidth / course.board.width);
+            const maxHeightTileSize = Math.floor((containerHeight - 60) / course.board.height);
+
+            // Use the smaller of the two, with better limits
+            const newTileSize = Math.min(maxWidthTileSize, maxHeightTileSize, 100);
+            setTileSize(Math.max(newTileSize, 50)); // Better minimum
+        };
+
+        calculateTileSize();
+        window.addEventListener('resize', calculateTileSize);
+
+        const resizeObserver = new ResizeObserver(calculateTileSize);
+        if (containerRef.current) {
+            resizeObserver.observe(containerRef.current);
+        }
+
+        return () => {
+            window.removeEventListener('resize', calculateTileSize);
+            resizeObserver.disconnect();
+        };
+    }, [course]);
 
     if (!course) {
         return (
@@ -45,37 +78,35 @@ export default function Course({
         );
     }
 
-    const handleTileSizeChange = (newTileSize: number) => {
-        setTileSize(newTileSize);
-    };
-
     return (
-        <div className="relative">
-            {/* Board component renders the base board */}
-            <Board
-                board={course.board}  // board is already Board type
-                players={players}
-                currentPlayerId={currentPlayerId}
-                activeLasers={activeLasers}
-                onTileSizeChange={handleTileSizeChange}
-            />
+        <div ref={containerRef} className="relative h-full w-full flex items-center justify-center">
+            <div className="relative">
+                {/* Board component renders the base board */}
+                <BoardComponent
+                    board={course.board}
+                    players={players}
+                    currentPlayerId={currentPlayerId}
+                    activeLasers={activeLasers}
+                    tileSize={tileSize}
+                />
 
-            {/* Checkpoint overlay - positioned absolutely over the board */}
-            <CheckpointOverlay
-                checkpoints={course.definition.checkpoints}
-                boardWidth={course.board.width}
-                boardHeight={course.board.height}
-                tileSize={tileSize}
-            />
+                {/* Checkpoint overlay - positioned absolutely over the board */}
+                <CheckpointOverlay
+                    checkpoints={course.definition.checkpoints}
+                    boardWidth={course.board.width}
+                    boardHeight={course.board.height}
+                    tileSize={tileSize}
+                />
 
-            {/* Course-specific controls or information could go here */}
-            {gameState?.phase === 'waiting' && isHost && (
-                <div className="absolute top-2 right-2 bg-gray-800 bg-opacity-90 p-2 rounded">
-                    <p className="text-sm text-gray-300">
-                        {course.definition.name}
-                    </p>
-                </div>
-            )}
+                {/* Course info overlay */}
+                {gameState?.phase === 'waiting' && isHost && (
+                    <div className="absolute top-2 right-2 bg-gray-800 bg-opacity-90 p-2 rounded">
+                        <p className="text-sm text-gray-300">
+                            {course.definition.name}
+                        </p>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

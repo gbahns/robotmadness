@@ -16,7 +16,7 @@ export default function CheckpointOverlay({
 }: CheckpointOverlayProps) {
     return (
         <div
-            className="absolute top-0 left-0 pointer-events-none z-10"
+            className="absolute top-0 left-0 pointer-events-none z-20"
             style={{
                 width: boardWidth * tileSize,
                 height: boardHeight * tileSize
@@ -34,16 +34,45 @@ export default function CheckpointOverlay({
                     }}
                 >
                     <div className="relative">
-                        {/* Main checkpoint circle */}
-                        <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold text-lg border-2 border-green-300 shadow-lg">
+                        {/* Flag pole */}
+                        <div
+                            className="absolute bg-gray-600"
+                            style={{
+                                width: '3px',
+                                height: tileSize * 0.7,
+                                left: '50%',
+                                top: '15%',
+                                transform: 'translateX(-50%)'
+                            }}
+                        />
+
+                        {/* Flag */}
+                        <div
+                            className="absolute bg-red-600 flex items-center justify-center text-white font-bold shadow-lg"
+                            style={{
+                                width: tileSize * 0.5,
+                                height: tileSize * 0.35,
+                                left: '50%',
+                                top: '15%',
+                                transform: 'translateX(-1px)',
+                                fontSize: tileSize * 0.25,
+                                clipPath: 'polygon(0 0, 100% 15%, 85% 50%, 100% 85%, 0 100%)'
+                            }}
+                        >
                             {checkpoint.number}
                         </div>
 
-                        {/* Pulsing indicator */}
-                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-300 rounded-full animate-pulse" />
-
-                        {/* Optional: Add a subtle glow effect */}
-                        <div className="absolute inset-0 rounded-full bg-green-400 opacity-30 animate-ping" />
+                        {/* Base circle (optional, for visibility) */}
+                        <div
+                            className="absolute bg-yellow-400 rounded-full opacity-50"
+                            style={{
+                                width: tileSize * 0.3,
+                                height: tileSize * 0.3,
+                                left: '50%',
+                                bottom: '15%',
+                                transform: 'translateX(-50%)'
+                            }}
+                        />
                     </div>
                 </div>
             ))}

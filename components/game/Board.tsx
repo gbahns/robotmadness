@@ -22,13 +22,13 @@ const DIRECTION_ARROWS = ['↑', '→', '↓', '←'];
 
 const ROBOT_COLORS = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan'];
 
-export default function Board({ board, players, activeLasers = [], currentPlayerId }: BoardProps) {
+export default function Board({ board, players, activeLasers = [], currentPlayerId, onTileSizeChange }: BoardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [tileSize, setTileSize] = useState(50);
 
   useEffect(() => {
     const calculateTileSize = () => {
-      if (!containerRef.current) return;
+      if (!containerRef.current || !board) return;
 
       const container = containerRef.current;
       const containerWidth = container.clientWidth;
@@ -40,9 +40,16 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
       const maxHeightTileSize = Math.floor((containerHeight - 60) / board.height); // 60px for phase indicator
 
       // Use the smaller of the two to ensure the board fits
-      const newTileSize = Math.min(maxWidthTileSize, maxHeightTileSize, 80); // Cap at 80px max
+      // Increased max size from 80 to 120, and minimum from 30 to 40
+      var newTileSize = Math.min(maxWidthTileSize, maxHeightTileSize, 120); // Increased cap
+      newTileSize = Math.max(newTileSize, 30); // Increased minimum
 
-      setTileSize(Math.max(newTileSize, 30)); // Minimum 30px
+      setTileSize(newTileSize); // Increased minimum
+
+      // Report the tile size to parent if callback provided
+      if (onTileSizeChange) {
+        onTileSizeChange(newTileSize);
+      }
     };
 
     calculateTileSize();
@@ -58,7 +65,7 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
       window.removeEventListener('resize', calculateTileSize);
       resizeObserver.disconnect();
     };
-  }, [board]);
+  }, [board, onTileSizeChange]);
 
   // Show pre-game controls when game hasn't started
   // if (!board || gameState?.phase === 'waiting') {
