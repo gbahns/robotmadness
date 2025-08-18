@@ -337,7 +337,7 @@ export default function Board({ course, players, activeLasers = [], currentPlaye
 
     // Add tile-specific elements when tiles are implemented
     if (tile) {
-      console.log('Rendering tile at', { x, y, tile });
+      //console.log('Rendering tile at', { x, y, tile });
 
       // Conveyor belts
       if (tile.type === 'conveyor' || tile.type === 'express') {
