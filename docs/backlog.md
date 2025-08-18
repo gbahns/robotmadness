@@ -41,7 +41,7 @@
 * you should be able to announce power down when you have zero damage - this can be in anticipation of receiving damage in the current turn
 * other players don't see your intent to power down until the cards are submitted.  in the official rules, when one player's decision to power down might be affected by another player's decision, the playwers announce in clockwise order. in our automated implementation we don't need this; each player makes their decision independently.
 * display a powered down marker on powered down robots
-* powering down indicator that's visibible during execution for the player that's powering down
+* powering down indicator that's visible during execution for the player that's powering down
 * powering down indicator on the robot and/or in the player list for other players
 * after dying and returning powered down, the robot was not healed
 * what's this Stay Powered Down button?
