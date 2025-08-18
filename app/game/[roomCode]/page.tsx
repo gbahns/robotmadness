@@ -35,7 +35,8 @@ export default function GamePage() {
   const [activeLasers, setActiveLasers] = useState<RobotLaserShot[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<string>();
   const [previewBoard, setPreviewBoard] = useState<any>(null);
-  const [showPowerDownModal, setShowPowerDownModal] = useState(false);
+  //const [showPowerDownModal, setShowPowerDownModal] = useState(false);
+  const [showPowerDownPrompt, setShowPowerDownPrompt] = useState(false);
 
   useEffect(() => {
     // Build preview board when course is selected
@@ -367,7 +368,7 @@ export default function GamePage() {
     // ask powered-down player whether they want to continue to be powered down or not
     socketClient.on('power-down-option', (data: { message: string; }) => {
       console.log('Power down option:', data.message);
-      setShowPowerDownModal(true);
+      setShowPowerDownPrompt(true);
     });
 
     // Respawn with power down option
@@ -741,7 +742,7 @@ export default function GamePage() {
                   </div>
                 </div>
 
-                {gameState?.phase === 'waiting' && (
+                {(gameState?.phase === 'waiting' || showPowerDownPrompt) && (
                   <GameControls
                     isHost={isHost}
                     roomCode={roomCode}
@@ -750,6 +751,15 @@ export default function GamePage() {
                     gameState={gameState}
                     selectedCourse={selectedCourse}
                     onCourseChange={setSelectedCourse}
+                    showPowerDownPrompt={showPowerDownPrompt}
+                    onPowerDownDecision={(continueDown: boolean) => {
+                      socketClient.emit('continue-power-down', {
+                        roomCode,
+                        playerId: playerIdRef.current,
+                        continueDown
+                      });
+                      setShowPowerDownPrompt(false);
+                    }}
                   />
                 )}
 
@@ -821,7 +831,7 @@ export default function GamePage() {
                   )}
 
                   {/* Power Down Modal */}
-                  {currentPlayer && (
+                  {/* {currentPlayer && (
                     <PowerDownModal
                       isOpen={showPowerDownModal}
                       roomCode={roomCode}
@@ -829,7 +839,7 @@ export default function GamePage() {
                       playerName={currentPlayer.name}
                       onClose={() => setShowPowerDownModal(false)}
                     />
-                  )}
+                  )} */}
                 </>
               )}
 
