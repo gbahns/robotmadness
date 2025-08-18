@@ -1,4 +1,7 @@
 ## Backlog
+* reset cards is executing the logic on both the client and the server; only need one
+* prompt to choose whether to stay powered down should be in GameControls instead of a modal so the player can see the current game status to help them decide
+* fix problem with dulicate key errors in ExecutionLog and/or remove the id from the log properties
 * player wins the game if all other robots are dead
 * rename BoardPreview to CoursePreview
 * consolidate getTileAt methods (or clarify why there are multiple different implementations)
@@ -35,9 +38,7 @@
 * make the execution delay configurable
 
 ## In Progress
-* respawn robots on their archive marker
-* one player resetting their programmed registers should not reset other players programmed registers
-* when your damage is cleared locked registers need to be cleared accordingly
+* you should be able to announce power down when you have zero damage - this can be in anticipation of receiving damage in the current turn
 * other players don't see your intent to power down until the cards are submitted.  in the official rules, when one player's decision to power down might be affected by another player's decision, the playwers announce in clockwise order. in our automated implementation we don't need this; each player makes their decision independently.
 * display a powered down marker on powered down robots
 * powering down indicator that's visibible during execution for the player that's powering down
@@ -83,6 +84,7 @@
 * make the U-Turn the same color as the other turns
 * orient the U-Turn arrow like an upside-down U
 * walls
+* respawn robots on their archive marker
 
 
 ## Defect Fix History
@@ -97,3 +99,5 @@
 * toggling power down should not reset your registers
 * fix conveyors, wrenches, and gears not rendering
 * fix it so the robots don't show up on the board in preview mode
+* one player resetting their programmed registers should not reset other players programmed registers
+* when your damage is cleared locked registers need to be cleared accordingly
