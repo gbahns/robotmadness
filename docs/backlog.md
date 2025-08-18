@@ -101,3 +101,4 @@
 * fix it so the robots don't show up on the board in preview mode
 * one player resetting their programmed registers should not reset other players programmed registers
 * when your damage is cleared locked registers need to be cleared accordingly
+* don't deal cards to a player who chooses to stay powered down; make them actually stay powered down

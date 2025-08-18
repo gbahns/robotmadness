@@ -146,8 +146,8 @@ export class GameEngine {
 
     dealCardsToPlayer(roomCode: string, player: Player, deck: ProgramCard[]): void {
         // Handle power down states
-        if (player.announcedPowerDown && player.powerState === PowerState.ANNOUNCING) {
-            // Transition from ANNOUNCING to OFF
+        if ((player.announcedPowerDown && player.powerState === PowerState.ANNOUNCING) || player.powerState === PowerState.OFF) {
+            // Transition from ANNOUNCING to OFF or staying OFF
             player.powerState = PowerState.OFF;
             player.damage = 0; // Repair all damage
             player.dealtCards = []; // No cards when powered down
@@ -156,7 +156,7 @@ export class GameEngine {
             player.announcedPowerDown = false;
             player.submitted = true; // Auto-submit for powered down players
 
-            console.log(`${player.name} is now powered down - all damage repaired`);
+            console.log(`${player.name} is powered down - all damage repaired`);
 
             // Notify all clients
             this.io.to(roomCode).emit('player-powered-down', {
