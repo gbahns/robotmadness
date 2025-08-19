@@ -36,15 +36,41 @@ export default function CheckpointOverlay({
                     }}
                 >
                     <div className="relative">
+                        {/* Wrench icon - black version */}
+                        <div
+                            className="absolute flex items-center justify-center"
+                            style={{
+                                transform: 'translate(-30%, -30%)',
+                                width: tileSize * 0.45,
+                                height: tileSize * 0.45
+                            }}
+                        >
+                            <div
+                                className="bg-yellow-600 rounded-full p-1 flex items-center justify-center"
+                                style={{
+                                    width: '100%',
+                                    height: '100%'
+                                }}
+                            >
+                                <div className="bg-yellow-500 rounded-full w-full h-full flex items-center justify-center">
+                                    <span style={{
+                                        fontSize: tileSize * 0.3,
+                                        filter: 'grayscale(100%) brightness(0%)'  // Makes the emoji black
+                                    }}>🔧</span>
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Flag pole */}
                         <div
                             className="absolute bg-gray-600"
                             style={{
                                 width: '3px',
-                                height: tileSize * 0.7,
+                                height: tileSize * 0.6,
                                 left: '50%',
-                                top: '15%',
-                                transform: 'translateX(-50%)'
+                                top: '50%',
+                                //transform: 'translate(-60%, -50%)'  // Center both X and Y
+                                transform: `translate(-${tileSize * 0.2}px, -${tileSize * 0.3}px)`,
                             }}
                         />
 
@@ -52,12 +78,13 @@ export default function CheckpointOverlay({
                         <div
                             className={`absolute bg-${checkpointsCompleted >= checkpoint.number ? 'green' : 'red'}-600 flex items-center justify-center text-white font-bold shadow-lg`}
                             style={{
-                                width: tileSize * 0.5,
-                                height: tileSize * 0.35,
+                                width: tileSize * 0.4,
+                                height: tileSize * 0.3,
                                 left: '50%',
-                                top: '15%',
-                                transform: 'translateX(-1px)',
-                                fontSize: tileSize * 0.25,
+                                top: '50%',
+                                //transform: `translate(0, -${tileSize * 0.25}px)`,  // Center X, move up Y
+                                transform: `translate(-${tileSize * 0.2}px, -${tileSize * 0.3}px)`,
+                                fontSize: tileSize * 0.2,
                                 clipPath: 'polygon(0 0, 100% 15%, 85% 50%, 100% 85%, 0 100%)'
                             }}
                         >
@@ -65,7 +92,7 @@ export default function CheckpointOverlay({
                         </div>
 
                         {/* Base circle (optional, for visibility) */}
-                        <div
+                        {/* <div
                             className="absolute bg-yellow-400 rounded-full opacity-50"
                             style={{
                                 width: tileSize * 0.3,
@@ -74,7 +101,7 @@ export default function CheckpointOverlay({
                                 bottom: '15%',
                                 transform: 'translateX(-50%)'
                             }}
-                        />
+                        /> */}
                     </div>
                 </div>
             ))}
