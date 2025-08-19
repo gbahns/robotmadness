@@ -34,37 +34,11 @@ export default function Course({
         setCourse(builtCourse);
     }, [courseId]);
 
-    // Calculate tile size based on container
-    useEffect(() => {
-        const calculateTileSize = () => {
-            if (!containerRef.current || !course) return;
-
-            const container = containerRef.current;
-            const containerWidth = container.clientWidth;
-            const containerHeight = container.clientHeight;
-
-            // Calculate the maximum tile size that fits in the container
-            const maxWidthTileSize = Math.floor(containerWidth / course.board.width);
-            const maxHeightTileSize = Math.floor((containerHeight - 60) / course.board.height);
-
-            // Use the smaller of the two, with better limits
-            const newTileSize = Math.min(maxWidthTileSize, maxHeightTileSize, 100);
-            setTileSize(Math.max(newTileSize, 50)); // Better minimum
-        };
-
-        calculateTileSize();
-        window.addEventListener('resize', calculateTileSize);
-
-        const resizeObserver = new ResizeObserver(calculateTileSize);
-        if (containerRef.current) {
-            resizeObserver.observe(containerRef.current);
-        }
-
-        return () => {
-            window.removeEventListener('resize', calculateTileSize);
-            resizeObserver.disconnect();
-        };
-    }, [course]);
+    // Remove the duplicate tile size calculation - let BoardComponent handle it
+    // and use the onTileSizeChange callback to stay synchronized
+    const handleTileSizeChange = (newTileSize: number) => {
+        setTileSize(newTileSize);
+    };
 
     if (!course) {
         return (
@@ -79,15 +53,16 @@ export default function Course({
     }
 
     return (
-        <div ref={containerRef} className="relative h-full w-full flex items-center justify-center">
+        //the white border is for debugging the board positioning and sizing; remove it later
+        <div ref={containerRef} className="relative h-full w-full flex items-center justify-center" style={{ border: '2px solid white' }}>
             <div className="relative">
-                {/* Board component renders the base board */}
+                {/* Board component renders the base board and manages tile size */}
                 <BoardComponent
                     board={course.board}
                     players={players}
                     currentPlayerId={currentPlayerId}
                     activeLasers={activeLasers}
-                    tileSize={tileSize}
+                    onTileSizeChange={handleTileSizeChange}
                 />
 
                 {/* Checkpoint overlay - positioned absolutely over the board */}

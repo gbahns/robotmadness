@@ -30,32 +30,48 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
     const calculateTileSize = () => {
       if (!containerRef.current || !board) return;
 
-      const container = containerRef.current;
-      const containerWidth = container.clientWidth;
-      const containerHeight = container.clientHeight;
+      // Get the parent element's dimensions instead of our own
+      var parent = containerRef.current.parentElement;
+      if (!parent) return;
+      var parent = parent.parentElement;
+      if (!parent) return;
 
-      // Calculate the maximum tile size that fits in the container
-      // Leave some margin for the phase indicator below
-      const maxWidthTileSize = Math.floor(containerWidth / board.width);
-      const maxHeightTileSize = Math.floor((containerHeight - 60) / board.height); // 60px for phase indicator
+      const parentWidth = parent.clientWidth;
+      const parentHeight = parent.clientHeight;
 
-      // Use the smaller of the two to ensure the board fits
-      // Increased max size from 80 to 120, and minimum from 30 to 40
-      var newTileSize = Math.min(maxWidthTileSize, maxHeightTileSize, 120); // Increased cap
-      newTileSize = Math.max(newTileSize, 30); // Increased minimum
+      console.log('Parent dimensions:', {
+        width: parentWidth,
+        height: parentHeight,
+        boardWidth: board.width,
+        boardHeight: board.height
+      });
 
-      setTileSize(newTileSize); // Increased minimum
+      // Calculate based on parent size
+      const maxWidthTileSize = Math.floor(parentWidth / board.width);
+      const maxHeightTileSize = Math.floor((parentHeight - 60) / board.height);
 
-      // Report the tile size to parent if callback provided
+      console.log('Calculated tile sizes:', {
+        maxWidthTileSize,
+        maxHeightTileSize
+      });
+
+      const newTileSize = Math.min(maxWidthTileSize, maxHeightTileSize, 120);
+      const finalTileSize = Math.max(newTileSize, 30);
+
+      console.log('Final tile size:', finalTileSize);
+
+      setTileSize(finalTileSize);
+
       if (onTileSizeChange) {
-        onTileSizeChange(newTileSize);
+        onTileSizeChange(finalTileSize);
       }
     };
 
-    calculateTileSize();
+    // Add a small delay to let the DOM settle
+    setTimeout(calculateTileSize, 0);
+
     window.addEventListener('resize', calculateTileSize);
 
-    // Also recalculate when the container might change size
     const resizeObserver = new ResizeObserver(calculateTileSize);
     if (containerRef.current) {
       resizeObserver.observe(containerRef.current);
@@ -65,7 +81,7 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
       window.removeEventListener('resize', calculateTileSize);
       resizeObserver.disconnect();
     };
-  }, [board, onTileSizeChange]);
+  }, [board]);
 
   // Show pre-game controls when game hasn't started
   // if (!board || gameState?.phase === 'waiting') {
@@ -1052,7 +1068,15 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
   };
 
   return (
-    <div ref={containerRef} className="flex flex-col items-center justify-center h-full w-full">
+    <div
+      ref={containerRef}
+      //className="flex items-center justify-center h-full w-full"  // Back to simple flex centering
+      //className="inset-0 flex items-center justify-center"
+      //className="min-h-screen w-full flex items-center justify-center"  // Force minimum screen height
+      className="w-full h-full flex items-center justify-center"  // Use w-full h-full to fill parent
+    //absolute inset-0 flex items-center justify-center
+    //style={{ border: '2px solid red' }}  // Keep for debugging
+    >
       {/* Board grid */}
       <div
         className="relative bg-gray-900"
@@ -1089,14 +1113,6 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
           tileSize={tileSize}
         />
       </div>
-
-      {/* Current phase indicator */}
-      {/* @ts-ignore - gameState might be passed through parent */}
-      {/* {(course as any).phase === 'executing' && (
-        <div className="mt-4 p-2 bg-yellow-600 text-black rounded">
-          Executing Register {((course as any).currentRegister || 0) + 1} of 5
-        </div>
-      )} */}
     </div>
   );
 }

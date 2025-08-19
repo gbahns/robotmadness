@@ -38,6 +38,7 @@
 * make the execution delay configurable
 
 ## In Progress
+* one player announcing power down causes other player's submit button to re-enable (but they're still submitted)
 * you should be able to announce power down when you have zero damage - this can be in anticipation of receiving damage in the current turn
 * other players don't see your intent to power down until the cards are submitted.  in the official rules, when one player's decision to power down might be affected by another player's decision, the playwers announce in clockwise order. in our automated implementation we don't need this; each player makes their decision independently.
 * display a powered down marker on powered down robots

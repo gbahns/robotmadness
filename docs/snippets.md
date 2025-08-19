@@ -78,3 +78,12 @@
             </button>
           </CardContent>
         </Card>
+
+put this or something like it in the game page:
+      {/* Current phase indicator */}
+      {/* @ts-ignore - gameState might be passed through parent */}
+      {/* {(course as any).phase === 'executing' && (
+        <div className="mt-4 p-2 bg-yellow-600 text-black rounded">
+          Executing Register {((course as any).currentRegister || 0) + 1} of 5
+        </div>
+      )} */}
