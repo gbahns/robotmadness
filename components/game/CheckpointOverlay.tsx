@@ -6,13 +6,15 @@ interface CheckpointOverlayProps {
     boardWidth: number;
     boardHeight: number;
     tileSize: number;
+    checkpointsCompleted: number;
 }
 
 export default function CheckpointOverlay({
     checkpoints,
     boardWidth,
     boardHeight,
-    tileSize
+    tileSize,
+    checkpointsCompleted
 }: CheckpointOverlayProps) {
     return (
         <div
@@ -48,7 +50,7 @@ export default function CheckpointOverlay({
 
                         {/* Flag */}
                         <div
-                            className="absolute bg-red-600 flex items-center justify-center text-white font-bold shadow-lg"
+                            className={`absolute bg-${checkpointsCompleted >= checkpoint.number ? 'green' : 'red'}-600 flex items-center justify-center text-white font-bold shadow-lg`}
                             style={{
                                 width: tileSize * 0.5,
                                 height: tileSize * 0.35,

@@ -71,6 +71,8 @@ export default function Course({
                     boardWidth={course.board.width}
                     boardHeight={course.board.height}
                     tileSize={tileSize}
+                    checkpointsCompleted={players[currentPlayerId || '']?.checkpointsVisited || 0}
+
                 />
 
                 {/* Course info overlay */}
