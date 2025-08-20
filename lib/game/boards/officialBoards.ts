@@ -77,7 +77,7 @@ export const EXCHANGE_FACTORY_FLOOR: BoardDefinition = {
         // Row 7
         { position: { x: 5, y: 7 }, type: TileType.EXPRESS_CONVEYOR, direction: Direction.DOWN },
         { position: { x: 6, y: 7 }, type: TileType.CONVEYOR, direction: Direction.UP },
-        { position: { x: 7, y: 7 }, type: TileType.REPAIR },
+        { position: { x: 7, y: 7 }, type: TileType.OPTION },
 
         // Row 8
         { position: { x: 0, y: 8 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
