@@ -290,19 +290,8 @@ export function buildCourse(courseDef: CourseDefinition): Course {
     const course: Course = {
         definition: courseDef,
         board: board
-        // board: {
-        //     width: combinedBoard.width,
-        //     height: combinedBoard.height,
-        //     tiles,
-        //     startingPositions: combinedBoard.startingPositions,
-        //     lasers,
-        //     // NEW: Pass walls directly to board for easier lookup
-        //     walls: combinedBoard.walls
-        // }
     };
 
-    // Build the board from the combined definition
-    //const course = buildBoard(combinedBoard);
     return course;
 }
 
