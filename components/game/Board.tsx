@@ -356,7 +356,7 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
 
     // Base tile
     elements.push(
-      <div key="base" className="absolute inset-0 border border-gray-600 bg-gray-800" />
+      <div key="base" className="absolute inset-0 border border-gray-600 bg-gray-400" />
     );
 
     // Add tile-specific elements when tiles are implemented
@@ -531,17 +531,21 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
         elements.push(
           <div key="gear" className="absolute inset-0 flex items-center justify-center">
             <div
-              className="text-gray-500"
+              className="text-gray-300"
               style={{
-                fontSize: `${tileSize * 0.8}px`,
-                transform: `rotate(${isClockwise ? '0deg' : '180deg'})`
+                fontSize: `${tileSize * 0.95}px`,
+                transform: `rotate(${isClockwise ? '0deg' : '180deg'})`,
+                textShadow: '1px 1px 0 black, -1px -1px 0 black, 1px -1px 0 black, -1px 1px 0 black'
               }}
             >
               ⚙
             </div>
             <div
-              className="absolute text-white font-bold"
-              style={{ fontSize: `${fontSize * 0.6}px` }}
+              className="absolute font-black"
+              style={{
+                fontSize: `${fontSize * 1.5}px`,
+                color: isClockwise ? '#166534' : '#991b1b'
+              }}
             >
               {isClockwise ? '↻' : '↺'}
             </div>
