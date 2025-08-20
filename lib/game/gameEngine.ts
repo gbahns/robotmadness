@@ -323,6 +323,9 @@ export class GameEngine {
             // Execute board elements after player cards have been executed for this register phase
             await this.executeBoardElements(gameState);
 
+            // Execute repairs after each register (robots on repair sites get healed)
+            await this.executeRepairs(gameState);
+
             // Broadcast updated game state after each register
             this.io.to(gameState.roomCode).emit('game-state', gameState);
 
@@ -351,9 +354,6 @@ export class GameEngine {
             const player = gameState.players[playerId];
 
             if (player.lives > 0) {
-                // 1. Handle repairs (robots on repair sites)
-                // TODO: Check if robot is on a repair site and remove damage
-
                 // 2. Wipe registers - discard all program cards from non-locked registers
                 // Clear selected cards (keeping locked ones if damage >= 5)
                 const lockedCount = Math.max(0, player.damage - 4);
@@ -903,25 +903,38 @@ export class GameEngine {
     }
 
     async executeRepairs(gameState: ServerGameState) {
+        console.log('Executing repairs...');
         Object.values(gameState.players).forEach(player => {
             if (player.lives <= 0 || player.powerState === PowerState.OFF) return;
 
             const tile = this.getTileAt(gameState, player.position.x, player.position.y);
-            if (!tile) return;
+            
+            // Check if robot is on a checkpoint/flag
+            const checkpoint = gameState.course.definition.checkpoints.find(
+                cp => cp.position.x === player.position.x && cp.position.y === player.position.y
+            );
 
-            if (tile.type === TileType.REPAIR) {
+            if (tile && tile.type === TileType.REPAIR) {
                 if (player.damage > 0) {
                     player.damage--;
-                    this.executionLog(gameState, `${player.name} repaired 1 damage`);
+                    this.executionLog(gameState, `${player.name} repaired 1 damage at repair site`, 'board-element');
                 }
                 // Update archive position at repair site
                 this.updateArchivePosition(gameState, player);
-            } else if (tile.type === TileType.OPTION) {
+            } else if (tile && tile.type === TileType.OPTION) {
                 if (player.damage > 0) {
                     player.damage--;
-                    this.executionLog(gameState, `${player.name} repaired 1 damage and drew option card`);
+                    this.executionLog(gameState, `${player.name} repaired 1 damage and drew option card`, 'board-element');
                 }
                 // Update archive position at upgrade site
+                this.updateArchivePosition(gameState, player);
+            } else if (checkpoint) {
+                // Flags/checkpoints also act as repair sites
+                if (player.damage > 0) {
+                    player.damage--;
+                    this.executionLog(gameState, `${player.name} repaired 1 damage at checkpoint ${checkpoint.number}`, 'checkpoint');
+                }
+                // Update archive position at checkpoint (already handled in updateArchivePosition)
                 this.updateArchivePosition(gameState, player);
             }
         });
@@ -959,8 +972,8 @@ export class GameEngine {
         return getCanonicalTileAt(gameState.course.board, x, y);
     }
 
-    executionLog(gameState: ServerGameState, message: string): void {
-        this.io.to(gameState.roomCode).emit('execution-update', { message });
+    executionLog(gameState: ServerGameState, message: string, type: string = 'info'): void {
+        this.io.to(gameState.roomCode).emit('execution-log', { message, type });
     }
 
     private createDeck(excludedCards: ProgramCard[] = []): ProgramCard[] {
