@@ -2,6 +2,7 @@ import { Course, Checkpoint, StartingPosition, TileType, Direction, BoardDefinit
 //import { buildBoard } from './boardBuilder';
 import { OFFICIAL_BOARD_DEFINITIONS } from './officialBoards';
 import { DOCKING_BAY_BOARDS } from './dockingBayBoards';
+import { CROSS_BOARD } from './crossBoard';
 
 // =============================================================================
 // BOARD DEFINITIONS (Individual Boards)
@@ -158,7 +159,8 @@ const SINGLE_BOARD_DEFINITIONS: BoardDefinition[] = [
     TEST_BOARD,
     CHECKMATE_BOARD,
     DIZZY_DASH_BOARD,
-    ISLAND_HOP_BOARD
+    ISLAND_HOP_BOARD,
+    CROSS_BOARD
 ];
 
 // All board definitions combined
