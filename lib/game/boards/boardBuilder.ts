@@ -1,107 +1,71 @@
-import { Course, BoardDefinition, Tile, TileType, Direction, Laser } from '../types';
+import { Board, BoardDefinition, Tile, TileType, Direction, Laser } from '../types';
 
 /**
  * Builds a Board object from a BoardDefinition
  */
-// export function buildBoard(boardDef: BoardDefinition): Course {
-//     // Initialize empty board
-//     const tiles: Tile[][] = [];
-//     for (let y = 0; y < boardDef.height; y++) {
-//         const row: Tile[] = [];
-//         for (let x = 0; x < boardDef.width; x++) {
-//             row.push({
-//                 position: { x, y },
-//                 type: TileType.EMPTY,
-//                 walls: [] // Initialize empty walls array for each tile
-//             });
-//         }
-//         tiles.push(row);
-//     }
+export function buildBoard(boardDef: BoardDefinition): Board {
+    // Initialize empty board
+    const tiles: Tile[][] = [];
+    for (let y = 0; y < boardDef.height; y++) {
+        const row: Tile[] = [];
+        for (let x = 0; x < boardDef.width; x++) {
+            row.push({
+                position: { x, y },
+                type: TileType.EMPTY,
+                walls: [] // Initialize empty walls array for each tile
+            });
+        }
+        tiles.push(row);
+    }
 
-//     // Place special tiles
-//     if (boardDef.tiles) {
-//         for (const tileDef of boardDef.tiles) {
-//             const { x, y } = tileDef.position;
-//             if (x >= 0 && x < boardDef.width && y >= 0 && y < boardDef.height) {
-//                 tiles[y][x] = {
-//                     position: { x, y },
-//                     type: tileDef.type,
-//                     walls: [], // Will be populated below
-//                     direction: tileDef.direction,
-//                     rotate: tileDef.rotate,
-//                     registers: tileDef.registers
-//                 };
-//             }
-//         }
-//     }
+    // Place special tiles
+    if (boardDef.tiles) {
+        for (const tileDef of boardDef.tiles) {
+            const { x, y } = tileDef.position;
+            if (x >= 0 && x < boardDef.width && y >= 0 && y < boardDef.height) {
+                tiles[y][x] = {
+                    position: { x, y },
+                    type: tileDef.type,
+                    walls: [], // Will be populated below
+                    direction: tileDef.direction,
+                    rotate: tileDef.rotate,
+                    registers: tileDef.registers
+                };
+            }
+        }
+    }
 
-//     // Add walls to tiles
-//     if (boardDef.walls) {
-//         for (const wallDef of boardDef.walls) {
-//             const { x, y } = wallDef.position;
-//             if (x >= 0 && x < boardDef.width && y >= 0 && y < boardDef.height) {
-//                 // Add the wall sides to the tile's walls array
-//                 tiles[y][x].walls = [...tiles[y][x].walls, ...wallDef.sides];
-//             }
-//         }
-//     }
+    // Add walls to tiles
+    if (boardDef.walls) {
+        for (const wallDef of boardDef.walls) {
+            const { x, y } = wallDef.position;
+            if (x >= 0 && x < boardDef.width && y >= 0 && y < boardDef.height) {
+                // Add the wall sides to the tile's walls array
+                tiles[y][x].walls = [...tiles[y][x].walls, ...wallDef.sides];
+            }
+        }
+    }
 
-//     // Build laser array if present
-//     const lasers: Laser[] | undefined = boardDef.lasers ?
-//         boardDef.lasers.map(laserDef => ({
-//             position: laserDef.position,
-//             direction: laserDef.direction,
-//             damage: laserDef.damage
-//         })) : undefined;
+    // Build laser array if present
+    const lasers: Laser[] | undefined = boardDef.lasers ?
+        boardDef.lasers.map(laserDef => ({
+            position: laserDef.position,
+            direction: laserDef.direction,
+            damage: laserDef.damage
+        })) : undefined;
 
-//     const board: Course = {
-//         width: boardDef.width,
-//         height: boardDef.height,
-//         tiles,
-//         checkpoints: [],
-//         startingPositions: boardDef.startingPositions,
-//         lasers,
-//         // NEW: Pass walls directly to board for easier lookup
-//         walls: boardDef.walls
-//     };
+    const board: Board = {
+        width: boardDef.width,
+        height: boardDef.height,
+        tiles,
+        startingPositions: boardDef.startingPositions,
+        lasers,
+        walls: boardDef.walls  // Pass walls for easier lookup
+    };
 
-//     return board;
-// }
+    return board;
+}
 
-/**
- * Creates a board with walls around the edges to prevent robots from falling off
- */
-// export function addBoardEdgeWalls(board: Course): Course {
-//     const tiles = board.tiles.map(row => row.map(tile => ({ ...tile, walls: [...tile.walls] })));
-
-//     // Add walls to edges
-//     for (let x = 0; x < board.width; x++) {
-//         // Top edge
-//         if (!tiles[0][x].walls.includes(Direction.UP)) {
-//             tiles[0][x].walls.push(Direction.UP);
-//         }
-//         // Bottom edge
-//         if (!tiles[board.height - 1][x].walls.includes(Direction.DOWN)) {
-//             tiles[board.height - 1][x].walls.push(Direction.DOWN);
-//         }
-//     }
-
-//     for (let y = 0; y < board.height; y++) {
-//         // Left edge
-//         if (!tiles[y][0].walls.includes(Direction.LEFT)) {
-//             tiles[y][0].walls.push(Direction.LEFT);
-//         }
-//         // Right edge
-//         if (!tiles[y][board.width - 1].walls.includes(Direction.RIGHT)) {
-//             tiles[y][board.width - 1].walls.push(Direction.RIGHT);
-//         }
-//     }
-
-//     return {
-//         ...board,
-//         tiles
-//     };
-// }
 
 /**
  * Validates that starting positions don't overlap with pits or other hazards

@@ -130,6 +130,9 @@ export default function Home() {
         >
           Create Game
         </button>
+        <Link href="/course-viewer" className="bg-gray-600 hover:bg-gray-700 px-8 py-4 rounded-lg font-semibold text-lg transition transform hover:scale-105">
+          View Courses
+        </Link>
         <Link href="/board-viewer" className="bg-gray-600 hover:bg-gray-700 px-8 py-4 rounded-lg font-semibold text-lg transition transform hover:scale-105">
           View Boards
         </Link>

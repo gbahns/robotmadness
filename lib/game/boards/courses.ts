@@ -1,6 +1,7 @@
 import { BoardDefinition, CourseDefinition, Course, TileElement, LaserElement, WallElement, Tile, Laser, TileType } from '../types';
 import { DOCKING_BAY_4P, DOCKING_BAY_8P, DOCKING_BAY_WIDE, DOCKING_BAY_COMPACT, SIMPLE_FACTORY_FLOOR, CONVEYOR_FACTORY_FLOOR } from './dockingBayBoards';
 import { getBoardDefinitionById } from './factoryFloorBoards';
+import { buildBoard } from './boardBuilder';
 
 // =============================================================================
 // OFFICIAL MULTI-BOARD COURSES (from RoboRally manual)
@@ -284,66 +285,20 @@ export function buildCourse(courseDef: CourseDefinition): Course {
         throw new Error(`Invalid board configuration for course: ${courseDef.id}`);
     }
 
-    const tiles: Tile[][] = [];
-    for (let y = 0; y < combinedBoard.height; y++) {
-        const row: Tile[] = [];
-        for (let x = 0; x < combinedBoard.width; x++) {
-            row.push({
-                position: { x, y },
-                type: TileType.EMPTY,
-                walls: [] // Initialize empty walls array for each tile
-            });
-        }
-        tiles.push(row);
-    }
-
-    // Place special tiles
-    if (combinedBoard.tiles) {
-        for (const tileDef of combinedBoard.tiles) {
-            const { x, y } = tileDef.position;
-            if (x >= 0 && x < combinedBoard.width && y >= 0 && y < combinedBoard.height) {
-                tiles[y][x] = {
-                    position: { x, y },
-                    type: tileDef.type,
-                    walls: [], // Will be populated below
-                    direction: tileDef.direction,
-                    rotate: tileDef.rotate,
-                    registers: tileDef.registers
-                };
-            }
-        }
-    }
-
-    // Add walls to tiles
-    if (combinedBoard.walls) {
-        for (const wallDef of combinedBoard.walls) {
-            const { x, y } = wallDef.position;
-            if (x >= 0 && x < combinedBoard.width && y >= 0 && y < combinedBoard.height) {
-                // Add the wall sides to the tile's walls array
-                tiles[y][x].walls = [...tiles[y][x].walls, ...wallDef.sides];
-            }
-        }
-    }
-
-    // Build laser array if present
-    const lasers: Laser[] | undefined = combinedBoard.lasers ?
-        combinedBoard.lasers.map(laserDef => ({
-            position: laserDef.position,
-            direction: laserDef.direction,
-            damage: laserDef.damage
-        })) : undefined;
+    const board = buildBoard(combinedBoard);
 
     const course: Course = {
         definition: courseDef,
-        board: {
-            width: combinedBoard.width,
-            height: combinedBoard.height,
-            tiles,
-            startingPositions: combinedBoard.startingPositions,
-            lasers,
-            // NEW: Pass walls directly to board for easier lookup
-            walls: combinedBoard.walls
-        }
+        board: board
+        // board: {
+        //     width: combinedBoard.width,
+        //     height: combinedBoard.height,
+        //     tiles,
+        //     startingPositions: combinedBoard.startingPositions,
+        //     lasers,
+        //     // NEW: Pass walls directly to board for easier lookup
+        //     walls: combinedBoard.walls
+        // }
     };
 
     // Build the board from the combined definition

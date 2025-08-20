@@ -1,160 +1,147 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ALL_COURSES, getCourseById, buildCourse } from '@/lib/game/boards/courses';
-import { Course as CourseType } from '@/lib/game/types';
+import { ALL_BOARD_DEFINITIONS, getBoardDefinitionById } from '@/lib/game/boards/factoryFloorBoards';
+import { DOCKING_BAY_BOARDS } from '@/lib/game/boards/dockingBayBoards';
+import { BoardDefinition, Board as BoardType } from '@/lib/game/types';
 import Board from '@/components/game/Board';
+import { buildBoard } from '@/lib/game/boards/boardBuilder';
 
 export default function BoardViewerPage() {
-    const [selectedCourseId, setSelectedCourseId] = useState<string>('');
-    const [course, setCourse] = useState<CourseType | null>(null);
-    const [showDebug, setShowDebug] = useState(false);
+    const [selectedBoardId, setSelectedBoardId] = useState<string>('');
+    const [board, setBoard] = useState<BoardType | null>(null);
+    const [boardDefinition, setBoardDefinition] = useState<BoardDefinition | null>(null);
+    const [boardCategory, setBoardCategory] = useState<'factory' | 'docking'>('factory');
 
-    // Get all course IDs from ALL_COURSES
-    const courseIds = ALL_COURSES.map(course => course.id);
+    // Get all board IDs based on category
+    const boardIds = boardCategory === 'factory'
+        ? ALL_BOARD_DEFINITIONS.map(b => b.id)
+        : DOCKING_BAY_BOARDS.map(b => b.id);
 
     useEffect(() => {
-        // Select the first course by default
-        if (courseIds.length > 0 && !selectedCourseId) {
-            setSelectedCourseId(courseIds[0]);
+        // Select the first board by default
+        if (boardIds.length > 0 && !selectedBoardId) {
+            setSelectedBoardId(boardIds[0]);
         }
-    }, []);
+    }, [boardCategory]);
 
     useEffect(() => {
-        if (selectedCourseId) {
+        if (selectedBoardId) {
             try {
-                const courseDefinition = getCourseById(selectedCourseId);
-                const builtCourse = buildCourse(courseDefinition);
-                setCourse(builtCourse);
+                let boardDef: BoardDefinition | undefined;
+
+                if (boardCategory === 'factory') {
+                    boardDef = getBoardDefinitionById(selectedBoardId);
+                } else {
+                    boardDef = DOCKING_BAY_BOARDS.find(b => b.id === selectedBoardId);
+                }
+
+                if (boardDef) {
+                    setBoardDefinition(boardDef);
+                    const builtBoard = buildBoard(boardDef);
+                    setBoard(builtBoard);
+                }
             } catch (error) {
-                console.error('Error loading course:', error);
-                setCourse(null);
+                console.error('Error loading board:', error);
+                setBoard(null);
+                setBoardDefinition(null);
             }
         }
-    }, [selectedCourseId]);
+    }, [selectedBoardId, boardCategory]);
 
     return (
         <div className="min-h-screen bg-gray-900 text-white p-2">
             <div className="max-w-full">
                 <h1 className="text-2xl font-bold mb-2">Board Viewer</h1>
 
-                {/* Compact controls bar */}
+                {/* Controls bar */}
                 <div className="bg-gray-800 rounded-lg p-2 mb-2">
                     <div className="flex gap-2 items-center">
-                        {/* Course Selection */}
+                        {/* Board Category */}
                         <div className="flex items-center gap-2">
-                            <label className="text-sm font-medium">
-                                Course:
-                            </label>
+                            <label className="text-sm font-medium">Category:</label>
                             <select
-                                value={selectedCourseId}
-                                onChange={(e) => setSelectedCourseId(e.target.value)}
-                                className="px-2 py-1 bg-gray-700 rounded border border-gray-600 focus:border-blue-500 focus:outline-none text-sm"
+                                value={boardCategory}
+                                onChange={(e) => {
+                                    setBoardCategory(e.target.value as 'factory' | 'docking');
+                                    setSelectedBoardId(''); // Reset selection
+                                }}
+                                className="bg-gray-700 text-white px-2 py-1 rounded text-sm"
                             >
-                                <option value="">-- Select --</option>
-                                <option value="test">Test Course</option>
-                                <optgroup label="Beginner">
-                                    {ALL_COURSES.filter(c => c.difficulty === 'beginner').map(course => (
-                                        <option key={course.id} value={course.id}>
-                                            {course.name}
-                                        </option>
-                                    ))}
-                                </optgroup>
-                                <optgroup label="Intermediate">
-                                    {ALL_COURSES.filter(c => c.difficulty === 'intermediate').map(course => (
-                                        <option key={course.id} value={course.id}>
-                                            {course.name}
-                                        </option>
-                                    ))}
-                                </optgroup>
-                                <optgroup label="Expert">
-                                    {ALL_COURSES.filter(c => c.difficulty === 'expert').map(course => (
-                                        <option key={course.id} value={course.id}>
-                                            {course.name}
-                                        </option>
-                                    ))}
-                                </optgroup>
+                                <option value="factory">Factory Floor</option>
+                                <option value="docking">Docking Bay</option>
                             </select>
                         </div>
 
-                        {/* Course Info - all in one line */}
-                        {course && (
+                        {/* Board Selection */}
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm font-medium">Board:</label>
+                            <select
+                                value={selectedBoardId}
+                                onChange={(e) => setSelectedBoardId(e.target.value)}
+                                className="bg-gray-700 text-white px-2 py-1 rounded text-sm"
+                            >
+                                <option value="">Select a board...</option>
+                                {boardIds.map(id => {
+                                    const boardDef = boardCategory === 'factory'
+                                        ? ALL_BOARD_DEFINITIONS.find(b => b.id === id)
+                                        : DOCKING_BAY_BOARDS.find(b => b.id === id);
+                                    return (
+                                        <option key={id} value={id}>
+                                            {boardDef?.name || id}
+                                        </option>
+                                    );
+                                })}
+                            </select>
+                        </div>
+
+                        {/* Board Info */}
+                        {boardDefinition && (
                             <>
                                 <div className="bg-gray-700 px-2 py-1 rounded text-sm">
                                     <span className="text-gray-400">Size:</span>{' '}
-                                    <span className="font-semibold">{course.board.width}×{course.board.height}</span>
+                                    <span className="font-semibold">
+                                        {boardDefinition.width}×{boardDefinition.height}
+                                    </span>
                                 </div>
                                 <div className="bg-gray-700 px-2 py-1 rounded text-sm">
-                                    <span className="text-gray-400">Checkpoints:</span>{' '}
-                                    <span className="font-semibold">{course.definition.checkpoints.length}</span>
+                                    <span className="text-gray-400">Starting Positions:</span>{' '}
+                                    <span className="font-semibold">
+                                        {boardDefinition.startingPositions.length}
+                                    </span>
                                 </div>
-                                <div className="bg-gray-700 px-2 py-1 rounded text-sm">
-                                    <span className="text-gray-400">Start Pos:</span>{' '}
-                                    <span className="font-semibold">{course.board.startingPositions.length}</span>
-                                </div>
-                                <div className="bg-gray-700 px-2 py-1 rounded text-sm flex-1">
-                                    <span className="text-gray-400">Name:</span>{' '}
-                                    <span className="font-semibold">{course.definition.name}</span>
-                                </div>
-                                <button
-                                    onClick={() => setShowDebug(!showDebug)}
-                                    className="ml-auto px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm"
-                                >
-                                    {showDebug ? 'Hide' : 'Show'} Debug
-                                </button>
+                                {boardDefinition.tiles && (
+                                    <div className="bg-gray-700 px-2 py-1 rounded text-sm">
+                                        <span className="text-gray-400">Special Tiles:</span>{' '}
+                                        <span className="font-semibold">
+                                            {boardDefinition.tiles.length}
+                                        </span>
+                                    </div>
+                                )}
+                                {boardDefinition.lasers && (
+                                    <div className="bg-gray-700 px-2 py-1 rounded text-sm">
+                                        <span className="text-gray-400">Lasers:</span>{' '}
+                                        <span className="font-semibold">
+                                            {boardDefinition.lasers.length}
+                                        </span>
+                                    </div>
+                                )}
                             </>
                         )}
                     </div>
                 </div>
 
-                {/* Board Display - No container, full width */}
-                {course ? (
+                {/* Board Display */}
+                {board ? (
                     <div className="flex justify-center overflow-auto" style={{ height: 'calc(100vh - 120px)' }}>
                         <Board
-                            course={course}
+                            board={board}
                             players={{}}
-                            gameState={{ phase: 'waiting' }}
                         />
                     </div>
                 ) : (
                     <div className="text-center text-gray-400 mt-8">
-                        {selectedCourseId ? 'Loading course...' : 'Select a course to preview'}
-                    </div>
-                )}
-
-                {/* Collapsible Debug Info */}
-                {course && showDebug && (
-                    <div className="bg-gray-800 rounded-lg p-3 mt-2">
-                        <h2 className="text-lg font-semibold mb-2">Debug Information</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <div>
-                                <h3 className="font-medium mb-1 text-sm">Checkpoints</h3>
-                                <pre className="text-xs bg-gray-700 p-2 rounded overflow-auto max-h-40">
-                                    {JSON.stringify(course.definition.checkpoints, null, 2)}
-                                </pre>
-                            </div>
-                            <div>
-                                <h3 className="font-medium mb-1 text-sm">Starting Positions</h3>
-                                <pre className="text-xs bg-gray-700 p-2 rounded overflow-auto max-h-40">
-                                    {JSON.stringify(course.board.startingPositions, null, 2)}
-                                </pre>
-                            </div>
-                            <div>
-                                <h3 className="font-medium mb-1 text-sm">Special Tiles Count</h3>
-                                <pre className="text-xs bg-gray-700 p-2 rounded overflow-auto max-h-40">
-                                    {JSON.stringify({
-                                        conveyors: course.board.tiles?.flat().filter(t => t.type === 'conveyor').length || 0,
-                                        express: course.board.tiles?.flat().filter(t => t.type === 'express').length || 0,
-                                        gear_cw: course.board.tiles?.flat().filter(t => t.type === 'gear_cw').length || 0,
-                                        gear_ccw: course.board.tiles?.flat().filter(t => t.type === 'gear_ccw').length || 0,
-                                        pits: course.board.tiles?.flat().filter(t => t.type === 'pit').length || 0,
-                                        repairs: course.board.tiles?.flat().filter(t => t.type === 'repair').length || 0,
-                                        lasers: course.board.lasers?.length || 0,
-                                        walls: course.board.walls?.length || 0
-                                    }, null, 2)}
-                                </pre>
-                            </div>
-                        </div>
+                        {selectedBoardId ? 'Loading board...' : 'Select a board to view'}
                     </div>
                 )}
             </div>
