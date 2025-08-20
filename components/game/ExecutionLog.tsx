@@ -61,6 +61,8 @@ export default function ExecutionLog({ entries }: ExecutionLogProps) {
                 return '🔄'; //🔄🔃
             case 'express':
                 return '🚀'; //🚀
+            case 'power-down':
+                return '🛑' //⏳⚡⏸️ 💤 🔌
             default:
                 return '•';
         }
