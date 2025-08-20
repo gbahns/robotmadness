@@ -61,12 +61,11 @@ export default function PowerDownButton({
             return 'Can only announce power down during programming phase';
         }
 
-        if (damage === 0 && powerState === PowerState.ON) {
-            return 'No damage to repair';
-        }
-
         switch (powerState) {
             case PowerState.ON:
+                if (damage === 0) {
+                    return 'Announce power down for strategic positioning or anticipating damage';
+                }
                 return `Announce power down to repair ${damage} damage next turn`;
             case PowerState.ANNOUNCING:
                 return 'Cancel power down announcement';
@@ -82,10 +81,7 @@ export default function PowerDownButton({
         </svg>
     );
 
-    // Don't show button if no damage and not already in power down process
-    if (damage === 0 && powerState === PowerState.ON) {
-        //return null;
-    }
+    // Power down is now always available for strategic reasons
 
     return (
         <div className="relative">

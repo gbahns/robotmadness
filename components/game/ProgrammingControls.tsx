@@ -40,21 +40,19 @@ export default function ProgrammingControls({
         <div className="bg-gray-800 rounded-lg p-6 space-y-4">
             <h2 className="text-xl font-bold text-white">Programming Phase</h2>
 
-            {/* Power Down Section */}
-            {currentPlayer.damage > 0 && (
-                <div className="border-t border-gray-700 pt-4">
-                    <h3 className="text-sm font-semibold text-gray-400 mb-2">Robot Maintenance</h3>
-                    <PowerDownButton
-                        roomCode={gameState.roomCode}
-                        playerId={currentPlayer.id}
-                        powerState={currentPlayer.powerState}
-                        damage={currentPlayer.damage}
-                        disabled={currentPlayer.isDead || currentPlayer.lives <= 0}
-                        isProgrammingPhase={true}
-                        selectedCards={selectedCards}
-                    />
-                </div>
-            )}
+            {/* Power Down Section - Always available for strategic reasons */}
+            <div className="border-t border-gray-700 pt-4">
+                <h3 className="text-sm font-semibold text-gray-400 mb-2">Robot Maintenance</h3>
+                <PowerDownButton
+                    roomCode={gameState.roomCode}
+                    playerId={currentPlayer.id}
+                    powerState={currentPlayer.powerState}
+                    damage={currentPlayer.damage}
+                    disabled={currentPlayer.isDead || currentPlayer.lives <= 0}
+                    isProgrammingPhase={true}
+                    selectedCards={selectedCards}
+                />
+            </div>
 
             {/* Power Down Status Message */}
             {currentPlayer.powerState === 'OFF' && (
