@@ -503,9 +503,9 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
       if (tile.type === 'repair') {
         elements.push(
           <div key="repair" className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-yellow-600 rounded-full p-1" style={{ width: `${tileSize * 0.6}px`, height: `${tileSize * 0.6}px` }}>
+            <div className="bg-yellow-600 rounded-full p-1" style={{ width: `${tileSize * 0.75}px`, height: `${tileSize * 0.75}px` }}>
               <div className="bg-yellow-500 rounded-full w-full h-full flex items-center justify-center">
-                <span style={{ fontSize: `${fontSize * 0.8}px` }}>🔧</span>
+                <span style={{ fontSize: `${fontSize * 1.4}px`, filter: 'grayscale(100%) brightness(0%)' }}>🔧</span>
               </div>
             </div>
           </div>
@@ -516,9 +516,9 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
       if (tile.type === 'option') {
         elements.push(
           <div key="option" className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-purple-600 rounded-full p-1" style={{ width: `${tileSize * 0.6}px`, height: `${tileSize * 0.6}px` }}>
+            <div className="bg-purple-600 rounded-full p-1" style={{ width: `${tileSize * 0.75}px`, height: `${tileSize * 0.75}px` }}>
               <div className="bg-purple-500 rounded-full w-full h-full flex items-center justify-center">
-                <span style={{ fontSize: `${fontSize * 0.8}px` }}>⚙️</span>
+                <span style={{ fontSize: `${fontSize * 1.4}px` }}>🛠️</span>
               </div>
             </div>
           </div>
