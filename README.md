@@ -5,7 +5,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 2. install typescript: npm install -g tsx
 3. install the express framework: npm install express
 
-First, run the development server:
+Then, run the development server:
 
 ```bash
 npm run dev
