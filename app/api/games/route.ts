@@ -1,7 +1,7 @@
 // app/api/games/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+// import { prisma } from '@/lib/prisma'; // DATABASE DISABLED - TODO: Re-enable when adding full database support
 
 // Generate a random 6-character room code
 function generateRoomCode(): string {
@@ -17,10 +17,12 @@ export async function POST(request: NextRequest) {
   try {
     const { name, playerName } = await request.json();
     
-    // Generate unique room code
-    let roomCode = generateRoomCode();
-    let attempts = 0;
+    // Generate room code (no database uniqueness check for now)
+    const roomCode = generateRoomCode();
     
+    // DATABASE DISABLED - Just return the room code without persisting to database
+    // TODO: Re-enable database operations when adding full database support
+    /*
     // Make sure room code is unique
     while (attempts < 10) {
       const existing = await prisma.game.findUnique({
@@ -47,10 +49,11 @@ export async function POST(request: NextRequest) {
         }),
       },
     });
+    */
     
     return NextResponse.json({ 
-      roomCode: game.roomCode,
-      gameId: game.id,
+      roomCode: roomCode,
+      gameId: roomCode, // Use roomCode as temporary gameId
     });
     
   } catch (error) {
