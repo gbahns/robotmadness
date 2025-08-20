@@ -280,6 +280,17 @@ export class GameEngine {
         console.log('All players submitted! Starting execution phase...');
         gameState.phase = GamePhase.EXECUTING;
 
+        // Announce power down decisions now that all cards are submitted
+        const announcingPlayers = Object.values(gameState.players).filter(p => p.powerState === PowerState.ANNOUNCING);
+        if (announcingPlayers.length > 0) {
+            for (const player of announcingPlayers) {
+                this.io.to(gameState.roomCode).emit('execution-log', {
+                    message: `${player.name} announced power down`,
+                    type: 'power-down'
+                });
+            }
+        }
+
         //gameState.currentRegister = 0;
 
         // Reset submitted flags for next round
@@ -908,7 +919,7 @@ export class GameEngine {
             if (player.lives <= 0 || player.powerState === PowerState.OFF) return;
 
             const tile = this.getTileAt(gameState, player.position.x, player.position.y);
-            
+
             // Check if robot is on a checkpoint/flag
             const checkpoint = gameState.course.definition.checkpoints.find(
                 cp => cp.position.x === player.position.x && cp.position.y === player.position.y

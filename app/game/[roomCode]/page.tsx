@@ -184,7 +184,9 @@ export default function GamePage() {
       setLoading(false);
 
       if (state.phase === 'programming' && state.players[playerIdRef.current]?.dealtCards?.length > 0) {
-        setIsSubmitted(false);
+        // Sync submitted state with server state
+        const currentPlayerState = state.players[playerIdRef.current];
+        setIsSubmitted(currentPlayerState?.submitted || false);
 
         if (state.roundNumber > (gameState?.roundNumber || 0)) {
         }
@@ -337,16 +339,8 @@ export default function GamePage() {
         };
       });
 
-      // Add to log
-      setLogEntries(prev => [...prev, {
-        type: 'power-down',
-        message: data.powerState === PowerState.ANNOUNCING
-          ? `${data.playerName} announced power down for next turn`
-          : data.powerState === PowerState.OFF
-            ? `${data.playerName} is powered down`
-            : `${data.playerName} cancelled power down`,
-        timestamp: Date.now()
-      }]);
+      // Power down toggles are now hidden during programming phase
+      // They will be announced when execution starts
     });
 
     // Player powered down notification
