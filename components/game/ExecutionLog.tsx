@@ -34,6 +34,8 @@ export default function ExecutionLog({ entries }: ExecutionLogProps) {
                 return 'text-green-400';
             case 'board-element':
                 return 'text-yellow-400';
+            case 'power-down':
+                return 'text-orange-400'
             default:
                 return 'text-gray-400';
         }

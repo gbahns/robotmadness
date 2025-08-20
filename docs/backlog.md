@@ -38,9 +38,6 @@
 * make the execution delay configurable
 
 ## In Progress
-* one player announcing power down causes other player's submit button to re-enable (but they're still submitted)
-* you should be able to announce power down when you have zero damage - this can be in anticipation of receiving damage in the current turn
-* other players don't see your intent to power down until the cards are submitted.  in the official rules, when one player's decision to power down might be affected by another player's decision, the playwers announce in clockwise order. in our automated implementation we don't need this; each player makes their decision independently.
 * display a powered down marker on powered down robots
 * powering down indicator that's visible during execution for the player that's powering down
 * powering down indicator on the robot and/or in the player list for other players
@@ -86,7 +83,7 @@
 * orient the U-Turn arrow like an upside-down U
 * walls
 * respawn robots on their archive marker
-
+* other players don't see your intent to power down until the cards are submitted.  in the official rules, when one player's decision to power down might be affected by another player's decision, the playwers announce in clockwise order. in our automated implementation we don't need this; each player makes their decision independently.
 
 ## Defect Fix History
 * damage isn't reducing number of cards dealt
@@ -103,3 +100,5 @@
 * one player resetting their programmed registers should not reset other players programmed registers
 * when your damage is cleared locked registers need to be cleared accordingly
 * don't deal cards to a player who chooses to stay powered down; make them actually stay powered down
+* one player announcing power down causes other player's submit button to re-enable (but they're still submitted)
+* you should be able to announce power down when you have zero damage - this can be in anticipation of receiving damage in the current turn
