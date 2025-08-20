@@ -2,6 +2,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 install node.js: https://nodejs.org/download/release/latest/node-v24.6.0-x64.msi
+
 install typescript: npm install -g tsx
 
 First, run the development server:
