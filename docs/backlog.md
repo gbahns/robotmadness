@@ -1,17 +1,10 @@
 ## Backlog
-* reset cards is executing the logic on both the client and the server; only need one
-* prompt to choose whether to stay powered down should be in GameControls instead of a modal so the player can see the current game status to help them decide
-* fix problem with dulicate key errors in ExecutionLog and/or remove the id from the log properties
-* player wins the game if all other robots are dead
-* rename BoardPreview to CoursePreview
-* consolidate getTileAt methods (or clarify why there are multiple different implementations)
-* when all players are powered down the game gets stuck
-* hide the whole registers section and the player's hand when powered down?
+* refine the look of pits
 * somehow make checkpoints and possibly other board elements visible when a robot is sitting on them
-* tooltips so a player can hover their mouse pointer over a tile and see what's there when a robot is sitting on it
+* player wins the game if all other robots are dead
+* reset cards is executing the logic on both the client and the server; only need one
+* hide the whole registers section and the player's hand when powered down?
 * server got stuck resetting or dealing cards for next turn; one robot had 9 damage, might be related to that
-* fix it so resetting your program doesn't affect other players
-* pushers
 * hammers
 * handle endgame properly (pop up a modal with the game still visible, celebrate the winner, etc)
 * Prevent further changes after timer expires
@@ -19,7 +12,6 @@
 * show all players cards for the current register / incremental card reveal
 * reduce the padding around the board to make better use of the space
 * make the robot arrow black instead of white when the robot color is light
-* move the legend to a separate component
 * improve the card look
     * add an up arrow to the move cards - make it big and lay the number over it in a circle like it is
     * make the back up arrow the same as the move cards, just pointing down instead of up
@@ -29,14 +21,16 @@
 * improve the game page layout
 * display the list phases and sub-phases and highlight the active one
 * delete the code for the game start modal (unless we think of a reason to reinstate it; board selection needs to be either here or on the game screen)
-* add the risky exchange board
 * add all standard game boards
-* make it so robot lasers only fire if there's a robot for them to it?
+* make it so robot lasers only fire if there's a robot for them to hit?
 * ability for players to register with a username and password for unique identity
 * migrate data from legacy RoboRally game
 * make the execution delay configurable
 
 ## In Progress
+* when one robot dies, it's asking other players if they want to enter powered down
+* when a robot has last all of its lives, they're still asked how they want to reenter, dealt cards, etc
+* pits aren't killing players
 
 ## Done
 * robots pushing each other
@@ -84,6 +78,13 @@
 * disable the create game button until the player is named or fix the name yourself dialog to correctly navigate to the new game
 * powering down indicator that's visible during execution for the player that's powering down
 * powering down indicator on the robot and/or in the player list for other players
+* prompt to choose whether to stay powered down should be in GameControls instead of a modal so the player can see the current game status to help them decide
+* consolidate getTileAt methods (or clarify why there are multiple different implementations)
+* rename BoardPreview to CoursePreview
+* tooltips so a player can hover their mouse pointer over a tile and see what's there when a robot is sitting on it
+* when all players are powered down the game gets stuck
+* add the exchange board and risky exchange course
+* pushers
 
 
 ## Defect Fix History
@@ -107,3 +108,5 @@
 * after dying the player is not presented with the option to enter powered down
 * when reentering powered down it's supposed to enter you immediately powered down with zero damage
 * after dying and returning powered down, the robot was not healed
+* fix problem with dulicate key errors in ExecutionLog and/or remove the id from the log properties
+* fix it so resetting your program doesn't affect other players
