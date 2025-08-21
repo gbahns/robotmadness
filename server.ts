@@ -246,18 +246,23 @@ app.prepare().then(() => {
 
             // Toggle power down state
             if (player.powerState === PowerState.ON) {
-                // Check if this is a respawn scenario by checking if we have selectedCards passed as null
-                // (this indicates it came from the respawn power down decision)
-                if (selectedCards === null) {
-                    // Immediate power down for respawn
-                    player.powerState = PowerState.OFF;
-                    player.damage = 0; // Repair all damage immediately
-                    player.dealtCards = []; // No cards when powered down
-                    player.selectedCards = [null, null, null, null, null];
-                    player.lockedRegisters = 0;
-                    player.announcedPowerDown = false;
-                    player.submitted = true; // Auto-submit for powered down players
-                    console.log(`${player.name} immediately powered down after respawn - all damage repaired`);
+                // Check if this is a respawn scenario
+                if (selectedCards === null || (Array.isArray(selectedCards) && selectedCards.length === 0)) {
+                    // This is a respawn power-down decision
+                    if (selectedCards === null) {
+                        // Immediate power down for respawn
+                        player.powerState = PowerState.OFF;
+                        player.damage = 0; // Repair all damage immediately
+                        player.dealtCards = []; // No cards when powered down
+                        player.selectedCards = [null, null, null, null, null];
+                        player.lockedRegisters = 0;
+                        player.announcedPowerDown = false;
+                        player.submitted = true; // Auto-submit for powered down players
+                        console.log(`${player.name} immediately powered down after respawn - all damage repaired`);
+                    } else {
+                        // Empty array means "don't power down" for respawn - keep ON state
+                        console.log(`${player.name} chose not to power down after respawn`);
+                    }
                 } else {
                     // Normal power down announcement for next turn
                     player.powerState = PowerState.ANNOUNCING;
@@ -283,6 +288,35 @@ app.prepare().then(() => {
                 powerState: player.powerState,
                 announcedPowerDown: player.announcedPowerDown
             });
+
+            // Check if this was a respawn power-down decision
+            if (gameState.waitingForRespawnDecisions && gameState.waitingForRespawnDecisions.includes(playerId)) {
+                // Track that this player made a respawn decision (to avoid double prompting later)
+                if (!gameState.playersWhoMadeRespawnDecisions) {
+                    gameState.playersWhoMadeRespawnDecisions = [];
+                }
+                gameState.playersWhoMadeRespawnDecisions.push(playerId);
+
+                // Remove this player from respawn waiting list
+                gameState.waitingForRespawnDecisions = gameState.waitingForRespawnDecisions.filter(
+                    id => id !== playerId
+                );
+
+                if (selectedCards === null) {
+                    console.log(`${player.name} chose to power down after respawn. ${gameState.waitingForRespawnDecisions.length} players still waiting.`);
+                } else if (Array.isArray(selectedCards) && selectedCards.length === 0) {
+                    console.log(`${player.name} chose NOT to power down after respawn. ${gameState.waitingForRespawnDecisions.length} players still waiting.`);
+                }
+
+                // If all respawning players have decided, proceed with ending the turn
+                if (gameState.waitingForRespawnDecisions.length === 0) {
+                    console.log('All respawn decisions received, ending turn and dealing cards...');
+                    gameState.waitingForRespawnDecisions = undefined;
+                    gameEngine.endTurn(gameState);
+                    // endTurn will emit game-state, so no need to emit it again
+                    return;
+                }
+            }
 
             // Send updated game state
             io.to(roomCode).emit('game-state', gameState);

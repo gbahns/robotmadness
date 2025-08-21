@@ -40,19 +40,8 @@ export default function ProgrammingControls({
         <div className="bg-gray-800 rounded-lg p-6 space-y-4">
             <h2 className="text-xl font-bold text-white">Programming Phase</h2>
 
-            {/* Power Down Section - Always available for strategic reasons */}
-            <div className="border-t border-gray-700 pt-4">
-                <h3 className="text-sm font-semibold text-gray-400 mb-2">Robot Maintenance</h3>
-                <PowerDownButton
-                    roomCode={gameState.roomCode}
-                    playerId={currentPlayer.id}
-                    powerState={currentPlayer.powerState}
-                    damage={currentPlayer.damage}
-                    disabled={currentPlayer.isDead || currentPlayer.lives <= 0}
-                    isProgrammingPhase={true}
-                    selectedCards={selectedCards}
-                />
-            </div>
+
+
 
             {/* Power Down Status Message */}
             {currentPlayer.powerState === 'OFF' && (
@@ -81,25 +70,12 @@ export default function ProgrammingControls({
                 </div>
             )}
 
-            {/* Submit Cards Button - Only if not powered down */}
-            {currentPlayer.powerState !== 'OFF' && (
-                <div className="border-t border-gray-700 pt-4">
-                    <button
-                        onClick={onSubmitCards}
-                        disabled={!canSubmit() || currentPlayer.submitted}
-                        className={`w-full px-6 py-3 font-bold rounded-lg transition-all duration-200 ${canSubmit() && !currentPlayer.submitted
-                            ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl'
-                            : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                            }`}
-                    >
-                        {currentPlayer.submitted ? 'Cards Submitted' : 'Submit Cards'}
-                    </button>
-
-                    {!canSubmit() && !currentPlayer.submitted && (
-                        <p className="text-sm text-gray-400 mt-2">
-                            Select {5 - currentPlayer.lockedRegisters} cards to program your robot
-                        </p>
-                    )}
+            {/* Out of Lives Message */}
+            {currentPlayer.lives <= 0 && (
+                <div className="bg-red-900 border border-red-600 rounded-lg p-4">
+                    <div className="flex items-center justify-center">
+                        <span className="text-red-400 font-bold text-lg">You are out of lives!</span>
+                    </div>
                 </div>
             )}
 

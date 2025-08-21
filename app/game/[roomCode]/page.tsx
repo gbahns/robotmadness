@@ -179,26 +179,26 @@ export default function GamePage() {
           timestamp: new Date()
         }]);
       }
-      
+
       // Preserve current player's local programming during programming phase
       // but only if we're staying in the same phase and round
       setGameState(prevState => {
-        if (prevState && 
-            state.phase === 'programming' && 
-            prevState.phase === 'programming' &&
-            state.roundNumber === prevState.roundNumber &&
-            !isSubmitted && 
-            playerIdRef.current && 
-            state.players[playerIdRef.current] &&
-            prevState.players[playerIdRef.current]) {
-          
+        if (prevState &&
+          state.phase === 'programming' &&
+          prevState.phase === 'programming' &&
+          state.roundNumber === prevState.roundNumber &&
+          !isSubmitted &&
+          playerIdRef.current &&
+          state.players[playerIdRef.current] &&
+          prevState.players[playerIdRef.current]) {
+
           // Preserve local selected cards and submitted state for current player
           const preservedCurrentPlayer = {
             ...state.players[playerIdRef.current],
             selectedCards: prevState.players[playerIdRef.current].selectedCards,
             submitted: prevState.players[playerIdRef.current].submitted
           };
-          
+
           return {
             ...state,
             players: {
@@ -207,11 +207,11 @@ export default function GamePage() {
             }
           };
         }
-        
+
         // Normal game state update (including round transitions and phase changes)
         return state;
       });
-      
+
       setSelectedCourse(state.course.definition.id);
       setLoading(false);
 
@@ -733,7 +733,7 @@ export default function GamePage() {
                             }-500 flex items-center justify-center text-xs font-bold flex-shrink-0`}>
                             {index + 1}
                           </div>
-                          <span className={`truncate ${player.isDisconnected ? 'line-through' : ''}`}>
+                          <span className={`truncate ${player.isDisconnected ? 'line-through' : ''} ${player.lives <= 0 ? 'text-red-500 line-through' : ''}`}>
                             {player.name}
                           </span>
                           {index === 0 && (
@@ -763,7 +763,7 @@ export default function GamePage() {
                   </div>
                 </div>
 
-                {(gameState?.phase === 'waiting' || showPowerDownPrompt) && (
+                {(gameState?.phase === 'waiting' || (showPowerDownPrompt && currentPlayer?.lives || 0 > 0)) && (
                   <GameControls
                     isHost={isHost}
                     roomCode={roomCode}
@@ -776,17 +776,23 @@ export default function GamePage() {
                     onPowerDownDecision={(continueDown: boolean) => {
                       // Check if this is a respawn scenario (not currently powered down)
                       const isRespawnScenario = currentPlayer?.powerState !== 'OFF';
-                      
+
                       if (isRespawnScenario) {
-                        // For respawn, if they choose to power down, use toggle-power-down
+                        // For respawn, ALWAYS send a decision to the server
                         if (continueDown) {
                           socketClient.emit('toggle-power-down', {
                             roomCode,
                             playerId: playerIdRef.current,
                             selectedCards: null // No cards selected during respawn
                           });
+                        } else {
+                          // Send a "no power down" decision for respawn
+                          socketClient.emit('toggle-power-down', {
+                            roomCode,
+                            playerId: playerIdRef.current,
+                            selectedCards: [] // Empty array indicates "don't power down" for respawn
+                          });
                         }
-                        // If they choose not to power down, just close the prompt
                       } else {
                         // For regular power down decision, use continue-power-down
                         socketClient.emit('continue-power-down', {

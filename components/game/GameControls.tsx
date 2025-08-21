@@ -71,7 +71,7 @@ export default function GameControls({
     if (showPowerDownPrompt && currentPlayer && onPowerDownDecision) {
       // Check if this is a respawn scenario (not currently powered down) or regular power down decision
       const isRespawnScenario = currentPlayer.powerState !== 'OFF';
-      
+
       return (
         <div className="bg-gray-800 rounded-lg p-6 space-y-4">
           <div className="flex items-center gap-3 mb-4">
@@ -83,8 +83,8 @@ export default function GameControls({
 
           <div className="bg-gray-700 rounded p-4 space-y-3">
             <p className="text-gray-300">
-              {isRespawnScenario 
-                ? "You have respawned with 2 damage." 
+              {isRespawnScenario
+                ? "You have respawned with 2 damage."
                 : "Your robot is currently powered down."
               }
             </p>
@@ -100,7 +100,7 @@ export default function GameControls({
             </div>
 
             <p className="text-gray-300 text-sm">
-              {isRespawnScenario 
+              {isRespawnScenario
                 ? "Would you like to enter powered down mode for safety, or continue playing normally?"
                 : "Would you like to stay powered down for another turn to ensure safety, or power back on and rejoin the action?"
               }
@@ -129,7 +129,7 @@ export default function GameControls({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
-              <span>{isRespawnScenario ? "Continue Normally" : "Power Back On"}</span>
+              <span>{isRespawnScenario ? "Enter Powered Up" : "Power Back On"}</span>
             </button>
           </div>
 

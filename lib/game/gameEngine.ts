@@ -10,6 +10,8 @@ export interface ServerGameState extends GameState {
     winner?: string;
     allPlayersDead?: boolean;
     waitingForPowerDownDecisions?: string[];
+    waitingForRespawnDecisions?: string[];
+    playersWhoMadeRespawnDecisions?: string[];
 }
 
 interface IoServer {
@@ -173,12 +175,20 @@ export class GameEngine {
     dealCards(gameState: ServerGameState): void {
         // STEP 1: Handle powered down players FIRST (before creating deck)
         // They need to decide whether to stay powered down
+        // BUT skip players who just made respawn decisions
         const poweredDownPlayers: Player[] = [];
+        const playersWhoMadeRespawnDecisions = gameState.playersWhoMadeRespawnDecisions || [];
 
         for (const playerId in gameState.players) {
             const player = gameState.players[playerId];
 
-            if (player.powerState === PowerState.OFF) {
+            if (player.powerState === PowerState.OFF && player.lives > 0) {
+                // Skip players who just made respawn power-down decisions
+                if (playersWhoMadeRespawnDecisions.includes(playerId)) {
+                    console.log(`Skipping regular power-down prompt for ${player.name} - they just made a respawn decision`);
+                    continue;
+                }
+                
                 poweredDownPlayers.push(player);
                 // Send power down option ONLY to the specific player
                 // Use setTimeout to ensure it's sent after the game state update
@@ -201,6 +211,9 @@ export class GameEngine {
             // Return early - actual card dealing will happen after decisions are made
             return;
         }
+
+        // Clear the respawn decisions tracking after dealing cards
+        gameState.playersWhoMadeRespawnDecisions = undefined;
 
         // STEP 2: If no one is powered down (or after decisions are made), proceed with dealing
         this.proceedWithDealingCards(gameState);
@@ -242,6 +255,8 @@ export class GameEngine {
         gameState.phase = GamePhase.PROGRAMMING;
         gameState.cardsDealt = true;
         gameState.waitingForPowerDownDecisions = undefined;
+        // Clear the respawn decisions tracking after dealing cards
+        gameState.playersWhoMadeRespawnDecisions = undefined;
 
         // Emit the updated game state
         this.io.to(gameState.roomCode).emit('game-state', gameState);
@@ -313,9 +328,14 @@ export class GameEngine {
         await this.executeRegisters(gameState, gameState.roomCode);
         //console.log('Registers executed, moving to cleanup phase...');
 
-        // Respawn any dead robots
-        this.respawnDeadRobots(gameState);
+        // Respawn any dead robots and check if we need to wait for their decisions
+        const needToWaitForRespawnDecisions = this.respawnDeadRobots(gameState);
 
+        if (needToWaitForRespawnDecisions) {
+            console.log('Waiting for respawn power-down decisions before ending turn...');
+            // Don't call endTurn yet - it will be called after all respawn decisions are made
+            return;
+        }
 
         // 2. TODO: Handle repairs & upgrades
 
@@ -578,10 +598,23 @@ export class GameEngine {
 
         if (player.lives <= 0) {
             console.log(`${player.name} is out of lives!`);
+            
+            // Reset power state for eliminated players
+            player.powerState = PowerState.ON;
+            player.announcedPowerDown = false;
+            
+            // Clear cards and registers for eliminated players
+            player.dealtCards = [];
+            player.selectedCards = [null, null, null, null, null];
+            player.submitted = true; // Mark as submitted so they don't block game progression
+            
             this.io.to(gameState.roomCode).emit('robot-destroyed', {
                 playerName: player.name,
                 reason: 'out of lives'
             });
+
+            // Check for "last robot standing" win condition after elimination
+            this.checkLastRobotStanding(gameState);
         }
 
         const allPlayers = Object.values(gameState.players);
@@ -592,9 +625,11 @@ export class GameEngine {
         }
     }
 
-    respawnDeadRobots(gameState: ServerGameState) {
+    respawnDeadRobots(gameState: ServerGameState): boolean {
+        const respawningPlayers: string[] = [];
         Object.values(gameState.players).forEach(player => {
             if ((player as any).isDead) {
+                console.log(`Checking respawn for ${player.name}: lives=${player.lives}, isDead=${(player as any).isDead}`);
                 if (player.lives > 0) {
                     console.log(`${player.name} is respawning at their archive marker.`);
 
@@ -610,6 +645,12 @@ export class GameEngine {
                     // Robots reenter with 2 damage tokens (per rules)
                     player.damage = 2;
 
+                    // Clear previous turn's registers BEFORE showing respawn decision (cosmetic fix)
+                    player.selectedCards = [null, null, null, null, null];
+                    player.lockedRegisters = 0;
+                    player.submitted = false;
+                    player.dealtCards = [];
+
                     this.io.to(gameState.roomCode).emit('robot-respawned', {
                         playerName: player.name,
                         position: player.position,
@@ -622,11 +663,25 @@ export class GameEngine {
                     this.io.to(player.id).emit('power-down-option', {
                         message: `You have respawned with 2 damage. Choose whether to enter powered down mode for safety.`
                     });
+                    
+                    // Track that this player needs to make a respawn decision
+                    respawningPlayers.push(player.id);
                 } else {
                     console.log(`${player.name} has no lives left and is eliminated.`);
                 }
             }
         });
+
+        // If we have respawning players, set up the waiting mechanism
+        if (respawningPlayers.length > 0) {
+            gameState.waitingForRespawnDecisions = respawningPlayers;
+            // Initialize the tracking array for players who made respawn decisions
+            gameState.playersWhoMadeRespawnDecisions = [];
+            console.log(`Waiting for respawn decisions from: ${respawningPlayers.map(id => gameState.players[id].name).join(', ')}`);
+            return true; // Indicate we need to wait
+        }
+
+        return false; // No respawning players, can proceed immediately
     }
 
     async executeBoardElements(gameState: ServerGameState) {
@@ -635,6 +690,7 @@ export class GameEngine {
         await this.executeConveyorBelts(gameState, true, true);
         await this.executePushers(gameState);
         await this.executeGears(gameState);
+        await this.executePits(gameState);
         await this.executeLasers(gameState);
         await this.checkCheckpoints(gameState);
     }
@@ -735,6 +791,21 @@ export class GameEngine {
                 player.direction = (player.direction + 3) % 4;
             }
             this.executionLog(gameState, `${player.name} rotated by gear`);
+        });
+        this.io.to(gameState.roomCode).emit('game-state', gameState);
+        await new Promise(resolve => setTimeout(resolve, this.boardElementDelay));
+    }
+
+    async executePits(gameState: ServerGameState) {
+        console.log('Executing pits...');
+        Object.values(gameState.players).forEach(player => {
+            if (player.lives <= 0) return;
+            const tile = this.getTileAt(gameState, player.position.x, player.position.y);
+            if (!tile || tile.type !== TileType.PIT) return;
+            
+            console.log(`${player.name} fell into a pit at (${player.position.x}, ${player.position.y})`);
+            this.executionLog(gameState, `${player.name} fell into a pit!`);
+            this.destroyRobot(gameState, player, 'fell into a pit');
         });
         this.io.to(gameState.roomCode).emit('game-state', gameState);
         await new Promise(resolve => setTimeout(resolve, this.boardElementDelay));
@@ -934,6 +1005,25 @@ export class GameEngine {
                 this.updateArchivePosition(gameState, player);
             }
         });
+
+        // Check for "last robot standing" win condition
+        this.checkLastRobotStanding(gameState);
+    }
+
+    checkLastRobotStanding(gameState: ServerGameState) {
+        // Don't check if game is already won
+        if (gameState.winner) return;
+
+        // Get all players with lives remaining
+        const playersAlive = Object.values(gameState.players).filter(player => player.lives > 0);
+        
+        // If only one player is alive and there are multiple players total, they win
+        if (playersAlive.length === 1 && Object.keys(gameState.players).length > 1) {
+            const winner = playersAlive[0];
+            gameState.winner = winner.name;
+            console.log(`${winner.name} wins by being the last robot standing!`);
+            this.io.to(gameState.roomCode).emit('game-over', { winner: winner.name });
+        }
     }
 
     async executeRepairs(gameState: ServerGameState) {
