@@ -712,8 +712,8 @@ export default function GamePage() {
               {/* Right side - Players and Controls stacked */}
               <div className="w-80 space-y-6">
                 {/* Players */}
-                <div className="bg-gray-800 rounded-lg p-6">
-                  <h2 className="text-xl font-semibold mb-4">
+                <div>
+                  <h2 className="text-xl font-semibold mb-3">
                     Players ({Object.keys(gameState?.players || {}).length}/8)
                     {gameState?.phase === 'programming' && (
                       <span className="text-sm font-normal text-gray-400 ml-2">
@@ -721,36 +721,40 @@ export default function GamePage() {
                       </span>
                     )}
                   </h2>
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     {gameState && Object.values(gameState.players).map((player, index) => (
                       <div
                         key={`${player.id}-info`}
-                        className={`flex items-center justify-between p-2 rounded ${player.id === playerIdRef.current ? 'bg-gray-700' : ''
+                        className={`flex items-center justify-between py-1 px-2 rounded ${player.id === playerIdRef.current ? 'bg-gray-700' : ''
                           } ${player.isDisconnected ? 'opacity-50' : ''}`}
                       >
-                        <div className="flex items-center gap-2">
-                          <div className={`w-8 h-8 rounded-full bg-${['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan'][index % 8]
-                            }-500 flex items-center justify-center text-sm font-bold`}>
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <div className={`w-6 h-6 rounded-full bg-${['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan'][index % 8]
+                            }-500 flex items-center justify-center text-xs font-bold flex-shrink-0`}>
                             {index + 1}
                           </div>
-                          <span className={player.isDisconnected ? 'line-through' : ''}>
+                          <span className={`truncate ${player.isDisconnected ? 'line-through' : ''}`}>
                             {player.name}
                           </span>
-                          {/* {player.id === playerIdRef.current && (
-                            <span className="text-xs text-gray-400">(You)</span>
-                          )} */}
                           {index === 0 && (
-                            <span className="text-xs text-yellow-400">(Host)</span>
+                            <span className="text-xs text-yellow-400 flex-shrink-0">(Host)</span>
                           )}
                           {player.isDisconnected && (
-                            <span className="text-xs text-red-400">(Disconnected)</span>
+                            <span className="text-xs text-red-400 flex-shrink-0">(Disconnected)</span>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <span>❤️ {player.lives}</span>
-                          <span>⚡ {player.damage}</span>
+                        <div className="flex items-center gap-1 text-sm flex-shrink-0">
+                          <span className="whitespace-nowrap">❤️{player.lives}</span>
+                          <span className="whitespace-nowrap">⚡{player.damage}</span>
                           {player.checkpointsVisited >= 0 && (
-                            <span>🚩 {player.checkpointsVisited}</span>
+                            <span className="whitespace-nowrap">🚩{player.checkpointsVisited}</span>
+                          )}
+                          {player.powerState === 'ANNOUNCING' && gameState?.phase === 'executing' ? (
+                            <span className="text-red-400 animate-pulse flex-shrink-0" title="Announced power down for next turn">🛑</span>
+                          ) : player.powerState === 'OFF' ? (
+                            <span className="text-red-500 flex-shrink-0" title="Powered down">🛑</span>
+                          ) : (
+                            <span className="text-green-500 flex-shrink-0" title="Powered on">🟢</span>
                           )}
                         </div>
                       </div>

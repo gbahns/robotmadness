@@ -37,8 +37,6 @@
 * make the execution delay configurable
 
 ## In Progress
-* powering down indicator that's visible during execution for the player that's powering down
-* powering down indicator on the robot and/or in the player list for other players
 
 ## Done
 * robots pushing each other
@@ -84,6 +82,8 @@
 * wrenches
 * add the ability for new player to name themself on the home page
 * disable the create game button until the player is named or fix the name yourself dialog to correctly navigate to the new game
+* powering down indicator that's visible during execution for the player that's powering down
+* powering down indicator on the robot and/or in the player list for other players
 
 
 ## Defect Fix History
