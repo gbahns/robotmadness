@@ -1,7 +1,8 @@
 ## Backlog
+* allow players to choose which direction they're facing when reentering
+* when two robots reenter on the same archive marker, the second on picks an adjacent tile on which to reenter
 * refine the look of pits
 * somehow make checkpoints and possibly other board elements visible when a robot is sitting on them
-* player wins the game if all other robots are dead
 * reset cards is executing the logic on both the client and the server; only need one
 * hide the whole registers section and the player's hand when powered down?
 * server got stuck resetting or dealing cards for next turn; one robot had 9 damage, might be related to that
@@ -26,11 +27,9 @@
 * ability for players to register with a username and password for unique identity
 * migrate data from legacy RoboRally game
 * make the execution delay configurable
+* when one robot dies, it's asking other players if they want to enter powered down (couldn't reproduce)
 
 ## In Progress
-* when one robot dies, it's asking other players if they want to enter powered down
-* when a robot has last all of its lives, they're still asked how they want to reenter, dealt cards, etc
-* pits aren't killing players
 
 ## Done
 * robots pushing each other
@@ -82,9 +81,10 @@
 * consolidate getTileAt methods (or clarify why there are multiple different implementations)
 * rename BoardPreview to CoursePreview
 * tooltips so a player can hover their mouse pointer over a tile and see what's there when a robot is sitting on it
-* when all players are powered down the game gets stuck
 * add the exchange board and risky exchange course
 * pushers
+* player wins the game if all other robots are dead
+* reentering players need to make their power down decision before cards are dealt
 
 
 ## Defect Fix History
@@ -110,3 +110,6 @@
 * after dying and returning powered down, the robot was not healed
 * fix problem with dulicate key errors in ExecutionLog and/or remove the id from the log properties
 * fix it so resetting your program doesn't affect other players
+* when all players are powered down the game gets stuck
+* when a robot has lost all of its lives, they're still asked how they want to reenter, dealt cards, etc
+* pits aren't killing robots
