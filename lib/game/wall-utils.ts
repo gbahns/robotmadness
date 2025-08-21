@@ -27,10 +27,15 @@ export function hasWallBetween(from: Position, to: Position, board: Course['boar
     }
 
     // Check if there's a wall on the 'to' tile blocking entry from the opposite direction
+    // BUT only if the 'to' tile exists (is on the board)
     const oppositeDirection = (movementDirection + 2) % 4;
     const toTile = getTileAt(board, to.x, to.y);
-    if (toTile && toTile.walls.includes(oppositeDirection)) {
-        return true;
+    
+    // If 'to' tile doesn't exist (off-board), we already checked the 'from' tile above
+    if (toTile) {
+        if (toTile.walls.includes(oppositeDirection)) {
+            return true;
+        }
     }
 
     return false;

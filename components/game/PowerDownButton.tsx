@@ -24,7 +24,7 @@ export default function PowerDownButton({
 
     const handleToggle = () => {
         console.log(`Toggling power down for player ${playerId} in game ${roomCode} isProgrammingPhase: ${isProgrammingPhase}`);
-        if (!isProgrammingPhase) return;
+        if (!isProgrammingPhase || powerState === PowerState.OFF) return;
         socketClient.emit('toggle-power-down', { roomCode, playerId, selectedCards });
     };
 
@@ -42,7 +42,7 @@ export default function PowerDownButton({
     const getButtonStyle = () => {
         const baseClasses = "px-6 py-3 rounded-lg font-bold text-white transition-all duration-200 flex items-center gap-2";
 
-        if (disabled || !isProgrammingPhase) {
+        if (disabled || !isProgrammingPhase || powerState === PowerState.OFF) {
             return `${baseClasses} bg-gray-400 cursor-not-allowed opacity-50`;
         }
 
@@ -51,8 +51,8 @@ export default function PowerDownButton({
                 return `${baseClasses} bg-yellow-500 hover:bg-yellow-600 shadow-lg hover:shadow-xl`;
             case PowerState.ANNOUNCING:
                 return `${baseClasses} bg-red-500 hover:bg-red-600 shadow-lg hover:shadow-xl animate-pulse`;
-            case PowerState.OFF:
-                return `${baseClasses} bg-green-600 hover:bg-green-700 shadow-lg hover:shadow-xl`;
+            //case PowerState.OFF:
+            //   return `${baseClasses} bg-green-600 hover:bg-green-700 shadow-lg hover:shadow-xl`;
         }
     };
 
@@ -87,7 +87,7 @@ export default function PowerDownButton({
         <div className="relative">
             <button
                 onClick={handleToggle}
-                disabled={disabled || !isProgrammingPhase}
+                disabled={disabled || !isProgrammingPhase || powerState === PowerState.OFF}
                 className={getButtonStyle()}
                 title={getTooltip()}
             >

@@ -69,6 +69,9 @@ export default function GameControls({
     }
     // Show power down prompt when needed
     if (showPowerDownPrompt && currentPlayer && onPowerDownDecision) {
+      // Check if this is a respawn scenario (not currently powered down) or regular power down decision
+      const isRespawnScenario = currentPlayer.powerState !== 'OFF';
+      
       return (
         <div className="bg-gray-800 rounded-lg p-6 space-y-4">
           <div className="flex items-center gap-3 mb-4">
@@ -80,36 +83,27 @@ export default function GameControls({
 
           <div className="bg-gray-700 rounded p-4 space-y-3">
             <p className="text-gray-300">
-              Your robot is currently powered down and has repaired all damage.
+              {isRespawnScenario 
+                ? "You have respawned with 2 damage." 
+                : "Your robot is currently powered down."
+              }
             </p>
 
             {/* Show current game status */}
             <div className="bg-gray-800 rounded p-3 space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-400">Current Status:</span>
-                <span className="text-green-400 font-semibold">Fully Repaired</span>
+                <span className="text-gray-400">Damage:</span>
+                <span className={`font-semibold ${currentPlayer.damage === 0 ? 'text-green-400' : 'text-orange-400'}`}>
+                  {currentPlayer.damage === 0 ? 'Fully Repaired' : `${currentPlayer.damage}/10`}
+                </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Lives Remaining:</span>
-                <span className="text-white font-semibold">{currentPlayer.lives}/3</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Checkpoints Reached:</span>
-                <span className="text-white font-semibold">{currentPlayer.checkpointsVisited || 0}</span>
-              </div>
-              {currentPlayer.position && (
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Position:</span>
-                  <span className="text-white font-semibold">
-                    ({currentPlayer.position.x}, {currentPlayer.position.y})
-                  </span>
-                </div>
-              )}
             </div>
 
             <p className="text-gray-300 text-sm">
-              Would you like to stay powered down for another turn to ensure safety,
-              or power back on and rejoin the action?
+              {isRespawnScenario 
+                ? "Would you like to enter powered down mode for safety, or continue playing normally?"
+                : "Would you like to stay powered down for another turn to ensure safety, or power back on and rejoin the action?"
+              }
             </p>
           </div>
 
@@ -123,8 +117,7 @@ export default function GameControls({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
               </svg>
-              <span>Stay Powered Down</span>
-              <span className="text-xs opacity-90">Skip turn, stay safe</span>
+              <span>{isRespawnScenario ? "Enter Powered Down" : "Stay Powered Down"}</span>
             </button>
 
             <button
@@ -136,14 +129,22 @@ export default function GameControls({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
-              <span>Power Back On</span>
-              <span className="text-xs opacity-90">Resume playing</span>
+              <span>{isRespawnScenario ? "Continue Normally" : "Power Back On"}</span>
             </button>
           </div>
 
           <div className="text-xs text-gray-500 text-center border-t border-gray-700 pt-3">
-            <p>Staying powered down: No damage from board elements, skip programming</p>
-            <p>Powering back on: Resume normal play, program cards next turn</p>
+            {isRespawnScenario ? (
+              <>
+                <p>Enter powered down: Repair damage safely, skip programming next turn</p>
+                <p>Continue normally: Program cards and play next turn with 2 damage</p>
+              </>
+            ) : (
+              <>
+                <p>Staying powered down: No damage from board elements, skip programming</p>
+                <p>Powering back on: Resume normal play, program cards next turn</p>
+              </>
+            )}
           </div>
         </div>
       );

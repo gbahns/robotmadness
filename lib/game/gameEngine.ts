@@ -149,7 +149,7 @@ export class GameEngine {
         if ((player.announcedPowerDown && player.powerState === PowerState.ANNOUNCING) || player.powerState === PowerState.OFF) {
             // Transition from ANNOUNCING to OFF or staying OFF
             player.powerState = PowerState.OFF;
-            player.damage = 0; // Repair all damage
+            player.damage = 0; // Repair all damage 
             player.dealtCards = []; // No cards when powered down
             player.selectedCards = [null, null, null, null, null];
             player.lockedRegisters = 0;
@@ -474,16 +474,17 @@ export class GameEngine {
             const newY = player.position.y + vector.y;
             const newPos = { x: newX, y: newY };
 
-            // Check if move is off the board
-            if (newX < 0 || newX >= gameState.course.board.width ||
-                newY < 0 || newY >= gameState.course.board.height) {
-                this.destroyRobot(gameState, player, 'fell off board');
+            // Check for walls blocking the movement first (even if destination is off-board)
+            if (hasWallBetween(currentPos, newPos, gameState.course.board)) {
+                // Movement blocked by wall, stop here
+                this.executionLog(gameState, `${player.name} blocked by wall`);
                 break;
             }
 
-            // Check for walls blocking the movement
-            if (hasWallBetween(currentPos, newPos, gameState.course.board)) {
-                // Movement blocked by wall, stop here
+            // Check if move is off the board (after wall check)
+            if (newX < 0 || newX >= gameState.course.board.width ||
+                newY < 0 || newY >= gameState.course.board.height) {
+                this.destroyRobot(gameState, player, 'fell off board');
                 break;
             }
 
@@ -515,17 +516,18 @@ export class GameEngine {
         const newY = playerToPush.position.y + vector.y;
         const newPos = { x: newX, y: newY };
 
-        // Check if push would go off the board
+        // Check for walls blocking the push first (even if destination is off-board)
+        if (hasWallBetween(currentPos, newPos, gameState.course.board)) {
+            // Can't push through wall
+            this.executionLog(gameState, `${playerToPush.name} cannot be pushed through wall`);
+            return false;
+        }
+
+        // Check if push would go off the board (after wall check)
         if (newX < 0 || newX >= gameState.course.board.width ||
             newY < 0 || newY >= gameState.course.board.height) {
             this.destroyRobot(gameState, playerToPush, 'fell off board');
             return true; // Pushed off the board
-        }
-
-        // Check for walls blocking the push
-        if (hasWallBetween(currentPos, newPos, gameState.course.board)) {
-            // Can't push through wall
-            return false;
         }
 
         // Check for other robots in the push destination
@@ -602,6 +604,11 @@ export class GameEngine {
                         position: player.position,
                         direction: player.direction,
                         damage: player.damage
+                    });
+
+                    // Ask the player if they want to enter powered down mode upon respawn
+                    this.io.to(player.id).emit('power-down-option', {
+                        message: `You have respawned with 2 damage. Choose whether to enter powered down mode for safety.`
                     });
                 } else {
                     console.log(`${player.name} has no lives left and is eliminated.`);
@@ -825,6 +832,10 @@ export class GameEngine {
             const totalDamage = damageInfo.boardDamage + damageInfo.robotHits.reduce((sum: number, hit: any) => sum + hit.damage, 0);
             if (totalDamage === 0) return;
             victim.damage += totalDamage;
+
+            // Handle register locking for powered down robots
+            this.handleRegisterLockingDuringPowerDown(gameState, victim);
+
             if (damageInfo.boardDamage > 0) {
                 const message = `${victim.name} takes ${damageInfo.boardDamage} damage from laser`;
                 console.log(message);
@@ -1044,6 +1055,40 @@ export class GameEngine {
         for (let i = deck.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [deck[i], deck[j]] = [deck[j], deck[i]];
+        }
+    }
+
+    private handleRegisterLockingDuringPowerDown(gameState: ServerGameState, player: Player): void {
+        // Only applies to powered down robots
+        if (player.powerState !== PowerState.OFF) return;
+
+        // Check if damage has increased enough to lock new registers
+        const newLockedCount = Math.max(0, player.damage - 4);
+        const oldLockedCount = player.lockedRegisters;
+
+        if (newLockedCount > oldLockedCount) {
+            console.log(`${player.name} is powered down and took damage - locking ${newLockedCount - oldLockedCount} additional registers`);
+
+            // Create a small deck to draw random cards from
+            const tempDeck = this.createDeck([]);
+            this.shuffleDeck(tempDeck);
+
+            // Lock additional registers and assign random cards
+            for (let registerIndex = 5 - newLockedCount; registerIndex < 5 - oldLockedCount; registerIndex++) {
+                if (tempDeck.length > 0) {
+                    const randomCard = tempDeck.pop()!;
+                    player.selectedCards[registerIndex] = randomCard;
+                    console.log(`Locked register ${registerIndex + 1} for ${player.name} with random card: ${randomCard.type} (${randomCard.priority})`);
+
+                    this.io.to(gameState.roomCode).emit('execution-log', {
+                        message: `${player.name}'s damaged systems randomly programmed register ${registerIndex + 1} with ${randomCard.type.replace(/_/g, ' ')}`,
+                        type: 'system-malfunction'
+                    });
+                }
+            }
+
+            // Update locked register count
+            player.lockedRegisters = newLockedCount;
         }
     }
 }

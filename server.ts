@@ -246,9 +246,24 @@ app.prepare().then(() => {
 
             // Toggle power down state
             if (player.powerState === PowerState.ON) {
-                player.powerState = PowerState.ANNOUNCING;
-                player.announcedPowerDown = true;
-                console.log(`${player.name} announced power down for next turn`);
+                // Check if this is a respawn scenario by checking if we have selectedCards passed as null
+                // (this indicates it came from the respawn power down decision)
+                if (selectedCards === null) {
+                    // Immediate power down for respawn
+                    player.powerState = PowerState.OFF;
+                    player.damage = 0; // Repair all damage immediately
+                    player.dealtCards = []; // No cards when powered down
+                    player.selectedCards = [null, null, null, null, null];
+                    player.lockedRegisters = 0;
+                    player.announcedPowerDown = false;
+                    player.submitted = true; // Auto-submit for powered down players
+                    console.log(`${player.name} immediately powered down after respawn - all damage repaired`);
+                } else {
+                    // Normal power down announcement for next turn
+                    player.powerState = PowerState.ANNOUNCING;
+                    player.announcedPowerDown = true;
+                    console.log(`${player.name} announced power down for next turn`);
+                }
 
             } else if (player.powerState === PowerState.ANNOUNCING) {
                 player.powerState = PowerState.ON;

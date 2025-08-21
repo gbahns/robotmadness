@@ -179,7 +179,39 @@ export default function GamePage() {
           timestamp: new Date()
         }]);
       }
-      setGameState(state);
+      
+      // Preserve current player's local programming during programming phase
+      // but only if we're staying in the same phase and round
+      setGameState(prevState => {
+        if (prevState && 
+            state.phase === 'programming' && 
+            prevState.phase === 'programming' &&
+            state.roundNumber === prevState.roundNumber &&
+            !isSubmitted && 
+            playerIdRef.current && 
+            state.players[playerIdRef.current] &&
+            prevState.players[playerIdRef.current]) {
+          
+          // Preserve local selected cards and submitted state for current player
+          const preservedCurrentPlayer = {
+            ...state.players[playerIdRef.current],
+            selectedCards: prevState.players[playerIdRef.current].selectedCards,
+            submitted: prevState.players[playerIdRef.current].submitted
+          };
+          
+          return {
+            ...state,
+            players: {
+              ...state.players,
+              [playerIdRef.current]: preservedCurrentPlayer
+            }
+          };
+        }
+        
+        // Normal game state update (including round transitions and phase changes)
+        return state;
+      });
+      
       setSelectedCourse(state.course.definition.id);
       setLoading(false);
 
@@ -365,15 +397,6 @@ export default function GamePage() {
       setShowPowerDownPrompt(true);
     });
 
-    // Respawn with power down option
-    socketClient.on('respawn-power-down-option', (data: {
-      message: string;
-    }) => {
-      const powerDown = window.confirm(data.message);
-      if (powerDown) {
-        socketClient.emit('toggle-power-down', { roomCode, playerId: playerIdRef.current });
-      }
-    });
 
     // Register execution with powered down indicator
     socketClient.on('register-executed', (data: any) => {
@@ -747,11 +770,27 @@ export default function GamePage() {
                     onCourseChange={setSelectedCourse}
                     showPowerDownPrompt={showPowerDownPrompt}
                     onPowerDownDecision={(continueDown: boolean) => {
-                      socketClient.emit('continue-power-down', {
-                        roomCode,
-                        playerId: playerIdRef.current,
-                        continueDown
-                      });
+                      // Check if this is a respawn scenario (not currently powered down)
+                      const isRespawnScenario = currentPlayer?.powerState !== 'OFF';
+                      
+                      if (isRespawnScenario) {
+                        // For respawn, if they choose to power down, use toggle-power-down
+                        if (continueDown) {
+                          socketClient.emit('toggle-power-down', {
+                            roomCode,
+                            playerId: playerIdRef.current,
+                            selectedCards: null // No cards selected during respawn
+                          });
+                        }
+                        // If they choose not to power down, just close the prompt
+                      } else {
+                        // For regular power down decision, use continue-power-down
+                        socketClient.emit('continue-power-down', {
+                          roomCode,
+                          playerId: playerIdRef.current,
+                          continueDown
+                        });
+                      }
                       setShowPowerDownPrompt(false);
                     }}
                   />
