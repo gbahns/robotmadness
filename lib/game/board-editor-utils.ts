@@ -376,6 +376,23 @@ export function generateBoardPreview(boardDef: BoardDefinition): string[][] {
 export function exportToTypeScript(boardDef: BoardDefinition): string {
     const lines: string[] = [];
 
+    // Helper function to get the TypeScript enum key from the enum value
+    const getTileTypeEnumKey = (value: string): string => {
+        // Map the enum values to their keys
+        const tileTypeMap: Record<string, string> = {
+            'empty': 'EMPTY',
+            'pit': 'PIT',
+            'repair': 'REPAIR',
+            'option': 'OPTION',
+            'conveyor': 'CONVEYOR',
+            'express': 'EXPRESS_CONVEYOR',
+            'gear_cw': 'GEAR_CW',
+            'gear_ccw': 'GEAR_CCW',
+            'pusher': 'PUSHER'
+        };
+        return tileTypeMap[value] || value.toUpperCase();
+    };
+
     lines.push(`import { BoardDefinition, TileType, Direction } from '../types';`);
     lines.push('');
     lines.push(`export const ${boardDef.id.toUpperCase().replace(/-/g, '_')}: BoardDefinition = {`);
@@ -397,7 +414,7 @@ export function exportToTypeScript(boardDef: BoardDefinition): string {
     if (boardDef.tiles && boardDef.tiles.length > 0) {
         lines.push('  tiles: [');
         for (const tile of boardDef.tiles) {
-            let tileLine = `    { position: { x: ${tile.position.x}, y: ${tile.position.y} }, type: TileType.${tile.type}`;
+            let tileLine = `    { position: { x: ${tile.position.x}, y: ${tile.position.y} }, type: TileType.${getTileTypeEnumKey(tile.type)}`;
             if (tile.direction !== undefined) {
                 tileLine += `, direction: Direction.${Direction[tile.direction]}`;
             }
