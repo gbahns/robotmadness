@@ -183,7 +183,7 @@ export class GameEngine {
                 // Send power down option ONLY to the specific player
                 // Use setTimeout to ensure it's sent after the game state update
                 setTimeout(() => {
-                    console.log(`Emitting power-down-option to player ${player.id}`);
+                    console.log(`Emitting power-down-option ONLY to powered-down player ${player.id} (${player.name})`);
                     this.io.to(player.id).emit('power-down-option', {
                         message: 'You are powered down. Stay powered down for another turn?'
                     });
@@ -245,6 +245,17 @@ export class GameEngine {
 
         // Emit the updated game state
         this.io.to(gameState.roomCode).emit('game-state', gameState);
+        
+        // Check if all players are already submitted (e.g., all powered down)
+        // This prevents getting stuck when all players are powered down
+        const allSubmitted = Object.values(gameState.players).every(p => 
+            p.submitted || p.powerState === 'OFF' || p.lives <= 0
+        );
+        
+        if (allSubmitted) {
+            console.log('All players already submitted after dealing cards, starting execution phase...');
+            this.executeProgramPhase(gameState);
+        }
     }
 
     submitCards(gameState: ServerGameState, playerId: string, cards: (ProgramCard | null)[]): void {
@@ -607,6 +618,7 @@ export class GameEngine {
                     });
 
                     // Ask the player if they want to enter powered down mode upon respawn
+                    console.log(`Emitting respawn power-down-option ONLY to player ${player.id} (${player.name})`);
                     this.io.to(player.id).emit('power-down-option', {
                         message: `You have respawned with 2 damage. Choose whether to enter powered down mode for safety.`
                     });
