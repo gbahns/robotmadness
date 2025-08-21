@@ -1,6 +1,3 @@
-// lib/game/boards/crossBoard.ts
-// Cross Board Definition from official RoboRally - CORRECTED v2
-
 import { BoardDefinition } from '../types';
 import { Direction, TileType } from '../types';
 
