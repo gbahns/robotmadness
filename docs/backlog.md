@@ -1,6 +1,4 @@
 ## Backlog
-* add the ability for new player to name themself on the home page
-* disable the create game button until the player is named or fix the name yourself dialog to correctly navigate to the new game
 * reset cards is executing the logic on both the client and the server; only need one
 * prompt to choose whether to stay powered down should be in GameControls instead of a modal so the player can see the current game status to help them decide
 * fix problem with dulicate key errors in ExecutionLog and/or remove the id from the log properties
@@ -14,7 +12,6 @@
 * server got stuck resetting or dealing cards for next turn; one robot had 9 damage, might be related to that
 * fix it so resetting your program doesn't affect other players
 * pushers
-* wrenches
 * hammers
 * handle endgame properly (pop up a modal with the game still visible, celebrate the winner, etc)
 * Prevent further changes after timer expires
@@ -40,11 +37,8 @@
 * make the execution delay configurable
 
 ## In Progress
-* when reentering powered down it's supposed to enter you immediately powered down with zero damage
 * powering down indicator that's visible during execution for the player that's powering down
 * powering down indicator on the robot and/or in the player list for other players
-* after dying and returning powered down, the robot was not healed
-* what's this Stay Powered Down button?
 
 ## Done
 * robots pushing each other
@@ -87,6 +81,10 @@
 * respawn robots on their archive marker
 * other players don't see your intent to power down until the cards are submitted.  in the official rules, when one player's decision to power down might be affected by another player's decision, the playwers announce in clockwise order. in our automated implementation we don't need this; each player makes their decision independently.
 * display a powered down marker on powered down robots
+* wrenches
+* add the ability for new player to name themself on the home page
+* disable the create game button until the player is named or fix the name yourself dialog to correctly navigate to the new game
+
 
 ## Defect Fix History
 * damage isn't reducing number of cards dealt
@@ -107,3 +105,5 @@
 * you should be able to announce power down when you have zero damage - this can be in anticipation of receiving damage in the current turn
 * a robot that takes 5+ damage while powered down gets a card from the deck placed randomly into its locked registers
 * after dying the player is not presented with the option to enter powered down
+* when reentering powered down it's supposed to enter you immediately powered down with zero damage
+* after dying and returning powered down, the robot was not healed

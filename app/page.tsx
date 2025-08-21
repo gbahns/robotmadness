@@ -21,12 +21,16 @@ export default function Home() {
   const [openGames, setOpenGames] = useState<GameInfo[]>([]);
   const [loadingGames, setLoadingGames] = useState(true);
   const [selectedBoardId, setSelectedBoardId] = useState('test');
+  const [isSettingName, setIsSettingName] = useState(false);
 
   useEffect(() => {
     // Load player name from localStorage
     const savedName = localStorage.getItem('playerName');
     if (savedName) {
       setPlayerName(savedName);
+    } else {
+      // If no saved name, show the name input
+      setIsSettingName(true);
     }
 
     // Fetch open games
@@ -97,11 +101,7 @@ export default function Home() {
           <span className="font-semibold text-yellow-400">{playerName}</span>
           <button
             onClick={() => {
-              const newName = prompt('Enter your name:', playerName);
-              if (newName && newName.trim()) {
-                setPlayerName(newName.trim());
-                localStorage.setItem('playerName', newName.trim());
-              }
+              setIsSettingName(true);
             }}
             className="text-sm text-blue-400 hover:text-blue-300"
           >
@@ -122,11 +122,53 @@ export default function Home() {
         </p>
       </div>
 
+      {/* Player Name Input for new users */}
+      {isSettingName && (
+        <div className="bg-gray-800 rounded-lg p-6 mb-8 w-full max-w-md">
+          <h2 className="text-xl font-semibold mb-4 text-center text-gray-200">
+            Choose Your Robot Pilot Name
+          </h2>
+          <div className="flex gap-3">
+            <input
+              type="text"
+              placeholder="Enter your name"
+              value={playerName}
+              onChange={(e) => setPlayerName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && playerName.trim()) {
+                  localStorage.setItem('playerName', playerName.trim());
+                  setPlayerName(playerName.trim());
+                  setIsSettingName(false);
+                }
+              }}
+              className="flex-1 p-3 bg-gray-700 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              autoFocus
+            />
+            <button
+              onClick={() => {
+                if (playerName.trim()) {
+                  localStorage.setItem('playerName', playerName.trim());
+                  setPlayerName(playerName.trim());
+                  setIsSettingName(false);
+                }
+              }}
+              disabled={!playerName.trim()}
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-6 py-3 rounded font-semibold transition"
+            >
+              Set Name
+            </button>
+          </div>
+          <p className="text-sm text-gray-400 mt-2 text-center">
+            This name will be used in all games you join
+          </p>
+        </div>
+      )}
+
       <div className="flex gap-6 mb-8">
         <button
-          //onClick={() => setShowCreateModal(true)}
           onClick={createGame}
-          className="bg-blue-600 hover:bg-blue-700 px-8 py-4 rounded-lg font-semibold text-lg transition transform hover:scale-105"
+          disabled={!playerName.trim() || isSettingName}
+          className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-8 py-4 rounded-lg font-semibold text-lg transition transform hover:scale-105 disabled:transform-none"
         >
           Create Game
         </button>
@@ -137,6 +179,12 @@ export default function Home() {
           View Boards
         </Link>
       </div>
+
+      {(!playerName.trim() || isSettingName) && (
+        <div className="text-center text-gray-400 text-sm mb-8">
+          Please set your pilot name above to create or join games
+        </div>
+      )}
 
       <div className="text-gray-400 text-sm mb-8">
         Program your robot to navigate the factory floor and be the first to reach all checkpoints!
@@ -163,7 +211,8 @@ export default function Home() {
                   </div>
                   <button
                     onClick={() => joinGameDirect(game.roomCode)}
-                    className="bg-green-600 hover:bg-green-700 px-4 py-1 rounded text-sm"
+                    disabled={!playerName.trim() || isSettingName}
+                    className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-4 py-1 rounded text-sm"
                   >
                     Join
                   </button>
