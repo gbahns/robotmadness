@@ -63,6 +63,7 @@ export default function Course({
                     currentPlayerId={currentPlayerId}
                     activeLasers={activeLasers}
                     onTileSizeChange={handleTileSizeChange}
+                    checkpoints={course.definition.checkpoints}
                 />
 
                 {/* Checkpoint overlay - positioned absolutely over the board */}

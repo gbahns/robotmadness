@@ -1,4 +1,3 @@
-// components/game/Board.tsx
 import React, { useEffect, useState, useRef } from 'react';
 import { BoardDefinition, Course, Player, Direction, Position, Tile, Checkpoint, Laser, TileType } from '@/lib/game/types';
 import RobotLaserAnimation, { RobotLaserShot } from './RobotLaserAnimation';
@@ -15,6 +14,7 @@ interface BoardProps {
   tileSize?: number;
   activeLasers?: RobotLaserShot[];
   onTileSizeChange?: (tileSize: number) => void;
+  checkpoints?: Checkpoint[];
 }
 
 // Direction mapping for visual arrows
@@ -22,7 +22,7 @@ const DIRECTION_ARROWS = ['↑', '→', '↓', '←'];
 
 const ROBOT_COLORS = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan'];
 
-export default function Board({ board, players, activeLasers = [], currentPlayerId, onTileSizeChange }: BoardProps) {
+export default function Board({ board, players, activeLasers = [], currentPlayerId, onTileSizeChange, checkpoints = [] }: BoardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [tileSize, setTileSize] = useState(50);
 
@@ -349,6 +349,90 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
   const arrowSize = Math.floor(tileSize * 0.5);
   const fontSize = Math.floor(tileSize * 0.3);
 
+  // Generate tooltip text for a tile
+  const getTileTooltip = (x: number, y: number): string => {
+    const tile = getTileAt(x, y);
+    const parts: string[] = [`Tile (${x}, ${y})`];
+
+    if (!tile) {
+      parts.push("Type: Empty");
+      return parts.join("\n");
+    }
+
+    // Add tile type
+    const typeNames: Record<string, string> = {
+      'empty': 'Empty',
+      'conveyor': 'Conveyor Belt',
+      'express': 'Express Conveyor',
+      'gear_left': 'Gear (Left)',
+      'gear_right': 'Gear (Right)',
+      'pit': 'Pit',
+      'repair': 'Repair Site',
+      'option': 'Option Site',
+      'start': 'Starting Position',
+      'pusher': 'Pusher'
+    };
+    parts.push(`Type: ${typeNames[tile.type] || tile.type}`);
+
+    // Add direction if present
+    if (tile.direction !== undefined) {
+      const dirNames = ['North', 'East', 'South', 'West'];
+      parts.push(`Direction: ${dirNames[tile.direction]}`);
+    }
+
+    // Add walls if present
+    if (tile.walls && tile.walls.length > 0) {
+      const wallNames = tile.walls.map(w => ['North', 'East', 'South', 'West'][w]).join(', ');
+      parts.push(`Walls: ${wallNames}`);
+    }
+
+    // Add rotation info
+    if (tile.rotate) {
+      parts.push(`Rotates: ${tile.rotate}`);
+    }
+
+    // Add registers if present
+    if (tile.registers && tile.registers.length > 0) {
+      if (tile.type === 'pusher') {
+        parts.push(`Active on registers: ${tile.registers.join(', ')}`);
+      } else {
+        parts.push(`Registers: ${tile.registers.join(', ')}`);
+      }
+    }
+
+    // Add starting positions
+    const startPos = board.startingPositions?.find(sp => sp.position.x === x && sp.position.y === y);
+    if (startPos) {
+      // Find the player assigned to this starting position
+      const assignedPlayer = Object.values(players).find(p => p.startingPosition?.number === startPos.number);
+      const playerName = assignedPlayer ? assignedPlayer.name : `Position ${startPos.number}`;
+      parts.push(`Starting Position: ${playerName}`);
+    }
+
+    // Add checkpoints
+    const checkpoint = checkpoints.find(cp => cp.position.x === x && cp.position.y === y);
+    if (checkpoint) {
+      parts.push(`Checkpoint: ${checkpoint.number}`);
+    }
+
+    // Add lasers
+    const laser = board.lasers?.find(l => l.position.x === x && l.position.y === y);
+    if (laser) {
+      const dirNames = ['North', 'East', 'South', 'West'];
+      parts.push(`Laser: ${laser.damage} damage ${dirNames[laser.direction]}`);
+    }
+
+    // Add robots on this tile
+    const robotsOnTile = Object.values(players).filter(p => p.position.x === x && p.position.y === y && p.lives > 0);
+    if (robotsOnTile.length > 0) {
+      const dirNames = ['North', 'East', 'South', 'West'];
+      const robotInfo = robotsOnTile.map(r => `${r.name} (${dirNames[r.direction]})`).join(', ');
+      parts.push(`Robots: ${robotInfo}`);
+    }
+
+    return parts.join("\n");
+  };
+
   // Get the visual representation of a tile
   const getTileContent = (x: number, y: number): React.ReactElement[] => {
     const tile = getTileAt(x, y);
@@ -552,6 +636,30 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
           </div>
         );
       }
+
+      // Pushers
+      if (tile.type === 'pusher') {
+        elements.push(
+          <div key="pusher" className="absolute inset-0">
+            {/* Register indicators */}
+            {(tile as any).registers && (tile as any).registers.length > 0 && (
+              <div
+                className="absolute text-sm text-yellow-300 font-bold bg-black bg-opacity-80 px-2 py-1 rounded"
+                style={{
+                  // Position based on pusher direction
+                  ...(tile.direction === 0 && { bottom: '2px', left: '50%', transform: 'translateX(-50%)' }), // UP - bar at bottom
+                  ...(tile.direction === 1 && { left: '-6px', top: '50%', transform: 'translateY(-50%) rotate(-90deg)' }), // RIGHT - bar at left edge, rotated CCW
+                  ...(tile.direction === 2 && { top: '2px', left: '50%', transform: 'translateX(-50%)' }), // DOWN - bar at top
+                  ...(tile.direction === 3 && { right: '0px', top: '50%', transform: 'translateY(-50%) rotate(90deg)' }) // LEFT - bar at right edge, rotated
+                }}
+              >
+                {(tile as any).registers.join(',')}
+              </div>
+            )}
+          </div>
+        );
+      }
+
       // Other tile types can be added here...
     }
 
@@ -1101,6 +1209,7 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
                 width: tileSize,
                 height: tileSize
               }}
+              title={getTileTooltip(x, y)}
             >
               {getTileContent(x, y)}
             </div>
