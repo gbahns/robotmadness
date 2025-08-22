@@ -71,6 +71,20 @@ export default function PlayersList({
                         
                         {/* Player Stats */}
                         <div className="flex items-center gap-1 text-sm flex-shrink-0">
+                            {/* Register indicators */}
+                            <div className="flex gap-[2px]">
+                                {[0, 1, 2, 3, 4].map((index) => (
+                                    <div
+                                        key={index}
+                                        className={`w-2 h-3 rounded-sm ${
+                                            player.selectedCards && player.selectedCards[index] !== null
+                                                ? 'bg-white'
+                                                : 'bg-gray-600'
+                                        }`}
+                                        title={`Register ${index + 1}`}
+                                    />
+                                ))}
+                            </div>
                             <span className="whitespace-nowrap">❤️{player.lives}</span>
                             <span className="whitespace-nowrap">⚡{player.damage}</span>
                             {player.checkpointsVisited >= 0 && (

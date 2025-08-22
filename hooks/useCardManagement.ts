@@ -34,6 +34,13 @@ export function useCardManagement({
         const newSelectedCards = [...currentPlayer.selectedCards];
         newSelectedCards[emptySlotIndex] = card;
 
+        // Emit register update to server
+        socketClient.emit('register-update', {
+            roomCode,
+            playerId: playerIdRef.current,
+            selectedCards: newSelectedCards
+        });
+
         // Return the new game state for the parent to update
         if (!gameState) return null;
         return {
@@ -66,6 +73,13 @@ export function useCardManagement({
         // Place card in new slot
         newSelectedCards[registerIndex] = card;
 
+        // Emit register update to server
+        socketClient.emit('register-update', {
+            roomCode,
+            playerId: playerIdRef.current,
+            selectedCards: newSelectedCards
+        });
+
         // Return the new game state
         if (!gameState) return null;
         return {
@@ -85,6 +99,13 @@ export function useCardManagement({
 
         const newSelectedCards = [...currentPlayer.selectedCards];
         newSelectedCards[registerIndex] = null;
+
+        // Emit register update to server
+        socketClient.emit('register-update', {
+            roomCode,
+            playerId: playerIdRef.current,
+            selectedCards: newSelectedCards
+        });
 
         if (!gameState) return null;
         return {
@@ -143,10 +164,17 @@ export function useCardManagement({
             newSelectedCards[i] = null;
         }
 
-        // Emit reset event to server
+        // Emit reset event to server  
         socketClient.emit('reset-cards', {
             roomCode,
             playerId: playerIdRef.current,
+        });
+
+        // Also emit register update to show cleared registers
+        socketClient.emit('register-update', {
+            roomCode,
+            playerId: playerIdRef.current,
+            selectedCards: newSelectedCards
         });
 
         // Update submitted state

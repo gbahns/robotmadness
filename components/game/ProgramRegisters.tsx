@@ -44,12 +44,12 @@ function RegisterSlot({ card, index, isLocked, onDrop, onRemove, isSubmitted, cu
   }), [card, isLocked, isSubmitted]);
 
   return (
-    <div className="flex flex-col items-center">
-      <div className="text-sm text-gray-400 mb-1">Register {index + 1}</div>
+    <div className="flex flex-col items-center flex-1">
+      <div className="text-xs text-gray-400 mb-1">R{index + 1}</div>
       <div
         ref={drop as unknown as React.Ref<HTMLDivElement>}
         className={`
-          relative w-28 h-36 rounded-lg border-2 transition-all
+          relative w-16 h-20 rounded-lg border-2 transition-all
           ${phase === 'executing' && currentRegister === index ? 'border-yellow-400 bg-yellow-900 bg-opacity-50 ring-2 ring-yellow-400' : ''}
           ${isLocked ? 'border-red-600 bg-red-900 bg-opacity-20' : 'border-gray-600'}
           ${isOver && canDrop ? 'border-green-400 bg-green-900 bg-opacity-20' : ''}
@@ -57,7 +57,7 @@ function RegisterSlot({ card, index, isLocked, onDrop, onRemove, isSubmitted, cu
         `}
       >
         {card ? (
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div className="h-full flex items-center justify-center">
             <Card
               card={card}
               isLocked={isLocked}
@@ -66,9 +66,9 @@ function RegisterSlot({ card, index, isLocked, onDrop, onRemove, isSubmitted, cu
             />
           </div>
         ) : (
-          <div className="h-full flex items-center justify-center">
-            <span className="text-gray-500 text-xs">
-              {isLocked ? '🔒 Locked' : 'Drop card here'}
+          <div className="h-full flex flex-col items-center justify-center">
+            <span className="text-gray-500 text-[10px]">
+              {isLocked ? '🔒' : 'Drop'}
             </span>
           </div>
         )}
@@ -97,7 +97,7 @@ export default function ProgramRegisters({
         </div>
       )}
 
-      <div className="flex gap-3 justify-center">
+      <div className="flex gap-2 justify-between">
         {selectedCards.map((card, index) => {
           const isLocked = index >= (5 - totalLocked);
           return (

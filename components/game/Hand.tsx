@@ -19,21 +19,49 @@ export default function Hand({ cards, selectedCards, onCardClick, isSubmitted }:
   
   return (
     <div>
-      <div className="grid grid-cols-9 gap-2">
-        {cards.map((card, index) => {
-          const isProgrammed = isCardProgrammed(card);
-          return (
-            <div key={`${card.id}-${index}`} className={isProgrammed ? 'opacity-50' : ''}>
-              <Card
-                card={card}
-                index={index}
-                isSelected={false}
-                isDraggable={!isSubmitted && !isProgrammed}
-                onClick={() => !isSubmitted && !isProgrammed && onCardClick(index)}
-              />
-            </div>
-          );
-        })}
+      <div className="space-y-2">
+        {/* First row - cards 0-4 */}
+        <div className="grid grid-cols-5 gap-2">
+          {cards.slice(0, 5).map((card, index) => {
+            const isProgrammed = isCardProgrammed(card);
+            return (
+              <div key={`${card.id}-${index}`} className={isProgrammed ? 'opacity-50' : ''}>
+                <Card
+                  card={card}
+                  index={index}
+                  isSelected={false}
+                  isDraggable={!isSubmitted && !isProgrammed}
+                  onClick={() => !isSubmitted && !isProgrammed && onCardClick(index)}
+                />
+              </div>
+            );
+          })}
+        </div>
+        
+        {/* Second row - cards 5-8 */}
+        {cards.length > 5 && (
+          <div className="grid grid-cols-5 gap-2">
+            {cards.slice(5).map((card, realIndex) => {
+              const index = realIndex + 5;
+              const isProgrammed = isCardProgrammed(card);
+              return (
+                <div key={`${card.id}-${index}`} className={isProgrammed ? 'opacity-50' : ''}>
+                  <Card
+                    card={card}
+                    index={index}
+                    isSelected={false}
+                    isDraggable={!isSubmitted && !isProgrammed}
+                    onClick={() => !isSubmitted && !isProgrammed && onCardClick(index)}
+                  />
+                </div>
+              );
+            })}
+            {/* Add empty slots if less than 4 cards in second row */}
+            {cards.slice(5).length < 4 && Array.from({ length: 4 - cards.slice(5).length }).map((_, i) => (
+              <div key={`empty-${i}`} />
+            ))}
+          </div>
+        )}
       </div>
       {cards.length === 0 && (
         <p className="text-gray-400 text-center py-8">

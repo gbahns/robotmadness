@@ -355,6 +355,25 @@ export function useGameSocket({
         socketClient.on('power-down-option', handlePowerDownOption);
         socketClient.on('respawn-power-down-option', handleRespawnPowerDownOption);
         socketClient.on('register-executed', handleRegisterExecuted);
+        
+        // Handle register updates from other players
+        socketClient.on('register-update', (data: { playerId: string; selectedCards: any[] }) => {
+            // Update the game state with the new register programming
+            onGameStateUpdate(prevState => {
+                if (!prevState || data.playerId === playerIdRef.current) return prevState;
+                
+                return {
+                    ...prevState,
+                    players: {
+                        ...prevState.players,
+                        [data.playerId]: {
+                            ...prevState.players[data.playerId],
+                            selectedCards: data.selectedCards
+                        }
+                    }
+                };
+            });
+        });
 
         // Join the game
         const id = playerId || `player-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;

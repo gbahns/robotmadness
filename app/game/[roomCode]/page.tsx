@@ -200,11 +200,11 @@ export default function GamePage() {
           {/* Game Header */}
           <GameHeader roomCode={roomCode} onLeaveGame={handleLeaveGame} />
 
-          {/* Game Area */}
-          <div className="flex-1 flex flex-col gap-6">
-            {/* Top Section - Board and Players/Controls */}
-            <div className="flex-1 flex gap-6 min-h-0">
-              {/* Game Board - takes most space - removed gray container - responsive container*/}
+          {/* Game Area - Main horizontal layout */}
+          <div className="flex-1 flex gap-6">
+            {/* Left Column - Game Board */}
+            <div className="flex-1 flex flex-col gap-6">
+              {/* Game Board - takes most space */}
               <div className="flex-1 flex items-center justify-center">
                 <Course
                   courseId={selectedCourse || ""}
@@ -216,9 +216,10 @@ export default function GamePage() {
                   activeLasers={activeLasers}
                 />
               </div>
+            </div>
 
-              {/* Right side - Players and Controls stacked */}
-              <div className="w-80 space-y-6">
+            {/* Right Column - Players, Cards and Controls */}
+            <div className="w-96 space-y-4">
                 {/* Players List Component */}
                 {gameState && (
                   <PlayersList
@@ -228,6 +229,53 @@ export default function GamePage() {
                     isProgrammingPhase={gameState.phase === 'programming'}
                     isExecutingPhase={gameState.phase === 'executing'}
                   />
+                )}
+
+                {/* Hand - moved under players list */}
+                {gameState?.phase === 'programming' && currentPlayer && (
+                  <Hand
+                    cards={currentPlayer.dealtCards || []}
+                    selectedCards={currentPlayer.selectedCards}
+                    onCardClick={handleCardClick}
+                    isSubmitted={isSubmitted}
+                  />
+                )}
+
+                {/* Program Registers - moved under hand */}
+                {(gameState?.phase === 'programming' || gameState?.phase === 'executing') && currentPlayer && (
+                  <div>
+                    <ProgramRegisters
+                      selectedCards={currentPlayer.selectedCards}
+                      lockedRegisters={currentPlayer.lockedRegisters}
+                      onCardDrop={handleCardDrop}
+                      onCardRemove={handleCardRemove}
+                      isSubmitted={isSubmitted}
+                      currentRegister={gameState?.currentRegister}
+                      phase={gameState?.phase}
+                      boardPhase={boardPhase}
+                    />
+                    
+                    {/* Submit/Reset buttons */}
+                    <div className="flex gap-3 mt-4">
+                      {!isSubmitted && (
+                        <button
+                          onClick={handleSubmitCards}
+                          disabled={currentPlayer.selectedCards.filter(c => c !== null).length < 5}
+                          className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-6 py-2 rounded font-semibold"
+                        >
+                          Submit
+                        </button>
+                      )}
+                      {currentPlayer.selectedCards.filter(c => c !== null).length > 0 && (
+                        <button
+                          onClick={handleResetCards}
+                          className="flex-1 bg-red-600 hover:bg-red-700 px-6 py-2 rounded font-semibold"
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 )}
 
                 {(gameState?.phase === 'waiting' || (showPowerDownPrompt && currentPlayer?.lives || 0 > 0)) && (
@@ -298,70 +346,6 @@ export default function GamePage() {
                 )}
 
                 <ExecutionLog entries={logEntries} />
-              </div>
-            </div>
-
-            {/* Bottom Section - Cards */}
-            <div className="space-y-6">
-              {/*gameState?.phase === 'programming' &&*/ currentPlayer && (
-                <>
-                  {/* Hand */}
-                  {gameState?.phase === 'programming' && (
-                    <div className="bg-gray-800 rounded-lg p-6">
-                      <Hand
-                        cards={currentPlayer.dealtCards || []}
-                        selectedCards={currentPlayer.selectedCards}
-                        onCardClick={handleCardClick}
-                        isSubmitted={isSubmitted}
-                      />
-                    </div>
-                  )}
-
-                  {/* Program Registers */}
-                  {(gameState?.phase === 'programming' || gameState?.phase === 'executing') && (
-                    <div className="bg-gray-800 rounded-lg p-6">
-                      <div className="flex items-center gap-4">
-                        <div className="flex-1">
-                          <ProgramRegisters
-                            selectedCards={currentPlayer.selectedCards}
-                            lockedRegisters={currentPlayer.lockedRegisters}
-                            onCardDrop={handleCardDrop}
-                            onCardRemove={handleCardRemove}
-                            isSubmitted={isSubmitted}
-                            currentRegister={gameState?.currentRegister}
-                            phase={gameState?.phase}
-                            boardPhase={boardPhase}
-                          />
-                        </div>
-
-                        {!isSubmitted && (
-                          <button
-                            onClick={handleSubmitCards}
-                            disabled={currentPlayer.selectedCards.filter(c => c !== null).length < 5}
-                            className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-8 py-3 rounded font-semibold"
-                          >
-                            Submit
-                          </button>
-                        )}
-                        {(/*gameState?.phase === 'programming' || isSubmitted ||*/ currentPlayer.selectedCards.filter(c => c !== null).length > 0) && (
-                          <button
-                            onClick={handleResetCards}
-                            className="bg-red-600 hover:bg-red-700 px-8 py-3 rounded font-semibold"
-                          >
-                            Reset
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                </>
-              )}
-
-              {isHost && gameState?.phase === 'waiting' && (
-                <div className="flex flex-col gap-4">
-                </div>
-              )}
             </div>
           </div>
         </div>

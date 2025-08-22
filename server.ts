@@ -207,6 +207,22 @@ app.prepare().then(() => {
             io.to(roomCode).emit('game-state', gameState);
         });
 
+        socket.on('register-update', (data) => {
+            const { roomCode, playerId, selectedCards } = data;
+            const gameState = games.get(roomCode);
+
+            if (!gameState || !gameState.players[playerId]) return;
+
+            // Update the player's selected cards
+            gameState.players[playerId].selectedCards = selectedCards;
+
+            // Broadcast to all OTHER players in the room
+            socket.to(roomCode).emit('register-update', {
+                playerId,
+                selectedCards
+            });
+        });
+
         socket.on('submit-cards', (data) => {
             const { roomCode, playerId, cards } = data;
             const gameState = games.get(roomCode);
