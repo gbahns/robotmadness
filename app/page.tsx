@@ -94,6 +94,28 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-8 bg-gradient-to-b from-gray-900 to-gray-800">
+      {/* Top Navigation */}
+      <nav className="absolute top-4 left-1/2 transform -translate-x-1/2 flex gap-4">
+        <Link 
+          href="/course-viewer" 
+          className="text-gray-300 hover:text-yellow-400 font-medium transition-colors"
+        >
+          Courses
+        </Link>
+        <Link 
+          href="/board-viewer" 
+          className="text-gray-300 hover:text-yellow-400 font-medium transition-colors"
+        >
+          Boards
+        </Link>
+        <Link 
+          href="/board-editor" 
+          className="text-gray-300 hover:text-yellow-400 font-medium transition-colors"
+        >
+          Board Editor
+        </Link>
+      </nav>
+
       {/* Player Name Display */}
       {playerName && (
         <div className="absolute top-4 right-4 bg-gray-800 px-4 py-2 rounded-lg flex items-center gap-3">
@@ -172,12 +194,6 @@ export default function Home() {
         >
           Create Game
         </button>
-        <Link href="/course-viewer" className="bg-gray-600 hover:bg-gray-700 px-8 py-4 rounded-lg font-semibold text-lg transition transform hover:scale-105">
-          View Courses
-        </Link>
-        <Link href="/board-viewer" className="bg-gray-600 hover:bg-gray-700 px-8 py-4 rounded-lg font-semibold text-lg transition transform hover:scale-105">
-          View Boards
-        </Link>
       </div>
 
       {(!playerName.trim() || isSettingName) && (
