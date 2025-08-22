@@ -15,6 +15,8 @@ import ProgrammingControls from '@/components/game/ProgrammingControls';
 import { getCourseById } from '@/lib/game/courses/courses';
 import RespawnDecisionPanel from '@/components/game/RespawnDecisionPanel';
 import PlayersList from '@/components/game/PlayersList';
+import GameHeader from '@/components/game/GameHeader';
+import { LoadingScreen, NameModal, ErrorScreen, GameOverModal } from '@/components/game/LoadingStates';
 import { useGameSocket } from '@/hooks/useGameSocket';
 import { useCardManagement } from '@/hooks/useCardManagement';
 
@@ -166,94 +168,37 @@ export default function GamePage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
-        <div className="text-2xl">Loading game...</div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   if (showNameModal) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
-        <div className="bg-gray-800 p-8 rounded-lg shadow-xl">
-          <h2 className="text-2xl font-bold mb-4">Join Game</h2>
-          <p className="text-gray-400 mb-4">Room Code: <span className="font-mono text-yellow-400">{roomCode}</span></p>
-          <input
-            type="text"
-            placeholder="Enter your name"
-            value={playerName}
-            onChange={(e) => setPlayerName(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleJoinGame()}
-            className="w-full p-2 mb-4 bg-gray-700 rounded text-white"
-            autoFocus
-          />
-          <button
-            onClick={handleJoinGame}
-            disabled={!playerName.trim()}
-            className="w-full bg-green-600 hover:bg-green-700 px-6 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Join Game
-          </button>
-        </div>
-      </div>
+      <NameModal
+        roomCode={roomCode}
+        playerName={playerName}
+        onNameChange={setPlayerName}
+        onJoinGame={handleJoinGame}
+      />
     );
   }
 
   if (error) {
-    return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl text-red-500 mb-4">Error</h2>
-          <p>{error}</p>
-          <a href="/" className="text-blue-400 hover:underline mt-4 inline-block">
-            Back to Home
-          </a>
-        </div>
-      </div>
-    );
+    return <ErrorScreen error={error} />;
   }
 
   return (
     <GameContent>
       <div className="min-h-screen bg-gray-900 text-white p-4 flex flex-col">
         {winner && (
-          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-            <div className="bg-gray-800 p-8 rounded-lg shadow-xl text-center">
-              <h2 className="text-4xl font-bold text-yellow-400 mb-4">Game Over!</h2>
-              <p className="text-2xl mb-6">Winner: <span className="font-bold text-white">{winner}</span></p>
-              <button
-                onClick={() => router.push('/')}
-                className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded text-lg font-semibold"
-              >
-                Back to Home
-              </button>
-            </div>
-          </div>
+          <GameOverModal
+            winner={winner}
+            onBackToHome={() => router.push('/')}
+          />
         )}
 
         <div className="container mx-auto max-w-7xl flex-1 flex flex-col">
-          {/* Header */}
-          <div className="flex justify-between items-center mb-8">
-            <div className="flex items-center gap-4">
-              <h1 className="text-3xl font-bold">RobotMadness</h1>
-              <a href="/" className="text-blue-400 hover:underline text-sm">
-                &larr; Back to Home
-              </a>
-            </div>
-            <div className="flex items-center gap-6">
-              <div className="text-right">
-                <p className="text-sm text-gray-400">Room Code</p>
-                <p className="text-2xl font-mono font-bold text-yellow-400">{roomCode}</p>
-              </div>
-              <button
-                onClick={handleLeaveGame}
-                className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-sm font-semibold"
-              >
-                Leave Game
-              </button>
-            </div>
-          </div>
+          {/* Game Header */}
+          <GameHeader roomCode={roomCode} onLeaveGame={handleLeaveGame} />
 
           {/* Game Area */}
           <div className="flex-1 flex flex-col gap-6">

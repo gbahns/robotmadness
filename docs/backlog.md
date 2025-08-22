@@ -1,4 +1,5 @@
 ## Backlog
+* registers keep executing after a player has won
 * when two robots reenter on the same archive marker, the second on picks an adjacent tile on which to reenter
 * refine the look of pits
 * somehow make checkpoints and possibly other board elements visible when a robot is sitting on them
