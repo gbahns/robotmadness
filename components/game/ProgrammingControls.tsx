@@ -3,7 +3,6 @@
 
 import React from 'react';
 import { GameState, Player } from '@/lib/game/types';
-import { socketClient } from '@/lib/socket';
 import PowerDownButton from './PowerDownButton';
 
 interface ProgrammingControlsProps {
@@ -40,8 +39,17 @@ export default function ProgrammingControls({
         <div className="bg-gray-800 rounded-lg p-6 space-y-4">
             <h2 className="text-xl font-bold text-white">Programming Phase</h2>
 
-
-
+            {/* Power Down Button - only show if not already powered down and has lives */}
+            {currentPlayer.powerState !== 'OFF' && currentPlayer.lives > 0 && (
+                <PowerDownButton
+                    roomCode={gameState.roomCode || ''}
+                    playerId={currentPlayer.id}
+                    powerState={currentPlayer.powerState}
+                    damage={currentPlayer.damage}
+                    isProgrammingPhase={gameState.phase === 'programming'}
+                    selectedCards={selectedCards}
+                />
+            )}
 
             {/* Power Down Status Message */}
             {currentPlayer.powerState === 'OFF' && (

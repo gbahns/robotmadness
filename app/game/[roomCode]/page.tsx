@@ -14,7 +14,9 @@ import GameControls from '@/components/game/GameControls';
 import ProgrammingControls from '@/components/game/ProgrammingControls';
 import { getCourseById } from '@/lib/game/courses/courses';
 import RespawnDecisionPanel from '@/components/game/RespawnDecisionPanel';
+import PlayersList from '@/components/game/PlayersList';
 import { useGameSocket } from '@/hooks/useGameSocket';
+import { useCardManagement } from '@/hooks/useCardManagement';
 
 export default function GamePage() {
   const params = useParams();
@@ -25,7 +27,6 @@ export default function GamePage() {
   const [error, setError] = useState('');
   const [playerName, setPlayerName] = useState('');
   const [showNameModal, setShowNameModal] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
   const [logEntries, setLogEntries] = useState<any[]>([]);
   const playerIdRef = useRef<string>('');
   const [executionMessage, setExecutionMessage] = useState<string>('');
@@ -55,7 +56,24 @@ export default function GamePage() {
     };
   }, []);
 
-  // Use the new socket hook
+  // Use the card management hook
+  const {
+    isSubmitted,
+    currentPlayer,
+    handleCardClick: cardClick,
+    handleCardDrop: cardDrop,
+    handleCardRemove: cardRemove,
+    handleSubmitCards,
+    handleResetCards: resetCards,
+    setIsSubmitted
+  } = useCardManagement({
+    gameState,
+    playerIdRef,
+    roomCode,
+    onLogEntry: (entry) => setLogEntries(prev => [...prev, entry])
+  });
+
+  // Use the socket hook
   const { connectToGame } = useGameSocket({
     roomCode,
     playerIdRef,
@@ -124,172 +142,27 @@ export default function GamePage() {
     //}
   };
 
-  const currentPlayer = gameState?.players[playerIdRef.current];
   const isHost = Object.keys(gameState?.players || {}).indexOf(playerIdRef.current) === 0;
 
-  // Card management functions
+  // Card management wrapper functions that update state
   const handleCardClick = (index: number) => {
-    if (isSubmitted || !currentPlayer) return;
-
-    // Find first empty register slot
-    const emptySlotIndex = currentPlayer.selectedCards.findIndex(card => card === null);
-    if (emptySlotIndex === -1) return; // All slots full
-
-    // Get the card
-    const card = currentPlayer.dealtCards[index];
-    if (!card) return;
-
-    // Place card in first empty slot
-    const newSelectedCards = [...currentPlayer.selectedCards];
-    newSelectedCards[emptySlotIndex] = card;
-
-    // Update game state
-    setGameState(prev => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        players: {
-          ...prev.players,
-          [playerIdRef.current]: {
-            ...prev.players[playerIdRef.current],
-            selectedCards: newSelectedCards,
-          },
-        },
-      };
-    });
+    const newState = cardClick(index);
+    if (newState) setGameState(newState);
   };
 
   const handleCardDrop = (card: ProgramCard, registerIndex: number) => {
-    if (!currentPlayer || isSubmitted) return;
-
-    // Check if this card is already in a register
-    const existingIndex = currentPlayer.selectedCards.findIndex(
-      c => c && c.id === card.id
-    );
-
-    const newSelectedCards = [...currentPlayer.selectedCards];
-
-    // If card exists in another slot, remove it first
-    if (existingIndex !== -1 && existingIndex !== registerIndex) {
-      newSelectedCards[existingIndex] = null;
-    }
-
-    // Place card in new slot
-    newSelectedCards[registerIndex] = card;
-
-    // Update game state
-    setGameState(prev => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        players: {
-          ...prev.players,
-          [playerIdRef.current]: {
-            ...prev.players[playerIdRef.current],
-            selectedCards: newSelectedCards,
-          },
-        },
-      };
-    });
+    const newState = cardDrop(card, registerIndex);
+    if (newState) setGameState(newState);
   };
 
   const handleCardRemove = (registerIndex: number) => {
-    if (!currentPlayer || isSubmitted) return;
-
-    const newSelectedCards = [...currentPlayer.selectedCards];
-    newSelectedCards[registerIndex] = null;
-
-    setGameState(prev => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        players: {
-          ...prev.players,
-          [playerIdRef.current]: {
-            ...prev.players[playerIdRef.current],
-            selectedCards: newSelectedCards,
-          },
-        },
-      };
-    });
-  };
-
-  const handleSubmitCards = () => {
-    if (!currentPlayer) return;
-
-    const filledSlots = currentPlayer.selectedCards.filter(c => c !== null).length;
-    if (filledSlots < 5) {
-      alert(`Please select all 5 cards! You have ${filledSlots}/5`);
-      return;
-    }
-
-    console.log('Submitting cards for player:', {
-      playerId: playerIdRef.current,
-      playerName: currentPlayer.name,
-      cards: currentPlayer.selectedCards
-    });
-
-    socketClient.emit('submit-cards', {
-      roomCode,
-      playerId: playerIdRef.current,
-      cards: currentPlayer.selectedCards,
-    });
-
-    // Add to log
-    setLogEntries(prev => [...prev, {
-      id: Date.now(),
-      message: `You submitted your program`,
-      type: 'info',
-      timestamp: new Date()
-    }]);
-
-    setIsSubmitted(true);
+    const newState = cardRemove(registerIndex);
+    if (newState) setGameState(newState);
   };
 
   const handleResetCards = () => {
-    if (!currentPlayer) return;
-
-    // Reset local state immediately
-    const newSelectedCards = [...currentPlayer.selectedCards];
-    const lockedCount = currentPlayer.lockedRegisters;
-
-    // Only clear non-locked registers
-    for (let i = 0; i < 5 - lockedCount; i++) {
-      newSelectedCards[i] = null;
-    }
-
-    // Update local game state
-    setGameState(prev => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        players: {
-          ...prev.players,
-          [playerIdRef.current]: {
-            ...prev.players[playerIdRef.current],
-            selectedCards: newSelectedCards,
-            submitted: false,
-          },
-        },
-      };
-    });
-
-    // Emit reset event to server
-    socketClient.emit('reset-cards', {
-      roomCode,
-      playerId: playerIdRef.current,
-    });
-
-    // Update submitted state
-    setIsSubmitted(false);
-
-    // Add to log
-    setLogEntries(prev => [...prev, {
-      id: Date.now(),
-      message: `You reset your program`,
-      type: 'info',
-      timestamp: new Date()
-    }]);
+    const newState = resetCards();
+    if (newState) setGameState(newState);
   };
 
   if (loading) {
@@ -401,57 +274,16 @@ export default function GamePage() {
 
               {/* Right side - Players and Controls stacked */}
               <div className="w-80 space-y-6">
-                {/* Players */}
-                <div>
-                  <h2 className="text-xl font-semibold mb-3">
-                    Players ({Object.keys(gameState?.players || {}).length}/8)
-                    {gameState?.phase === 'programming' && (
-                      <span className="text-sm font-normal text-gray-400 ml-2">
-                        {isSubmitted ? '- Waiting for others...' : ''}
-                      </span>
-                    )}
-                  </h2>
-                  <div className="space-y-1">
-                    {gameState && Object.values(gameState.players).map((player, index) => (
-                      <div
-                        key={`${player.id}-info`}
-                        className={`flex items-center justify-between py-1 px-2 rounded ${player.id === playerIdRef.current ? 'bg-gray-700' : ''
-                          } ${player.isDisconnected ? 'opacity-50' : ''}`}
-                      >
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <div className={`w-6 h-6 rounded-full bg-${['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan'][index % 8]
-                            }-500 flex items-center justify-center text-xs font-bold flex-shrink-0`}>
-                            {index + 1}
-                          </div>
-                          <span className={`truncate ${player.isDisconnected ? 'line-through' : ''} ${player.lives <= 0 ? 'text-red-500 line-through' : ''}`}>
-                            {player.name}
-                          </span>
-                          {index === 0 && (
-                            <span className="text-xs text-yellow-400 flex-shrink-0">(Host)</span>
-                          )}
-                          {player.isDisconnected && (
-                            <span className="text-xs text-red-400 flex-shrink-0">(Disconnected)</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1 text-sm flex-shrink-0">
-                          <span className="whitespace-nowrap">❤️{player.lives}</span>
-                          <span className="whitespace-nowrap">⚡{player.damage}</span>
-                          {player.checkpointsVisited >= 0 && (
-                            <span className="whitespace-nowrap">🚩{player.checkpointsVisited}</span>
-                          )}
-                          {player.powerState === 'ANNOUNCING' && gameState?.phase === 'executing' ? (
-                            <span className="text-red-400 animate-pulse flex-shrink-0" title="Announced power down for next turn">🛑</span>
-                          ) : player.powerState === 'OFF' ? (
-                            <span className="text-red-500 flex-shrink-0" title="Powered down">🛑</span>
-                          ) : (
-                            <span className="text-green-500 flex-shrink-0" title="Powered on">🟢</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                    {!gameState && <p className="text-gray-400">Connecting...</p>}
-                  </div>
-                </div>
+                {/* Players List Component */}
+                {gameState && (
+                  <PlayersList
+                    players={gameState.players}
+                    currentPlayerId={playerIdRef.current}
+                    isSubmitted={isSubmitted}
+                    isProgrammingPhase={gameState.phase === 'programming'}
+                    isExecutingPhase={gameState.phase === 'executing'}
+                  />
+                )}
 
                 {(gameState?.phase === 'waiting' || (showPowerDownPrompt && currentPlayer?.lives || 0 > 0)) && (
                   <GameControls
