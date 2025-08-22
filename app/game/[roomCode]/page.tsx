@@ -13,6 +13,7 @@ import { RobotLaserShot } from '@/components/game/RobotLaserAnimation';
 import GameControls from '@/components/game/GameControls';
 import ProgrammingControls from '@/components/game/ProgrammingControls';
 import { getCourseById } from '@/lib/game/courses/courses';
+import RespawnDecisionPanel from '@/components/game/RespawnDecisionPanel';
 
 export default function GamePage() {
   const params = useParams();
@@ -35,6 +36,8 @@ export default function GamePage() {
   const [previewBoard, setPreviewBoard] = useState<any>(null);
   //const [showPowerDownModal, setShowPowerDownModal] = useState(false);
   const [showPowerDownPrompt, setShowPowerDownPrompt] = useState(false);
+  const [showRespawnModal, setShowRespawnModal] = useState(false);
+  const [isRespawnDecision, setIsRespawnDecision] = useState(false);
 
   useEffect(() => {
     // Build preview board when course is selected
@@ -393,6 +396,14 @@ export default function GamePage() {
     socketClient.on('power-down-option', (data: { message: string; }) => {
       console.log('Power down option:', data.message);
       setShowPowerDownPrompt(true);
+      setIsRespawnDecision(false);
+    });
+
+    // ask respawning player for direction and power down choice
+    socketClient.on('respawn-power-down-option', (data: { message: string; isRespawn?: boolean }) => {
+      console.log('Respawn power down option:', data.message);
+      setShowRespawnModal(true);
+      setIsRespawnDecision(true);
     });
 
 
@@ -804,7 +815,22 @@ export default function GamePage() {
                   />
                 )}
 
-                {gameState?.phase === 'programming' && (
+                {/* Show respawn decision panel when needed */}
+                {showRespawnModal && currentPlayer && (
+                  <RespawnDecisionPanel
+                    roomCode={roomCode}
+                    playerId={currentPlayer.id}
+                    playerName={currentPlayer.name}
+                    isRespawn={isRespawnDecision}
+                    onComplete={() => {
+                      setShowRespawnModal(false);
+                      setShowPowerDownPrompt(false);
+                    }}
+                  />
+                )}
+
+                {/* Show programming controls when not making respawn decision */}
+                {gameState?.phase === 'programming' && !showRespawnModal && (
                   <ProgrammingControls
                     gameState={gameState}
                     currentPlayer={currentPlayer || {} as Player}
@@ -871,16 +897,6 @@ export default function GamePage() {
                     </div>
                   )}
 
-                  {/* Power Down Modal */}
-                  {/* {currentPlayer && (
-                    <PowerDownModal
-                      isOpen={showPowerDownModal}
-                      roomCode={roomCode}
-                      playerId={currentPlayer.id}
-                      playerName={currentPlayer.name}
-                      onClose={() => setShowPowerDownModal(false)}
-                    />
-                  )} */}
                 </>
               )}
 

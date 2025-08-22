@@ -2,7 +2,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import next from 'next';
-import { GameState, ProgramCard, GamePhase, Course, Player, PowerState } from './lib/game/types';
+import { GameState, ProgramCard, GamePhase, Course, Player, PowerState, Direction } from './lib/game/types';
 import { GameEngine, ServerGameState } from './lib/game/gameEngine';
 
 const dev = process.env.NODE_ENV !== 'production';
@@ -32,7 +32,7 @@ interface ServerToClientEvents {
     'player-powered-down': (data: { playerId: string, playerName: string }) => void;
     'power-down-option': (data: { message: string }) => void;
     'player-power-state-changed': (data: { playerId: string, playerName: string, powerState: PowerState, announcedPowerDown?: boolean }) => void;
-    'respawn-power-down-option': (data: { message: string }) => void;
+    'respawn-power-down-option': (data: { message: string; isRespawn?: boolean }) => void;
 }
 
 interface ClientToServerEvents {
@@ -46,6 +46,7 @@ interface ClientToServerEvents {
     'request-game-state': (roomCode: string) => void;
     'toggle-power-down': (data: { roomCode: string; playerId: string; selectedCards: (ProgramCard | null)[] }) => void;
     'continue-power-down': (data: { roomCode: string; playerId: string; continueDown: boolean }) => void;
+    'respawn-decision': (data: { roomCode: string; playerId: string; powerDown: boolean; direction: Direction }) => void;
 }
 
 interface InterServerEvents { }
@@ -350,6 +351,48 @@ app.prepare().then(() => {
                 if (gameState.waitingForPowerDownDecisions.length === 0) {
                     console.log('All power down decisions received, dealing cards...');
                     gameEngine.proceedWithDealingCards(gameState);
+                    io.to(roomCode).emit('game-state', gameState);
+                }
+            }
+        });
+
+        // Handle respawn decision with direction choice
+        socket.on('respawn-decision', ({ roomCode, playerId, powerDown, direction }) => {
+            const gameState = games.get(roomCode);
+            if (!gameState) return;
+
+            const player = gameState.players[playerId];
+            if (!player) return;
+
+            // Perform the actual respawn with the chosen direction
+            gameEngine.performRespawn(gameState, playerId, direction);
+
+            if (powerDown) {
+                // Enter powered down mode
+                player.powerState = PowerState.OFF;
+                console.log(`${player.name} respawns facing ${Direction[direction]} and enters powered down mode`);
+            } else {
+                // Stay powered on
+                player.powerState = PowerState.ON;
+                console.log(`${player.name} respawns facing ${Direction[direction]} and stays powered on`);
+            }
+
+            // Remove this player from waiting list
+            if (gameState.waitingForRespawnDecisions) {
+                gameState.waitingForRespawnDecisions = gameState.waitingForRespawnDecisions.filter(
+                    id => id !== playerId
+                );
+
+                // Track that this player made a respawn decision
+                if (!gameState.playersWhoMadeRespawnDecisions) {
+                    gameState.playersWhoMadeRespawnDecisions = [];
+                }
+                gameState.playersWhoMadeRespawnDecisions.push(playerId);
+
+                // If all respawning players have decided, proceed with dealing cards
+                if (gameState.waitingForRespawnDecisions.length === 0) {
+                    console.log('All respawn decisions received, ending turn...');
+                    gameEngine.endTurn(gameState);
                     io.to(roomCode).emit('game-state', gameState);
                 }
             }

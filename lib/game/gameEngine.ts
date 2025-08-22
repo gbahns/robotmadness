@@ -625,25 +625,40 @@ export class GameEngine {
         }
     }
 
+    performRespawn(gameState: ServerGameState, playerId: string, direction: Direction) {
+        const player = gameState.players[playerId];
+        if (!player || !(player as any).awaitingRespawn) return;
+
+        console.log(`Performing respawn for ${player.name} at archive position facing ${Direction[direction]}`);
+
+        // Respawn at archive position with chosen direction
+        player.position = { ...player.archiveMarker };
+        player.direction = direction;
+
+        // Robot is no longer dead or awaiting respawn
+        (player as any).isDead = false;
+        (player as any).awaitingRespawn = false;
+
+        // Robots reenter with 2 damage tokens (per rules)
+        player.damage = 2;
+
+        console.log(`${player.name} respawned at (${player.archiveMarker.x}, ${player.archiveMarker.y}) facing ${Direction[direction]}`);
+
+        this.io.to(gameState.roomCode).emit('robot-respawned', {
+            playerName: player.name,
+            position: player.position,
+            direction: player.direction,
+            damage: player.damage
+        });
+    }
+
     respawnDeadRobots(gameState: ServerGameState): boolean {
         const respawningPlayers: string[] = [];
         Object.values(gameState.players).forEach(player => {
             if ((player as any).isDead) {
                 console.log(`Checking respawn for ${player.name}: lives=${player.lives}, isDead=${(player as any).isDead}`);
                 if (player.lives > 0) {
-                    console.log(`${player.name} is respawning at their archive marker.`);
-
-                    // Respawn at archive position
-                    player.position = { ...player.archiveMarker };
-                    player.direction = Direction.UP; // Reset direction to default
-
-                    console.log(`${player.name} respawned at archive position (${player.archiveMarker.x}, ${player.archiveMarker.y})`);
-
-                    // Robot is no longer dead
-                    (player as any).isDead = false;
-
-                    // Robots reenter with 2 damage tokens (per rules)
-                    player.damage = 2;
+                    console.log(`${player.name} will respawn at their archive marker.`);
 
                     // Clear previous turn's registers BEFORE showing respawn decision (cosmetic fix)
                     player.selectedCards = [null, null, null, null, null];
@@ -651,17 +666,14 @@ export class GameEngine {
                     player.submitted = false;
                     player.dealtCards = [];
 
-                    this.io.to(gameState.roomCode).emit('robot-respawned', {
-                        playerName: player.name,
-                        position: player.position,
-                        direction: player.direction,
-                        damage: player.damage
-                    });
+                    // Mark that this player is awaiting respawn (but don't respawn yet!)
+                    (player as any).awaitingRespawn = true;
 
-                    // Ask the player if they want to enter powered down mode upon respawn
-                    console.log(`Emitting respawn power-down-option ONLY to player ${player.id} (${player.name})`);
-                    this.io.to(player.id).emit('power-down-option', {
-                        message: `You have respawned with 2 damage. Choose whether to enter powered down mode for safety.`
+                    // Ask the player to choose direction and power down mode
+                    console.log(`Emitting respawn-power-down-option ONLY to player ${player.id} (${player.name})`);
+                    this.io.to(player.id).emit('respawn-power-down-option', {
+                        message: `You will respawn with 2 damage. Choose your facing direction and whether to enter powered down mode for safety.`,
+                        isRespawn: true
                     });
 
                     // Track that this player needs to make a respawn decision

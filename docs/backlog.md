@@ -1,5 +1,4 @@
 ## Backlog
-* allow players to choose which direction they're facing when reentering
 * when two robots reenter on the same archive marker, the second on picks an adjacent tile on which to reenter
 * refine the look of pits
 * somehow make checkpoints and possibly other board elements visible when a robot is sitting on them
@@ -85,6 +84,7 @@
 * pushers
 * player wins the game if all other robots are dead
 * reentering players need to make their power down decision before cards are dealt
+* allow players to choose which direction they're facing when reentering
 
 
 ## Defect Fix History
