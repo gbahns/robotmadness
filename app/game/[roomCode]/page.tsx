@@ -14,6 +14,7 @@ import GameControls from '@/components/game/GameControls';
 import ProgrammingControls from '@/components/game/ProgrammingControls';
 import { getCourseById } from '@/lib/game/courses/courses';
 import RespawnDecisionPanel from '@/components/game/RespawnDecisionPanel';
+import { useGameSocket } from '@/hooks/useGameSocket';
 
 export default function GamePage() {
   const params = useParams();
@@ -27,7 +28,6 @@ export default function GamePage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [logEntries, setLogEntries] = useState<any[]>([]);
   const playerIdRef = useRef<string>('');
-  const logIdCounter = useRef(0); // New ref for unique log entry IDs
   const [executionMessage, setExecutionMessage] = useState<string>('');
   const [winner, setWinner] = useState<string | null>(null);
   const [boardPhase, setBoardPhase] = useState<string | null>(null);
@@ -55,12 +55,40 @@ export default function GamePage() {
     };
   }, []);
 
+  // Use the new socket hook
+  const { connectToGame } = useGameSocket({
+    roomCode,
+    playerIdRef,
+    gameState,
+    isSubmitted,
+    onGameStateUpdate: setGameState,
+    onLogEntry: (entry) => setLogEntries(prev => [...prev, entry]),
+    onExecutionMessage: setExecutionMessage,
+    onWinner: setWinner,
+    onBoardPhase: setBoardPhase,
+    onActiveLasers: setActiveLasers,
+    onSelectedCourse: setSelectedCourse,
+    onPreviewBoard: setPreviewBoard,
+    onShowPowerDownPrompt: setShowPowerDownPrompt,
+    onShowRespawnModal: setShowRespawnModal,
+    onIsRespawnDecision: setIsRespawnDecision,
+    onIsSubmitted: setIsSubmitted,
+    onError: setError,
+    onLoading: setLoading
+  });
+
+  const hasConnectedRef = useRef(false);
+  
   useEffect(() => {
+    // Prevent multiple connections
+    if (hasConnectedRef.current) return;
+    
     // Check if we have a player name in localStorage
     const storedName = localStorage.getItem('playerName');
     const storedPlayerId = localStorage.getItem('playerId');
 
     if (storedName) {
+      hasConnectedRef.current = true;
       setPlayerName(storedName);
       playerIdRef.current = storedPlayerId || '';
       connectToGame(storedName, storedPlayerId);
@@ -69,369 +97,22 @@ export default function GamePage() {
       setLoading(false);
     }
 
-    const handleGameOver = (data: { winner: string }) => {
-      setWinner(data.winner);
-    };
-
-    const handleRegisterStarted = (data: any) => {
-      const message = `=== Register ${data.registerNumber} ===`;
-      setExecutionMessage(message);
-
-      // Add to log
-      setLogEntries(prev => [...prev, {
-        id: logIdCounter.current++, // Use incrementing counter for ID
-        message,
-        type: 'info',
-        timestamp: new Date()
-      }]);
-    };
-
-    const handleRobotDamaged = (data: any) => {
-      const { playerName, damage, reason } = data;
-      setLogEntries(prev => [...prev, {
-        id: logIdCounter.current++, // Use incrementing counter for ID
-        message: `${playerName} takes ${damage} damage from ${reason}`,
-        type: 'damage',
-        timestamp: new Date()
-      }]);
-    };
-
-    const handleRobotFellOffBoard = (data: any) => {
-      const { playerName } = data;
-      setLogEntries(prev => [...prev, {
-        id: logIdCounter.current++, // Use incrementing counter for ID
-        message: `${playerName} fell off the board!`,
-        type: 'damage',
-        timestamp: new Date()
-      }]);
-    };
-
-    const handleRobotDestroyed = (data: any) => {
-      const { playerName, reason } = data;
-      setLogEntries(prev => [...prev, {
-        id: logIdCounter.current++, // Use incrementing counter for ID
-        message: `${playerName} was destroyed (${reason})!`,
-        type: 'damage',
-        timestamp: new Date()
-      }]);
-    };
-
-    const handleCheckpointReached = (data: any) => {
-      const { playerName, checkpointNumber } = data;
-      setLogEntries(prev => [...prev, {
-        id: logIdCounter.current++, // Use incrementing counter for ID
-        message: `${playerName} reached checkpoint ${checkpointNumber}!`,
-        type: 'checkpoint',
-        timestamp: new Date()
-      }]);
-    };
-
-    socketClient.on('game-over', handleGameOver);
-    socketClient.on('robot-damaged', handleRobotDamaged);
-    socketClient.on('robot-fell-off-board', handleRobotFellOffBoard);
-    socketClient.on('robot-destroyed', handleRobotDestroyed);
-    socketClient.on('checkpoint-reached', handleCheckpointReached);
-    socketClient.on('robot-lasers-fired', (laserShots: RobotLaserShot[]) => {
-      console.log('Received robot-lasers-fired:', laserShots);
-      setActiveLasers(laserShots);
-    });
-
+    // Cleanup on unmount
     return () => {
+      hasConnectedRef.current = false;
       socketClient.leaveGame();
       socketClient.disconnect();
-      socketClient.off('game-over', handleGameOver);
-      socketClient.off('robot-damaged', handleRobotDamaged);
-      socketClient.off('robot-fell-off-board', handleRobotFellOffBoard);
-      socketClient.off('robot-destroyed', handleRobotDestroyed);
-      socketClient.off('checkpoint-reached', handleCheckpointReached);
-      socketClient.off('player-submitted', () => { });
-      socketClient.off('robot-lasers-fired', () => { });
-      socketClient.off('course-selected', () => { });
     };
-  }, [roomCode]);
+    // Remove connectToGame from dependencies - it's stable within the hook
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const connectToGame = (name: string, playerId?: string | null) => {
-    // Connect to socket server
-    socketClient.connect();
-
-    socketClient.on('board-phase', (data: { phase: string | null }) => {
-      setBoardPhase(data.phase);
-    });
-
-    socketClient.on('course-selected', (data: { courseId: string; previewBoard: any }) => {
-      console.log('Course selected by host:', data.courseId);
-      setSelectedCourse(data.courseId);
-      if (data.previewBoard) {
-        setPreviewBoard(data.previewBoard);
-      }
-    });
-
-    // Set up event listeners
-    socketClient.onGameState((state: GameState) => {
-      console.log('Received game state:', state);
-      console.log('Current player:', state.players[playerIdRef.current]);
-
-      // add a separator to the execution log when starting a new round
-      if (gameState && state.roundNumber > gameState.roundNumber) {
-        setLogEntries(prev => [...prev, {
-          id: logIdCounter.current++, // Use incrementing counter for ID
-          message: `━━━━━ Round ${state.roundNumber} ━━━━━`,
-          type: 'info',
-          timestamp: new Date()
-        }]);
-      }
-
-      // Preserve current player's local programming during programming phase
-      // but only if we're staying in the same phase and round
-      setGameState(prevState => {
-        if (prevState &&
-          state.phase === 'programming' &&
-          prevState.phase === 'programming' &&
-          state.roundNumber === prevState.roundNumber &&
-          !isSubmitted &&
-          playerIdRef.current &&
-          state.players[playerIdRef.current] &&
-          prevState.players[playerIdRef.current]) {
-
-          // Preserve local selected cards and submitted state for current player
-          const preservedCurrentPlayer = {
-            ...state.players[playerIdRef.current],
-            selectedCards: prevState.players[playerIdRef.current].selectedCards,
-            submitted: prevState.players[playerIdRef.current].submitted
-          };
-
-          return {
-            ...state,
-            players: {
-              ...state.players,
-              [playerIdRef.current]: preservedCurrentPlayer
-            }
-          };
-        }
-
-        // Normal game state update (including round transitions and phase changes)
-        return state;
-      });
-
-      setSelectedCourse(state.course.definition.id);
-      setLoading(false);
-
-      if (state.phase === 'programming' && state.players[playerIdRef.current]?.dealtCards?.length > 0) {
-        // Sync submitted state with server state
-        const currentPlayerState = state.players[playerIdRef.current];
-        setIsSubmitted(currentPlayerState?.submitted || false);
-
-        if (state.roundNumber > (gameState?.roundNumber || 0)) {
-        }
-      }
-    });
-
-    socketClient.onPlayerJoined((data) => {
-      console.log('Player joined:', data.player.name);
-      // Update the game state with the new player
-      setGameState(prev => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          players: {
-            ...prev.players,
-            [data.player.id]: data.player
-          }
-        };
-      });
-    });
-
-    socketClient.onPlayerLeft((data) => {
-      console.log('Player left:', data.playerId);
-      // Remove the player from game state
-      setGameState(prev => {
-        if (!prev) return prev;
-        const newPlayers = { ...prev.players };
-        delete newPlayers[data.playerId];
-        return {
-          ...prev,
-          players: newPlayers
-        };
-      });
-    });
-
-    socketClient.onGameError((data) => {
-      setError(data.message);
-    });
-
-    // Handle player disconnection (different from leaving)
-    socketClient.on('player-disconnected', (data: { playerId: string }) => {
-      console.log('Player disconnected:', data.playerId);
-      // Mark player as disconnected but don't remove them
-      setGameState(prev => {
-        if (!prev || !prev.players[data.playerId]) return prev;
-        return {
-          ...prev,
-          players: {
-            ...prev.players,
-            [data.playerId]: {
-              ...prev.players[playerIdRef.current],
-              isDisconnected: true
-            }
-          }
-        };
-      });
-    });
-
-    // Handle player reconnection
-    socketClient.on('player-reconnected', (data: { playerId: string }) => {
-      console.log('Player reconnected:', data.playerId);
-      setGameState(prev => {
-        if (!prev || !prev.players[data.playerId]) return prev;
-        return {
-          ...prev,
-          players: {
-            ...prev.players,
-            [data.playerId]: {
-              ...prev.players[playerIdRef.current],
-              isDisconnected: false
-            }
-          }
-        };
-      });
-    });
-
-    // Handle player submitted
-    socketClient.on('player-submitted', (data: { playerId: string, playerName: string }) => {
-      console.log('Player submitted:', data.playerId);
-      if (data.playerId != playerIdRef.current) {
-        setLogEntries(prev => [...prev, {
-          id: logIdCounter.current++, // Use incrementing counter for ID
-          message: `${data.playerName} submitted their program`,
-          type: 'info',
-          timestamp: new Date()
-        }]);
-      }
-    });
-
-    socketClient.on('execution-log', (data: { message: string, type: string }) => {
-      console.log('Execution log:', data.message, data.type);
-      setLogEntries(prev => [...prev, {
-        id: logIdCounter.current++, // Use incrementing counter for ID
-        message: `${data.message}`,
-        type: data.type,
-        timestamp: new Date()
-      }]);
-    });
-
-    // Handle card execution animations
-    socketClient.on('card-executed', (data: {
-      playerId: string;
-      playerName: string;
-      card: ProgramCard;
-      register: number;
-    }) => {
-      console.log('Card executed:', data);
-      const message = `${data.playerName} ${data.card.type.replace(/_/g, ' ')} (Priority: ${data.card.priority})`;
-
-      setLogEntries(prev => [...prev, {
-        id: logIdCounter.current++, // Use incrementing counter for ID
-        message,
-        type: 'action',
-        timestamp: new Date()
-      }]);
-
-      //setExecutionMessage(message);
-    });
-
-
-    // Handle register start
-    socketClient.on('register-start', (data: { register: number }) => {
-      console.log('Executing register:', data.register);
-    });
-
-    // Power state change handler
-    socketClient.on('player-power-state-changed', (data: {
-      playerId: string;
-      playerName: string;
-      powerState: PowerState;
-      announcedPowerDown: boolean;
-    }) => {
-      console.log(`${data.playerName} power state changed to ${data.powerState}`);
-
-      setGameState(prev => {
-        if (!prev) return prev;
-
-        const updatedPlayers = { ...prev.players };
-        if (updatedPlayers[data.playerId]) {
-          updatedPlayers[data.playerId] = {
-            ...updatedPlayers[data.playerId],
-            powerState: data.powerState,
-            announcedPowerDown: data.announcedPowerDown
-          };
-        }
-
-        return {
-          ...prev,
-          players: updatedPlayers
-        };
-      });
-
-      // Power down toggles are now hidden during programming phase
-      // They will be announced when execution starts
-    });
-
-    // Player powered down notification
-    socketClient.on('player-powered-down', (data: {
-      playerId: string;
-      playerName: string;
-    }) => {
-      console.log(`${data.playerName} is now powered down`);
-
-      setExecutionMessage(`${data.playerName} is powered down - all damage repaired!`);
-
-      setLogEntries(prev => [...prev, {
-        type: 'power-down-active',
-        message: `${data.playerName} powered down and repaired all damage`,
-        timestamp: Date.now()
-      }]);
-    });
-
-    // ask powered-down player whether they want to continue to be powered down or not
-    socketClient.on('power-down-option', (data: { message: string; }) => {
-      console.log('Power down option:', data.message);
-      setShowPowerDownPrompt(true);
-      setIsRespawnDecision(false);
-    });
-
-    // ask respawning player for direction and power down choice
-    socketClient.on('respawn-power-down-option', (data: { message: string; isRespawn?: boolean }) => {
-      console.log('Respawn power down option:', data.message);
-      setShowRespawnModal(true);
-      setIsRespawnDecision(true);
-    });
-
-
-    // Register execution with powered down indicator
-    socketClient.on('register-executed', (data: any) => {
-      if (data.isPoweredDown) {
-        setExecutionMessage(`${data.playerName} is powered down - skipping turn`);
-
-        setLogEntries(prev => [...prev, {
-          type: 'execution',
-          message: `${data.playerName} is powered down`,
-          timestamp: Date.now()
-        }]);
-      }
-      // ... handle normal register execution
-    });
-
-    // Join the game
-    const id = playerId || `player-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    playerIdRef.current = id;
-    localStorage.setItem('playerId', id);
-    socketClient.joinGame(roomCode, name, id);
-  };
 
   const handleJoinGame = () => {
     if (playerName.trim()) {
       localStorage.setItem('playerName', playerName);
       setShowNameModal(false);
+      hasConnectedRef.current = true;
       connectToGame(playerName);
     }
   };
@@ -556,7 +237,7 @@ export default function GamePage() {
 
     // Add to log
     setLogEntries(prev => [...prev, {
-      id: logIdCounter.current++, // Use incrementing counter for ID
+      id: Date.now(),
       message: `You submitted your program`,
       type: 'info',
       timestamp: new Date()
@@ -604,7 +285,7 @@ export default function GamePage() {
 
     // Add to log
     setLogEntries(prev => [...prev, {
-      id: logIdCounter.current++, // Use incrementing counter for ID
+      id: Date.now(),
       message: `You reset your program`,
       type: 'info',
       timestamp: new Date()
