@@ -1,4 +1,13 @@
-import { Board, BoardDefinition, Tile, TileType, Direction, Laser } from '../types';
+import { Board, BoardDefinition, Tile, TileType, Direction, Laser } from './types';
+import { EXCHANGE_FACTORY_FLOOR } from './boards/exchange';
+import { EXCHANGE_FACTORY_FLOOR_TEST } from './boards/exchange-test';
+import { CROSS_BOARD } from './boards/cross';
+import { CHESS_BOARD } from './boards/chess';
+import { TEST_BOARD } from './boards/test';
+import { DIZZY_DASH_BOARD } from './boards/dizzy-dash';
+import { ISLAND_HOP_BOARD } from './boards/island-hop';
+import { DOCKING_BAY_1 } from './boards/docking-bay/docking-bay-1';
+import { DOCKING_BAY_2 } from './boards/docking-bay/docking-bay-2';
 
 /**
  * Builds a Board object from a BoardDefinition
@@ -66,65 +75,6 @@ export function buildBoard(boardDef: BoardDefinition): Board {
     return board;
 }
 
-
-/**
- * Validates that starting positions don't overlap with pits or other hazards
- */
-// export function validateBoardConfiguration(board: Course): { valid: boolean; errors: string[] } {
-//     const errors: string[] = [];
-
-//     // Check starting positions
-//     for (const startPos of board.startingPositions) {
-//         const { x, y } = startPos.position;
-
-//         if (x < 0 || x >= board.width || y < 0 || y >= board.height) {
-//             errors.push(`Starting position (${x}, ${y}) is outside board boundaries`);
-//             continue;
-//         }
-
-//         const tile = board.tiles[y][x];
-//         if (tile.type === TileType.PIT) {
-//             errors.push(`Starting position (${x}, ${y}) is on a pit`);
-//         }
-//     }
-
-//     // Check checkpoints
-//     for (const checkpoint of board.checkpoints) {
-//         const { x, y } = checkpoint.position;
-
-//         if (x < 0 || x >= board.width || y < 0 || y >= board.height) {
-//             errors.push(`Checkpoint ${checkpoint.number} at (${x}, ${y}) is outside board boundaries`);
-//             continue;
-//         }
-
-//         const tile = board.tiles[y][x];
-//         if (tile.type === TileType.PIT) {
-//             errors.push(`Checkpoint ${checkpoint.number} at (${x}, ${y}) is on a pit`);
-//         }
-//     }
-
-//     // Check for duplicate checkpoint numbers
-//     const checkpointNumbers = board.checkpoints.map(cp => cp.number);
-//     const uniqueNumbers = new Set(checkpointNumbers);
-//     if (checkpointNumbers.length !== uniqueNumbers.size) {
-//         errors.push('Duplicate checkpoint numbers found');
-//     }
-
-//     // Check for sequential checkpoint numbers
-//     const sortedNumbers = [...uniqueNumbers].sort((a, b) => a - b);
-//     for (let i = 0; i < sortedNumbers.length; i++) {
-//         if (sortedNumbers[i] !== i + 1) {
-//             errors.push(`Checkpoint numbers are not sequential (missing checkpoint ${i + 1})`);
-//             break;
-//         }
-//     }
-
-//     return {
-//         valid: errors.length === 0,
-//         errors
-//     };
-// }
-
 /**
  * Helper function to rotate a direction
  */
@@ -154,4 +104,37 @@ export function applyDirection(position: { x: number; y: number }, direction: Di
         x: position.x + dx[direction],
         y: position.y + dy[direction]
     };
+}
+
+// Docking bay boards
+export const DOCKING_BAY_BOARDS: BoardDefinition[] = [
+    DOCKING_BAY_1,
+    DOCKING_BAY_2,
+];
+
+// Official boards from exchange files
+const OFFICIAL_BOARD_DEFINITIONS: BoardDefinition[] = [
+    EXCHANGE_FACTORY_FLOOR,
+    EXCHANGE_FACTORY_FLOOR_TEST
+];
+
+// All board definitions from different sources
+const SINGLE_BOARD_DEFINITIONS: BoardDefinition[] = [
+    TEST_BOARD,
+    DIZZY_DASH_BOARD,
+    ISLAND_HOP_BOARD,
+    CROSS_BOARD,
+    CHESS_BOARD
+];
+
+// All board definitions combined
+export const ALL_BOARD_DEFINITIONS: BoardDefinition[] = [
+    ...SINGLE_BOARD_DEFINITIONS,
+    ...OFFICIAL_BOARD_DEFINITIONS,
+    ...DOCKING_BAY_BOARDS,
+];
+
+// Get board definition by ID
+export function getBoardDefinitionById(boardId: string): BoardDefinition | undefined {
+    return ALL_BOARD_DEFINITIONS.find(board => board.id === boardId);
 }

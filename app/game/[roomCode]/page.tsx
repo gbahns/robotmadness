@@ -12,9 +12,7 @@ import ExecutionLog from '@/components/game/ExecutionLog';
 import { RobotLaserShot } from '@/components/game/RobotLaserAnimation';
 import GameControls from '@/components/game/GameControls';
 import ProgrammingControls from '@/components/game/ProgrammingControls';
-import { TEST_BOARD } from '@/lib/game/boards/factoryFloorBoards';
-import PowerDownModal from '@/components/game/PowerDownModal';
-import { getCourseById } from '@/lib/game/boards/courses';
+import { getCourseById } from '@/lib/game/courses/courses';
 
 export default function GamePage() {
   const params = useParams();

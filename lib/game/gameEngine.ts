@@ -1,7 +1,7 @@
 import { GameState, Player, ProgramCard, Tile, Direction, CardType, GamePhase, Course, PowerState } from './types';
 import { TileType } from './types/enums';
 import { GAME_CONFIG } from './constants';
-import { buildCourse, getCourseById, OFFICIAL_RISKY_EXCHANGE } from './boards/courses';
+import { buildCourse, getCourseById, RISKY_EXCHANGE } from './courses/courses';
 import { hasWallBetween } from './wall-utils';
 import { getTileAt as getCanonicalTileAt } from './tile-utils';
 
@@ -63,7 +63,7 @@ export class GameEngine {
     createGame(roomCode: string, name: string): ServerGameState {
         console.log(`Creating game with room code: ${roomCode}, name: ${name}`);
 
-        const courseDefinition = getCourseById(OFFICIAL_RISKY_EXCHANGE.id);
+        const courseDefinition = getCourseById(RISKY_EXCHANGE.id);
         const course: Course = buildCourse(courseDefinition);
         //this.selectCourse(gameState, courseId);
 
@@ -188,7 +188,7 @@ export class GameEngine {
                     console.log(`Skipping regular power-down prompt for ${player.name} - they just made a respawn decision`);
                     continue;
                 }
-                
+
                 poweredDownPlayers.push(player);
                 // Send power down option ONLY to the specific player
                 // Use setTimeout to ensure it's sent after the game state update
@@ -260,13 +260,13 @@ export class GameEngine {
 
         // Emit the updated game state
         this.io.to(gameState.roomCode).emit('game-state', gameState);
-        
+
         // Check if all players are already submitted (e.g., all powered down)
         // This prevents getting stuck when all players are powered down
-        const allSubmitted = Object.values(gameState.players).every(p => 
+        const allSubmitted = Object.values(gameState.players).every(p =>
             p.submitted || p.powerState === 'OFF' || p.lives <= 0
         );
-        
+
         if (allSubmitted) {
             console.log('All players already submitted after dealing cards, starting execution phase...');
             this.executeProgramPhase(gameState);
@@ -598,16 +598,16 @@ export class GameEngine {
 
         if (player.lives <= 0) {
             console.log(`${player.name} is out of lives!`);
-            
+
             // Reset power state for eliminated players
             player.powerState = PowerState.ON;
             player.announcedPowerDown = false;
-            
+
             // Clear cards and registers for eliminated players
             player.dealtCards = [];
             player.selectedCards = [null, null, null, null, null];
             player.submitted = true; // Mark as submitted so they don't block game progression
-            
+
             this.io.to(gameState.roomCode).emit('robot-destroyed', {
                 playerName: player.name,
                 reason: 'out of lives'
@@ -663,7 +663,7 @@ export class GameEngine {
                     this.io.to(player.id).emit('power-down-option', {
                         message: `You have respawned with 2 damage. Choose whether to enter powered down mode for safety.`
                     });
-                    
+
                     // Track that this player needs to make a respawn decision
                     respawningPlayers.push(player.id);
                 } else {
@@ -802,7 +802,7 @@ export class GameEngine {
             if (player.lives <= 0) return;
             const tile = this.getTileAt(gameState, player.position.x, player.position.y);
             if (!tile || tile.type !== TileType.PIT) return;
-            
+
             console.log(`${player.name} fell into a pit at (${player.position.x}, ${player.position.y})`);
             this.executionLog(gameState, `${player.name} fell into a pit!`);
             this.destroyRobot(gameState, player, 'fell into a pit');
@@ -1016,7 +1016,7 @@ export class GameEngine {
 
         // Get all players with lives remaining
         const playersAlive = Object.values(gameState.players).filter(player => player.lives > 0);
-        
+
         // If only one player is alive and there are multiple players total, they win
         if (playersAlive.length === 1 && Object.keys(gameState.players).length > 1) {
             const winner = playersAlive[0];

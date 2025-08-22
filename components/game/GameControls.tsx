@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { socketClient } from '@/lib/socket';
-import PowerDownButton from './PowerDownButton';
 import { Player } from '@/lib/game/types';
-import { ALL_COURSES, getCourseById } from '@/lib/game/boards/courses';
+import { ALL_COURSES, getCourseById } from '@/lib/game/courses/courses';
 import CoursePreview from './CoursePreview';
 
 interface GameControlsProps {

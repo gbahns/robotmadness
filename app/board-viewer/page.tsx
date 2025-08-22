@@ -1,11 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ALL_BOARD_DEFINITIONS, getBoardDefinitionById } from '@/lib/game/boards/factoryFloorBoards';
-import { DOCKING_BAY_BOARDS } from '@/lib/game/boards/dockingBayBoards';
+import { ALL_BOARD_DEFINITIONS, getBoardDefinitionById, buildBoard, DOCKING_BAY_BOARDS } from '@/lib/game/board-utils';
 import { BoardDefinition, Board as BoardType } from '@/lib/game/types';
 import Board from '@/components/game/Board';
-import { buildBoard } from '@/lib/game/boards/boardBuilder';
 
 export default function BoardViewerPage() {
     const [selectedBoardId, setSelectedBoardId] = useState<string>('');

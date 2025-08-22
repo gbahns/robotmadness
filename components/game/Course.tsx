@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { getCourseById, buildCourse } from '@/lib/game/boards/courses';
+import { getCourseById, buildCourse } from '@/lib/game/courses/courses';
 import { Course as CourseType, Player, Board } from '@/lib/game/types';
 import BoardComponent from './Board';
 import CheckpointOverlay from './CheckpointOverlay';

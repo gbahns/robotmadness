@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ALL_COURSES, getCourseById, buildCourse } from '@/lib/game/boards/courses';
+import { ALL_COURSES, getCourseById, buildCourse } from '@/lib/game/courses/courses';
 import { Course as CourseType } from '@/lib/game/types';
 import Course from '@/components/game/Course';  // Changed from Board to Course component
 

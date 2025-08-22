@@ -1,5 +1,5 @@
 import React from 'react';
-import { getCourseById, buildCourse } from '@/lib/game/boards/courses';
+import { getCourseById, buildCourse } from '@/lib/game/courses/courses';
 import BoardPreview from './BoardPreview';
 
 interface CoursePreviewProps {

@@ -1,7 +1,5 @@
 import { BoardDefinition, CourseDefinition, Course, TileElement, LaserElement, WallElement, Tile, Laser, TileType } from '../types';
-import { DOCKING_BAY_4P, DOCKING_BAY_8P, DOCKING_BAY_WIDE, DOCKING_BAY_COMPACT, SIMPLE_FACTORY_FLOOR, CONVEYOR_FACTORY_FLOOR } from './dockingBayBoards';
-import { getBoardDefinitionById } from './factoryFloorBoards';
-import { buildBoard } from './boardBuilder';
+import { getBoardDefinitionById, buildBoard } from '../board-utils';
 
 // =============================================================================
 // OFFICIAL MULTI-BOARD COURSES (from RoboRally manual)
@@ -12,14 +10,14 @@ import { buildBoard } from './boardBuilder';
 // =============================================================================
 
 // OFFICIAL RISKY EXCHANGE COURSE - References the individual boards
-export const OFFICIAL_RISKY_EXCHANGE: CourseDefinition = {
+export const RISKY_EXCHANGE: CourseDefinition = {
     id: 'official_risky_exchange',
     name: 'Risky Exchange (Official)',
     description: 'An easy course to start on, but don\'t fall off the edge! Based on the official RoboRally rulebook.',
     difficulty: 'beginner',
     minPlayers: 2,
     maxPlayers: 8,
-    boards: ['exchange-factory-floor', 'risky-exchange-docking-bay'], // Individual boards, not combined!
+    boards: ['exchange-factory-floor', 'docking-bay-1'], // Individual boards, not combined!
     checkpoints: [
         { position: { x: 7, y: 1 }, number: 1 },  // Top center of factory floor
         { position: { x: 9, y: 7 }, number: 2 },  // Right side of factory floor
@@ -34,7 +32,7 @@ export const RISKY_EXCHANGE_COURSE: CourseDefinition = {
     difficulty: 'beginner',
     minPlayers: 2,
     maxPlayers: 8,
-    boards: ['risky-exchange-docking-bay', 'exchange-factory-floor'],
+    boards: ['docking-bay-1', 'exchange-factory-floor'],
     checkpoints: [],
 };
 
@@ -58,6 +56,21 @@ export const HEAVY_TRAFFIC_COURSE: CourseDefinition = {
     maxPlayers: 8,
     boards: ['heavy-traffic-docking-bay', 'heavy-traffic-factory-floor'],
     checkpoints: [],
+};
+
+export const CHECKMATE: CourseDefinition = {
+    id: 'checkmate',
+    name: 'Checkmate',
+    description: 'Navigate the checkerboard battlefield! Watch out for the express conveyor loops and deadly pits.',
+    difficulty: 'intermediate',
+    minPlayers: 2,
+    maxPlayers: 8,
+    boards: ['docking-bay-2', 'chess'],
+    checkpoints: [
+        { position: { x: 11, y: 4 }, number: 1 },   // Top-right repair site (adjusted for docking bay height)
+        { position: { x: 5, y: 9 }, number: 2 },    // Center option tile (adjusted for docking bay height)
+        { position: { x: 0, y: 15 }, number: 3 }    // Bottom-left repair site (adjusted for docking bay height)
+    ]
 };
 
 // Export array of official courses
@@ -107,27 +120,13 @@ export const ADVANCED_COMBINED_COURSE: CourseDefinition = {
 export const COMBINED_COURSES: CourseDefinition[] = [
     BEGINNER_COMBINED_COURSE,
     INTERMEDIATE_COMBINED_COURSE,
-    ADVANCED_COMBINED_COURSE
+    ADVANCED_COMBINED_COURSE,
+    CHECKMATE
 ];
 
 // =============================================================================
 // SINGLE BOARD COURSES
 // =============================================================================
-
-export const CHECKMATE_COURSE: CourseDefinition = {
-    id: 'checkmate',
-    name: 'Checkmate',
-    description: 'Quick and easy—just like chess. Right?',
-    difficulty: 'beginner',
-    minPlayers: 2,
-    maxPlayers: 8,
-    boards: ['checkmate-board'],
-    checkpoints: [
-        { position: { x: 6, y: 6 }, number: 1 },
-        { position: { x: 2, y: 2 }, number: 2 },
-        { position: { x: 10, y: 10 }, number: 3 }
-    ]
-};
 
 export const DIZZY_DASH_COURSE: CourseDefinition = {
     id: 'dizzy_dash',
@@ -160,7 +159,6 @@ export const ISLAND_HOP_COURSE: CourseDefinition = {
 };
 
 export const SINGLE_BOARD_COURSE_DEFINITIONS: CourseDefinition[] = [
-    CHECKMATE_COURSE,
     DIZZY_DASH_COURSE,
     ISLAND_HOP_COURSE
 ];
@@ -223,7 +221,7 @@ export const LEGACY_COURSE_DEFINITIONS: CourseDefinition[] = [
 
 // All official course definitions
 export const OFFICIAL_COURSE_DEFINITIONS: CourseDefinition[] = [
-    OFFICIAL_RISKY_EXCHANGE
+    RISKY_EXCHANGE
 ];
 
 export const ALL_COURSE_DEFINITIONS: CourseDefinition[] = [
@@ -305,7 +303,7 @@ export function createCombinedCourse(
     description: string,
     difficulty: 'beginner' | 'intermediate' | 'expert',
     factoryFloorBoard: BoardDefinition,
-    dockingBayBoard: BoardDefinition = DOCKING_BAY_4P
+    dockingBayBoard: BoardDefinition
 ): { board: BoardDefinition; course: CourseDefinition } {
     const combinedBoard = combineBoardsVertically(dockingBayBoard, factoryFloorBoard);
     // Ensure the combined board has a proper ID for referencing
@@ -399,124 +397,12 @@ export function combineBoardsVertically(topBoard: BoardDefinition, bottomBoard: 
     };
 }
 
-// Get all boards for a course
-// export function getBoardsForCourse(courseId: string): BoardDefinition[] {
-//     const course = getCourseById(courseId);
-//     if (!course) return [];
-
-//     return course.boards
-//         .map(boardId => getBoardDefinitionById(boardId))
-//         .filter((board): board is BoardDefinition => board !== undefined);
-// }
-
-
-// =============================================================================
-// from factoryFloorBoards.ts
-// =============================================================================
-// =============================================================================
-// COURSE DEFINITIONS (References to Boards)
-// =============================================================================
-
-// export const CHECKMATE_COURSE: CourseDefinition = {
-//     id: 'checkmate',
-//     name: 'Checkmate',
-//     description: 'Another easy course—just push the other robots into pits.',
-//     difficulty: 'beginner',
-//     minPlayers: 2,
-//     maxPlayers: 8,
-//     boards: ['checkmate-board'] // Reference to board ID
-// };
-
-// export const DIZZY_DASH_COURSE: CourseDefinition = {
-//     id: 'dizzy_dash',
-//     name: 'Dizzy Dash',
-//     description: 'Whoops, was that the flag over there? Don\'t worry—it\'s still an easy course.',
-//     difficulty: 'beginner',
-//     minPlayers: 2,
-//     maxPlayers: 8,
-//     boards: ['dizzy-dash-board'] // Reference to board ID
-// };
-
-// export const ISLAND_HOP_COURSE: CourseDefinition = {
-//     id: 'island_hop',
-//     name: 'Island Hop',
-//     description: 'Over the island or around?',
-//     difficulty: 'intermediate',
-//     minPlayers: 2,
-//     maxPlayers: 8,
-//     boards: ['island-hop-board'] // Reference to board ID
-// };
-
-// // Single board course definitions
-// const SINGLE_BOARD_COURSE_DEFINITIONS: CourseDefinition[] = [
-//     CHECKMATE_COURSE,
-//     DIZZY_DASH_COURSE,
-//     ISLAND_HOP_COURSE
-// ];
-
-// =============================================================================
-// from officialBoards.ts
-// =============================================================================
-// Combined board for Risky Exchange
-// export const RISKY_EXCHANGE_COMBINED_BOARD = combineBoardsVertically(
-//     RISKY_EXCHANGE_DOCKING_BAY,
-//     EXCHANGE_FACTORY_FLOOR
-// );
-
-// // Ensure the combined board has a proper ID
-// RISKY_EXCHANGE_COMBINED_BOARD.id = 'risky-exchange-combined';
-// RISKY_EXCHANGE_COMBINED_BOARD.name = 'Risky Exchange Combined';
-
-
 // =============================================================================
 // From dockingBayBoards.ts
 // =============================================================================
 // Create combined course data
-const simpleStartData = createCombinedCourse(
-    'simple-start',
-    'Simple Start',
-    'A beginner-friendly course with basic elements and a standard docking bay.',
-    'beginner',
-    SIMPLE_FACTORY_FLOOR,
-    DOCKING_BAY_4P
-);
-
-const conveyorChaosData = createCombinedCourse(
-    'conveyor-chaos',
-    'Conveyor Chaos',
-    'Navigate through complex conveyor belts in this intermediate challenge.',
-    'intermediate',
-    CONVEYOR_FACTORY_FLOOR,
-    DOCKING_BAY_8P
-);
-
-const wideEntryData = createCombinedCourse(
-    'wide-entry',
-    'Wide Entry',
-    'A course with a wide docking bay allowing for interesting starting strategies.',
-    'beginner',
-    SIMPLE_FACTORY_FLOOR,
-    DOCKING_BAY_WIDE
-);
-
-const compactChallengeData = createCombinedCourse(
-    'compact-challenge',
-    'Compact Challenge',
-    'Start from a compact docking bay and navigate the conveyor factory floor.',
-    'intermediate',
-    CONVEYOR_FACTORY_FLOOR,
-    DOCKING_BAY_COMPACT
-);
 
 // Export the board definitions
-export const COMBINED_BOARD_DEFINITIONS: BoardDefinition[] = [
-    //RISKY_EXCHANGE_COMBINED_BOARD,
-    simpleStartData.board,
-    conveyorChaosData.board,
-    wideEntryData.board,
-    compactChallengeData.board
-];
-
 // Export the course definitions
 // export const COMBINED_COURSES: CourseDefinition[] = [
 //     simpleStartData.course,

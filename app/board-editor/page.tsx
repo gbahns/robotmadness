@@ -12,8 +12,8 @@ import {
     exportToTypeScript
 } from '@/lib/game/board-editor-utils';
 import { BOARD_TEMPLATES, TEMPLATE_CATEGORIES, getTemplateById } from '@/lib/game/board-templates';
-import { buildCourse, ALL_COURSES, getCourseById } from '@/lib/game/boards/courses';
-import { ALL_BOARD_DEFINITIONS, getBoardDefinitionById } from '@/lib/game/boards/factoryFloorBoards';
+import { buildCourse, ALL_COURSES, getCourseById } from '@/lib/game/courses/courses';
+import { ALL_BOARD_DEFINITIONS, getBoardDefinitionById } from '@/lib/game/board-utils';
 
 // Tile palette for placing elements
 const TILE_PALETTE = [
