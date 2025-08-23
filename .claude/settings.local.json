@@ -5,7 +5,9 @@
       "Bash(rm:*)",
       "Bash(mkdir:*)",
       "Bash(npm run typecheck:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(echo $?)",
+      "Bash(npm run dev:*)"
     ],
     "deny": [],
     "ask": []

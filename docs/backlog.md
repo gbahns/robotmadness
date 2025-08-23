@@ -1,10 +1,8 @@
 ## Backlog
-* registers keep executing after a player has won
 * when two robots reenter on the same archive marker, the second on picks an adjacent tile on which to reenter
 * refine the look of pits
 * somehow make checkpoints and possibly other board elements visible when a robot is sitting on them
 * reset cards is executing the logic on both the client and the server; only need one
-* hide the whole registers section and the player's hand when powered down?
 * server got stuck resetting or dealing cards for next turn; one robot had 9 damage, might be related to that
 * hammers
 * handle endgame properly (pop up a modal with the game still visible, celebrate the winner, etc)
@@ -30,6 +28,7 @@
 * when one robot dies, it's asking other players if they want to enter powered down (couldn't reproduce)
 
 ## In Progress
+* register phases keep executing after a player has won
 
 ## Done
 * robots pushing each other

@@ -3,7 +3,7 @@
 ## Development Environment
 
 ### Development Server
-**IMPORTANT:** The development server is always running. DO NOT execute `npm run dev` or attempt to start the dev server - it's already active and monitored by the developer.
+**IMPORTANT:** After running `npm run build`, always restart the dev server with `npm run dev` in the background, as the build process interrupts the running dev server.
 
 ### Testing and Building
 - Use `npm run build` to check for TypeScript errors and build issues
