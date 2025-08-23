@@ -31,9 +31,11 @@ export default function GameControls({
   const [timerMode, setTimerMode] = useState<'players-submitted' | 'players-remaining'>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('timerMode');
-      return saved === 'players-submitted' ? 'players-submitted' : 'players-remaining';
+      if (saved === 'players-submitted' || saved === 'players-remaining') {
+        return saved;
+      }
     }
-    return 'players-remaining';
+    return 'players-submitted'; // Default to players-submitted
   });
   const [timerThreshold, setTimerThreshold] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -45,9 +47,9 @@ export default function GameControls({
   const [timerDuration, setTimerDuration] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('timerDuration');
-      return saved ? Math.max(10, Math.min(120, parseInt(saved))) : 30;
+      return saved ? Math.max(10, Math.min(120, parseInt(saved))) : 45; // Default to 45 seconds
     }
-    return 30;
+    return 45; // Default to 45 seconds
   });
 
   // Save timer settings to localStorage whenever they change
