@@ -33,6 +33,7 @@ interface ServerToClientEvents {
     'power-down-option': (data: { message: string }) => void;
     'player-power-state-changed': (data: { playerId: string, playerName: string, powerState: PowerState, announcedPowerDown?: boolean }) => void;
     'respawn-power-down-option': (data: { message: string; isRespawn?: boolean }) => void;
+    'register-update': (data: { playerId: string; selectedCards: (ProgramCard | null)[] }) => void;
 }
 
 interface ClientToServerEvents {
@@ -48,6 +49,7 @@ interface ClientToServerEvents {
     'continue-power-down': (data: { roomCode: string; playerId: string; continueDown: boolean }) => void;
     'respawn-decision': (data: { roomCode: string; playerId: string; powerDown: boolean; direction: Direction }) => void;
     'respawn-preview': (data: { roomCode: string; playerId: string; direction: Direction }) => void;
+    'register-update': (data: { roomCode: string; playerId: string; selectedCards: (ProgramCard | null)[] }) => void;
 }
 
 interface InterServerEvents { }
