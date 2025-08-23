@@ -27,6 +27,8 @@ export class GameEngine {
     private DIRECTION_VECTORS: DirectionVectors;
     private registerExecutionDelay: number;
     private boardElementDelay: number;
+    private timers: Map<string, NodeJS.Timeout> = new Map(); // Track timers per room
+    private timerIntervals: Map<string, NodeJS.Timeout> = new Map(); // Track countdown intervals
 
     constructor(io: IoServer) {
         this.io = io;
@@ -327,7 +329,7 @@ export class GameEngine {
         // Execute all 5 registers
         await this.executeRegisters(gameState, gameState.roomCode);
         //console.log('Registers executed, moving to cleanup phase...');
-        
+
         // If game ended during register execution, don't continue
         if ((gameState.phase as GamePhase) === GamePhase.ENDED) return;
 
@@ -392,7 +394,7 @@ export class GameEngine {
     async endTurn(gameState: ServerGameState): Promise<void> {
         // Don't end turn if game has already ended
         if (gameState.phase === GamePhase.ENDED) return;
-        
+
         console.log('Ending turn and dealing cards for next turn');
 
         // Execute repairs at the end of the turn (robots on repair sites get healed)
@@ -433,7 +435,7 @@ export class GameEngine {
     async executeRegister(gameState: ServerGameState, registerIndex: number): Promise<void> {
         // Don't execute register if game has ended
         if (gameState.phase === GamePhase.ENDED) return;
-        
+
         console.log(`Executing register ${registerIndex + 1}`);
         const programmedCards: Array<{ playerId: string; card: ProgramCard; player: Player }> = [];
 
@@ -708,7 +710,7 @@ export class GameEngine {
     async executeBoardElements(gameState: ServerGameState) {
         // Don't execute board elements if game has ended
         if (gameState.phase === GamePhase.ENDED) return;
-        
+
         console.log('Executing board elements...');
         await this.executeConveyorBelts(gameState, true, false);
         await this.executeConveyorBelts(gameState, true, true);
@@ -1217,6 +1219,155 @@ export class GameEngine {
 
             // Update locked register count
             player.lockedRegisters = newLockedCount;
+        }
+    }
+
+    checkTimerStart(gameState: ServerGameState): void {
+        // Don't start timer if already started or game not in programming phase
+        if (gameState.timerStartTime || gameState.phase !== GamePhase.PROGRAMMING) {
+            return;
+        }
+
+        const config = gameState.timerConfig || {
+            mode: 'players-remaining',
+            threshold: 1,
+            duration: 30
+        };
+
+        // Count active players (not powered down or dead)
+        const activePlayers = Object.values(gameState.players).filter(p =>
+            p.lives > 0 && p.powerState !== PowerState.OFF
+        );
+
+        // Count how many have submitted
+        const submittedCount = activePlayers.filter(p => p.submitted).length;
+        const remainingCount = activePlayers.length - submittedCount;
+
+        let shouldStart = false;
+
+        if (config.mode === 'players-remaining') {
+            // Start timer when only N players haven't submitted
+            shouldStart = remainingCount <= config.threshold && remainingCount > 0;
+        } else {
+            // Start timer when N players have submitted
+            shouldStart = submittedCount >= config.threshold;
+        }
+
+        if (shouldStart) {
+            console.log(`Starting timer: ${submittedCount} submitted, ${remainingCount} remaining`);
+            this.startTimer(gameState, config.duration);
+        }
+    }
+
+    startTimer(gameState: ServerGameState, duration?: number): void {
+        const roomCode = gameState.roomCode;
+
+        // Clear any existing timer for this room
+        this.stopTimer(roomCode);
+
+        // Set timer start time and duration
+        gameState.timerStartTime = Date.now();
+        gameState.timerDuration = duration || 30; // Use provided duration or default to 30
+
+        // Send initial timer update
+        this.io.to(roomCode).emit('timer-update', { timeLeft: gameState.timerDuration || 30 });
+
+        // Set up countdown interval (update every second)
+        const interval = setInterval(() => {
+            const elapsed = Math.floor((Date.now() - (gameState.timerStartTime || 0)) / 1000);
+            const timeLeft = Math.max(0, (gameState.timerDuration || 30) - elapsed);
+
+            this.io.to(roomCode).emit('timer-update', { timeLeft });
+
+            if (timeLeft === 0) {
+                clearInterval(interval);
+                this.timerIntervals.delete(roomCode);
+            }
+        }, 1000);
+
+        this.timerIntervals.set(roomCode, interval);
+
+        // Set up the main timer that expires after the configured duration
+        const timer = setTimeout(() => {
+            this.onTimerExpired(gameState);
+        }, (gameState.timerDuration || 30) * 1000);
+
+        this.timers.set(roomCode, timer);
+    }
+
+    stopTimer(roomCode: string): void {
+        // Clear the main timer
+        const timer = this.timers.get(roomCode);
+        if (timer) {
+            clearTimeout(timer);
+            this.timers.delete(roomCode);
+        }
+
+        // Clear the countdown interval
+        const interval = this.timerIntervals.get(roomCode);
+        if (interval) {
+            clearInterval(interval);
+            this.timerIntervals.delete(roomCode);
+        }
+    }
+
+    onTimerExpired(gameState: ServerGameState): void {
+        console.log(`Timer expired for room ${gameState.roomCode}`);
+
+        // Clear intervals
+        this.stopTimer(gameState.roomCode);
+
+        // Emit timer expired event
+        this.io.to(gameState.roomCode).emit('timer-expired');
+
+        // Auto-fill empty registers for all players who haven't submitted
+        let anyChanges = false;
+
+        for (const playerId in gameState.players) {
+            const player = gameState.players[playerId];
+
+            // Skip if player is powered down, dead, or already submitted
+            if (player.powerState === PowerState.OFF || player.lives <= 0 || player.submitted) {
+                continue;
+            }
+
+            // Auto-fill empty registers with random cards from dealt cards
+            const availableCards = [...(player.dealtCards || [])];
+            const selectedCards = [...(player.selectedCards || [null, null, null, null, null])];
+
+            for (let i = 0; i < 5; i++) {
+                if (selectedCards[i] === null && availableCards.length > 0) {
+                    // Find a card that hasn't been selected yet
+                    const unusedCards = availableCards.filter(card =>
+                        !selectedCards.some(selected => selected?.id === card.id)
+                    );
+
+                    if (unusedCards.length > 0) {
+                        // Pick a random unused card
+                        const randomIndex = Math.floor(Math.random() * unusedCards.length);
+                        selectedCards[i] = unusedCards[randomIndex];
+                        anyChanges = true;
+                    }
+                }
+            }
+
+            player.selectedCards = selectedCards;
+            player.submitted = true;
+
+            console.log(`Auto-filled cards for player ${player.name} due to timer expiry`);
+        }
+
+        // Check if all players have now submitted
+        const allSubmitted = Object.values(gameState.players).every(p =>
+            p.submitted || p.powerState === PowerState.OFF || p.lives <= 0
+        );
+
+        if (allSubmitted) {
+            console.log('All players submitted after timer expiry, starting execution phase');
+            this.executeProgramPhase(gameState);
+        } else if (anyChanges) {
+            // Emit updated game state if we made changes
+            this.io.to(gameState.roomCode).emit('game-state', gameState);
         }
     }
 }

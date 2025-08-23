@@ -20,6 +20,7 @@ import GameHeader from '@/components/game/GameHeader';
 import { LoadingScreen, NameModal, ErrorScreen, GameOverModal } from '@/components/game/LoadingStates';
 import { useGameSocket } from '@/hooks/useGameSocket';
 import { useCardManagement } from '@/hooks/useCardManagement';
+import Timer from '@/components/game/Timer';
 
 export default function GamePage() {
   const params = useParams();
@@ -42,6 +43,8 @@ export default function GamePage() {
   const [showPowerDownPrompt, setShowPowerDownPrompt] = useState(false);
   const [showRespawnModal, setShowRespawnModal] = useState(false);
   const [isRespawnDecision, setIsRespawnDecision] = useState(false);
+  const [timerTimeLeft, setTimerTimeLeft] = useState(0);
+  const [isTimerActive, setIsTimerActive] = useState(false);
 
   useEffect(() => {
     // Build preview board when course is selected
@@ -95,7 +98,15 @@ export default function GamePage() {
     onIsRespawnDecision: setIsRespawnDecision,
     onIsSubmitted: setIsSubmitted,
     onError: setError,
-    onLoading: setLoading
+    onLoading: setLoading,
+    onTimerUpdate: (timeLeft) => {
+      setTimerTimeLeft(timeLeft);
+      setIsTimerActive(timeLeft > 0);
+    },
+    onTimerExpired: () => {
+      setIsTimerActive(false);
+      setTimerTimeLeft(0);
+    }
   });
 
   const hasConnectedRef = useRef(false);
@@ -230,6 +241,11 @@ export default function GamePage() {
                     isProgrammingPhase={gameState.phase === 'programming'}
                     isExecutingPhase={gameState.phase === 'executing'}
                   />
+                )}
+
+                {/* Timer - show during programming phase */}
+                {gameState?.phase === 'programming' && (
+                  <Timer timeLeft={timerTimeLeft} isActive={isTimerActive} />
                 )}
 
                 {/* Hand - moved under players list (or show powered down status) */}

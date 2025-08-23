@@ -86,6 +86,13 @@ export interface GameState {
   course: Course;
   roundNumber: number;
   cardsDealt: boolean;
+  timerStartTime?: number; // Unix timestamp when timer started
+  timerDuration?: number; // Duration in seconds
+  timerConfig?: {
+    mode: 'players-submitted' | 'players-remaining'; // When to start timer
+    threshold: number; // Number of players that triggers timer
+    duration: number; // Timer duration in seconds
+  };
 }
 
 export interface BoardDefinition {

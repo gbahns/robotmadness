@@ -28,6 +28,9 @@ export default function GameControls({
   onPowerDownDecision
 }: GameControlsProps) {
   const [internalSelectedCourse, setInternalSelectedCourse] = useState<string>('test');
+  const [timerMode, setTimerMode] = useState<'players-submitted' | 'players-remaining'>('players-remaining');
+  const [timerThreshold, setTimerThreshold] = useState(1);
+  const [timerDuration, setTimerDuration] = useState(30);
 
   // Use external course if provided, otherwise use internal state
   const selectedCourse = externalSelectedCourse || internalSelectedCourse;
@@ -207,23 +210,85 @@ export default function GameControls({
       )
       }
 
-      <button
-        onClick={() => {
-          console.log('Start game clicked ', { roomCode, selectedCourse });
-          socketClient.emit('start-game', { roomCode, selectedCourse });
-          console.log('Emitted start_game event', { roomCode, selectedCourse });
-        }}
-        disabled={playerCount < 2}
-        className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-8 py-3 rounded font-semibold text-lg"
-      >
-        Start Game
-      </button>
+      {/* Timer Configuration */}
+      <div className="space-y-3 border-t border-gray-700 pt-4">
+        <h3 className="text-lg font-semibold">Timer Settings</h3>
+        
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm text-white">
+            <span>Timer expires</span>
+            <input
+              type="number"
+              min="10"
+              max="120"
+              step="5"
+              value={timerDuration}
+              onChange={(e) => setTimerDuration(Math.max(10, Math.min(120, parseInt(e.target.value) || 30)))}
+              className="w-14 px-1 py-1 rounded bg-gray-700 text-white border border-gray-600 text-center text-sm"
+            />
+            <span>seconds after</span>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="timer-mode-toggle"
+              checked={timerMode === 'players-remaining'}
+              onChange={(e) => setTimerMode(e.target.checked ? 'players-remaining' : 'players-submitted')}
+              className="w-4 h-4 text-blue-600 rounded"
+            />
+            <label htmlFor="timer-mode-toggle" className="flex items-center gap-2 text-sm text-white">
+              <input
+                type="number"
+                min="1"
+                max={playerCount}
+                value={timerThreshold}
+                onChange={(e) => setTimerThreshold(Math.max(1, Math.min(playerCount, parseInt(e.target.value) || 1)))}
+                className="w-12 px-1 py-1 rounded bg-gray-700 text-white border border-gray-600 text-center text-sm"
+              />
+              <span>
+                {timerMode === 'players-remaining' 
+                  ? (timerThreshold === 1 ? 'player is left to submit' : 'players are left to submit')
+                  : (timerThreshold === 1 ? 'player has submitted' : 'players have submitted')
+                }
+              </span>
+            </label>
+          </div>
+        </div>
 
-      {
-        playerCount < 2 && (
+        <div className="text-xs text-gray-500 bg-gray-900 rounded p-2">
+          Timer will start when {timerMode === 'players-remaining' 
+            ? `only ${timerThreshold} player${timerThreshold === 1 ? ' hasn\'t' : 's haven\'t'}`
+            : `${timerThreshold} player${timerThreshold === 1 ? ' has' : 's have'}`} submitted cards,
+          giving {timerDuration} seconds to finish.
+        </div>
+      </div>
+
+      <div className="flex flex-col items-center space-y-2">
+        <button
+          onClick={() => {
+            console.log('Start game clicked ', { roomCode, selectedCourse, timerConfig: { mode: timerMode, threshold: timerThreshold, duration: timerDuration } });
+            socketClient.emit('start-game', { 
+              roomCode, 
+              selectedCourse,
+              timerConfig: {
+                mode: timerMode,
+                threshold: timerThreshold,
+                duration: timerDuration
+              }
+            });
+            console.log('Emitted start_game event', { roomCode, selectedCourse });
+          }}
+          disabled={playerCount < 2}
+          className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-8 py-3 rounded font-semibold text-lg"
+        >
+          Start Game
+        </button>
+
+        {playerCount < 2 && (
           <p className="text-sm text-gray-500">Need at least 2 players to start</p>
-        )
-      }
+        )}
+      </div>
     </div >
   );
 }

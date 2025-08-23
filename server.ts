@@ -3,7 +3,7 @@ import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import next from 'next';
 import { GameState, ProgramCard, GamePhase, Course, Player, PowerState, Direction } from './lib/game/types';
-import { GameEngine, ServerGameState } from './lib/game/gameEngine';
+import { GameEngine, ServerGameState } from './lib/game/GameEngine';
 
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });
@@ -40,7 +40,15 @@ interface ClientToServerEvents {
     'create-game': (data: { playerName: string; playerId: string; courseId?: string }, callback?: (response: { success: boolean; roomCode?: string; game?: any; error?: string }) => void) => void;
     'join-game': (data: { roomCode: string; playerName: string; playerId: string }) => void;
     'leave-game': () => void;
-    'start-game': (data: { roomCode: string; selectedCourse?: string }) => void;
+    'start-game': (data: { 
+        roomCode: string; 
+        selectedCourse?: string;
+        timerConfig?: {
+            mode: 'players-submitted' | 'players-remaining';
+            threshold: number;
+            duration: number;
+        };
+    }) => void;
     'select-course': (data: { roomCode: string; courseId: string }) => void;
     'submit-cards': (data: { roomCode: string; playerId: string; cards: (ProgramCard | null)[] }) => void;
     'reset-cards': (data: { roomCode: string; playerId: string; }) => void;
@@ -179,11 +187,23 @@ app.prepare().then(() => {
             }
         });
 
-        socket.on('start-game', ({ roomCode, selectedCourse = 'test' }) => {
+        socket.on('start-game', ({ roomCode, selectedCourse = 'test', timerConfig }) => {
             const gameState = games.get(roomCode);
             if (!gameState) return;
 
-            console.log(`Starting game ${roomCode} with course: ${selectedCourse}`);
+            console.log(`Starting game ${roomCode} with course: ${selectedCourse}`, timerConfig);
+
+            // Store timer configuration
+            if (timerConfig) {
+                gameState.timerConfig = timerConfig;
+            } else {
+                // Default timer configuration (official rules: timer starts when only 1 player hasn't submitted)
+                gameState.timerConfig = {
+                    mode: 'players-remaining',
+                    threshold: 1,
+                    duration: 30
+                };
+            }
 
             // Ensure the board is set based on the selected course
             gameEngine.selectCourse(gameState, selectedCourse);
@@ -238,11 +258,16 @@ app.prepare().then(() => {
             gameState.players[playerId].selectedCards = cards;
             gameState.players[playerId].submitted = true;
 
+            // Check if timer should start based on configuration
+            gameEngine.checkTimerStart(gameState);
+
             // Check if all players have submitted
             const allSubmitted = Object.values(gameState.players).every(p => p.submitted || p.powerState === PowerState.OFF || p.lives <= 0);
             console.log(`Players submitted: ${Object.values(gameState.players).filter(p => p.submitted).length}/${Object.keys(gameState.players).length}`);
 
             if (allSubmitted) {
+                // Stop the timer since all players have submitted
+                gameEngine.stopTimer(roomCode);
                 gameEngine.executeProgramPhase(gameState);
             } else {
                 // Just update this player's status

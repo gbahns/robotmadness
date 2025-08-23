@@ -22,6 +22,8 @@ interface UseGameSocketProps {
     onIsSubmitted: (submitted: boolean) => void;
     onError: (error: string) => void;
     onLoading: (loading: boolean) => void;
+    onTimerUpdate?: (timeLeft: number) => void;
+    onTimerExpired?: () => void;
 }
 
 export function useGameSocket({
@@ -42,7 +44,9 @@ export function useGameSocket({
     onIsRespawnDecision,
     onIsSubmitted,
     onError,
-    onLoading
+    onLoading,
+    onTimerUpdate,
+    onTimerExpired
 }: UseGameSocketProps) {
     const logIdCounter = useRef(0);
 
@@ -333,6 +337,14 @@ export function useGameSocket({
         socketClient.on('board-phase', (data: { phase: string | null }) => onBoardPhase(data.phase));
         socketClient.on('register-start', (data: { register: number }) => console.log('Executing register:', data.register));
         socketClient.onGameError((data: { message: string }) => onError(data.message));
+        
+        // Timer events
+        if (onTimerUpdate) {
+            socketClient.on('timer-update', (data: { timeLeft: number }) => onTimerUpdate(data.timeLeft));
+        }
+        if (onTimerExpired) {
+            socketClient.on('timer-expired', onTimerExpired);
+        }
 
         // Complex handlers
         socketClient.on('register-started', handleRegisterStarted);

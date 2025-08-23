@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert';
-import { GameEngine } from './lib/game/gameEngine.js';
+import { GameEngine } from './lib/game/GameEngine.js';
 import { CardType } from './lib/game/types.js';
 import type { ProgramCard } from './lib/game/types.js';
 
