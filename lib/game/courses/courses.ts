@@ -12,7 +12,7 @@ import { getBoardDefinitionById, buildBoard } from '../board-utils';
 // OFFICIAL RISKY EXCHANGE COURSE - References the individual boards
 export const RISKY_EXCHANGE: CourseDefinition = {
     id: 'official_risky_exchange',
-    name: 'Risky Exchange (Official)',
+    name: 'Risky Exchange',
     description: 'An easy course to start on, but don\'t fall off the edge! Based on the official RoboRally rulebook.',
     difficulty: 'beginner',
     minPlayers: 2,
@@ -84,43 +84,7 @@ export const OFFICIAL_COURSE_DEFINITIONS_OLD: CourseDefinition[] = [
 // COMBINED BOARD COURSES (using the combined board approach)
 // =============================================================================
 
-export const BEGINNER_COMBINED_COURSE: CourseDefinition = {
-    id: 'beginner_course',
-    name: 'Beginner Course',
-    description: 'A simple course for new players',
-    difficulty: 'beginner',
-    minPlayers: 2,
-    maxPlayers: 8,
-    boards: ['beginner-combined-board'],
-    checkpoints: [],
-};
-
-export const INTERMEDIATE_COMBINED_COURSE: CourseDefinition = {
-    id: 'intermediate_course',
-    name: 'Intermediate Course',
-    description: 'A challenging course with conveyor loops',
-    difficulty: 'intermediate',
-    minPlayers: 2,
-    maxPlayers: 8,
-    boards: ['intermediate-combined-board'],
-    checkpoints: [],
-};
-
-export const ADVANCED_COMBINED_COURSE: CourseDefinition = {
-    id: 'advanced_course',
-    name: 'Advanced Course',
-    description: 'Expert level course with multiple hazards',
-    difficulty: 'expert',
-    minPlayers: 2,
-    maxPlayers: 8,
-    boards: ['advanced-combined-board'],
-    checkpoints: [],
-};
-
 export const COMBINED_COURSES: CourseDefinition[] = [
-    BEGINNER_COMBINED_COURSE,
-    INTERMEDIATE_COMBINED_COURSE,
-    ADVANCED_COMBINED_COURSE,
     CHECKMATE
 ];
 
@@ -182,37 +146,8 @@ export const TEST_COURSE: CourseDefinition = {
     ]
 };
 
-export const CONVEYOR_LOOP_COURSE: CourseDefinition = {
-    id: 'conveyor_loop',
-    name: 'Conveyor Loop Test',
-    description: 'Test course with complex conveyor patterns',
-    difficulty: 'intermediate',
-    minPlayers: 2,
-    maxPlayers: 8,
-    boards: ['conveyor-loop-test'],
-    checkpoints: [
-        { position: { x: 5, y: 5 }, number: 1 },
-    ]
-};
-
-export const LASER_TEST_COURSE: CourseDefinition = {
-    id: 'laser_test',
-    name: 'Laser Test Arena',
-    description: 'A testing ground for laser mechanics',
-    difficulty: 'intermediate',
-    minPlayers: 2,
-    maxPlayers: 8,
-    boards: ['laser-arena'],
-    checkpoints: [
-        { position: { x: 4, y: 4 }, number: 1 },
-        { position: { x: 8, y: 8 }, number: 2 }
-    ]
-};
-
 export const LEGACY_COURSE_DEFINITIONS: CourseDefinition[] = [
-    TEST_COURSE,
-    CONVEYOR_LOOP_COURSE,
-    LASER_TEST_COURSE
+    TEST_COURSE
 ];
 
 // =============================================================================
