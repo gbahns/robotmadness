@@ -12,6 +12,7 @@ import ExecutionLog from '@/components/game/ExecutionLog';
 import { RobotLaserShot } from '@/components/game/RobotLaserAnimation';
 import GameControls from '@/components/game/GameControls';
 import ProgrammingControls from '@/components/game/ProgrammingControls';
+import PowerDownButton from '@/components/game/PowerDownButton';
 import { getCourseById } from '@/lib/game/courses/courses';
 import RespawnDecisionPanel from '@/components/game/RespawnDecisionPanel';
 import PlayersList from '@/components/game/PlayersList';
@@ -255,26 +256,35 @@ export default function GamePage() {
                       boardPhase={boardPhase}
                     />
                     
-                    {/* Submit/Reset buttons */}
-                    <div className="flex gap-3 mt-4">
-                      {!isSubmitted && (
+                    {/* All control buttons together */}
+                    {gameState?.phase === 'programming' && (
+                      <div className="flex gap-2 mt-4">
+                        {currentPlayer.powerState !== 'OFF' && currentPlayer.lives > 0 && (
+                          <PowerDownButton
+                            roomCode={roomCode}
+                            playerId={currentPlayer.id}
+                            powerState={currentPlayer.powerState}
+                            damage={currentPlayer.damage}
+                            isProgrammingPhase={gameState.phase === 'programming'}
+                            selectedCards={currentPlayer.selectedCards || []}
+                          />
+                        )}
                         <button
                           onClick={handleSubmitCards}
-                          disabled={currentPlayer.selectedCards.filter(c => c !== null).length < 5}
-                          className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-6 py-2 rounded font-semibold"
+                          disabled={isSubmitted || currentPlayer.selectedCards.filter(c => c !== null).length < 5}
+                          className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-4 py-2 rounded font-semibold text-sm"
                         >
-                          Submit
+                          {isSubmitted ? 'Submitted' : 'Submit'}
                         </button>
-                      )}
-                      {currentPlayer.selectedCards.filter(c => c !== null).length > 0 && (
                         <button
                           onClick={handleResetCards}
-                          className="flex-1 bg-red-600 hover:bg-red-700 px-6 py-2 rounded font-semibold"
+                          disabled={currentPlayer.selectedCards.filter(c => c !== null).length === 0}
+                          className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-4 py-2 rounded font-semibold text-sm"
                         >
                           Reset
                         </button>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 )}
 

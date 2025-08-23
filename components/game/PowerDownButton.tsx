@@ -31,16 +31,16 @@ export default function PowerDownButton({
     const getButtonText = () => {
         switch (powerState) {
             case PowerState.ON:
-                return 'Announce Power Down';
+                return 'Power Down';
             case PowerState.ANNOUNCING:
-                return 'Cancel Power Down';
+                return 'Cancel PD';
             case PowerState.OFF:
-                return 'Stay Powered Down';
+                return 'Stay Down';
         }
     };
 
     const getButtonStyle = () => {
-        const baseClasses = "px-6 py-3 rounded-lg font-bold text-white transition-all duration-200 flex items-center gap-2";
+        const baseClasses = "flex-1 px-4 py-2 rounded font-semibold text-sm text-white transition-all duration-200 flex items-center justify-center gap-1 whitespace-nowrap";
 
         if (disabled || !isProgrammingPhase || powerState === PowerState.OFF) {
             return `${baseClasses} bg-gray-400 cursor-not-allowed opacity-50`;
@@ -48,11 +48,11 @@ export default function PowerDownButton({
 
         switch (powerState) {
             case PowerState.ON:
-                return `${baseClasses} bg-yellow-500 hover:bg-yellow-600 shadow-lg hover:shadow-xl`;
+                return `${baseClasses} bg-yellow-600 hover:bg-yellow-700`;
             case PowerState.ANNOUNCING:
-                return `${baseClasses} bg-red-500 hover:bg-red-600 shadow-lg hover:shadow-xl animate-pulse`;
+                return `${baseClasses} bg-orange-600 hover:bg-orange-700 animate-pulse`;
             //case PowerState.OFF:
-            //   return `${baseClasses} bg-green-600 hover:bg-green-700 shadow-lg hover:shadow-xl`;
+            //   return `${baseClasses} bg-green-600 hover:bg-green-700`;
         }
     };
 
@@ -75,7 +75,7 @@ export default function PowerDownButton({
     };
 
     const PowerIcon = () => (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
         </svg>
@@ -84,28 +84,14 @@ export default function PowerDownButton({
     // Power down is now always available for strategic reasons
 
     return (
-        <div className="relative">
-            <button
-                onClick={handleToggle}
-                disabled={disabled || !isProgrammingPhase || powerState === PowerState.OFF}
-                className={getButtonStyle()}
-                title={getTooltip()}
-            >
-                <PowerIcon />
-                <span>{getButtonText()}</span>
-            </button>
-
-            {powerState === PowerState.ANNOUNCING && (
-                <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full animate-bounce">
-                    Next Turn
-                </div>
-            )}
-
-            {powerState === PowerState.OFF && (
-                <div className="mt-2 text-sm text-gray-300 text-center">
-                    All damage repaired • No cards this turn
-                </div>
-            )}
-        </div>
+        <button
+            onClick={handleToggle}
+            disabled={disabled || !isProgrammingPhase || powerState === PowerState.OFF}
+            className={getButtonStyle()}
+            title={getTooltip()}
+        >
+            <PowerIcon />
+            <span>{getButtonText()}</span>
+        </button>
     );
 }

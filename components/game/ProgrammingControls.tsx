@@ -1,9 +1,8 @@
 // components/game/ProgrammingControls.tsx
-// This component handles the programming phase controls including power down
+// This component displays programming phase status messages
 
 import React from 'react';
 import { GameState, Player } from '@/lib/game/types';
-import PowerDownButton from './PowerDownButton';
 
 interface ProgrammingControlsProps {
     gameState: GameState;
@@ -36,21 +35,7 @@ export default function ProgrammingControls({
     }
 
     return (
-        <div className="bg-gray-800 rounded-lg p-6 space-y-4">
-            <h2 className="text-xl font-bold text-white">Programming Phase</h2>
-
-            {/* Power Down Button - only show if not already powered down and has lives */}
-            {currentPlayer.powerState !== 'OFF' && currentPlayer.lives > 0 && (
-                <PowerDownButton
-                    roomCode={gameState.roomCode || ''}
-                    playerId={currentPlayer.id}
-                    powerState={currentPlayer.powerState}
-                    damage={currentPlayer.damage}
-                    isProgrammingPhase={gameState.phase === 'programming'}
-                    selectedCards={selectedCards}
-                />
-            )}
-
+        <div className="space-y-3">
             {/* Power Down Status Message */}
             {currentPlayer.powerState === 'OFF' && (
                 <div className="bg-yellow-900 border border-yellow-600 rounded-lg p-4">
@@ -87,54 +72,6 @@ export default function ProgrammingControls({
                 </div>
             )}
 
-            {/* Auto-submit for powered down robots */}
-            {//not clear what the purpose of this was supposed to be.  "Confirm Powered Down" button
-                // it seems redundant since powered down robots don't need to submit cards
-                // and the concept of "Confirm Powered Down" is supposed to happen at the end of the turn
-                // so it's implemented in a different way
-            /* {currentPlayer.powerState === 'OFF' && (
-                <div className="border-t border-gray-700 pt-4">
-                    <button
-                        onClick={() => {
-                            // Submit empty cards for powered down robot
-                            socketClient.emit('submit-cards', {
-                                roomCode: gameState.roomCode,
-                                cards: [null, null, null, null, null]
-                            });
-                        }}
-                        disabled={currentPlayer.submitted}
-                        className={`w-full px-6 py-3 font-bold rounded-lg ${currentPlayer.submitted
-                            ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                            : 'bg-gray-700 hover:bg-gray-600 text-white'
-                            }`}
-                    >
-                        {currentPlayer.submitted ? 'Ready' : 'Confirm Powered Down'}
-                    </button>
-                </div>
-            )} */}
-
-            {/* Player Status Summary */}
-            <div className="border-t border-gray-700 pt-4 space-y-2">
-                <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Damage:</span>
-                    <span className={`font-bold ${currentPlayer.damage >= 8 ? 'text-red-400' :
-                        currentPlayer.damage >= 5 ? 'text-orange-400' :
-                            'text-white'
-                        }`}>
-                        {currentPlayer.damage}/10
-                    </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Lives:</span>
-                    <span className="text-white font-bold">{currentPlayer.lives}/3</span>
-                </div>
-                {currentPlayer.lockedRegisters > 0 && (
-                    <div className="flex justify-between text-sm">
-                        <span className="text-gray-400">Locked Registers:</span>
-                        <span className="text-orange-400 font-bold">{currentPlayer.lockedRegisters}</span>
-                    </div>
-                )}
-            </div>
         </div>
     );
 }

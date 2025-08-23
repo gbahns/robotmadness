@@ -947,7 +947,7 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
       if (player.position.x === x && player.position.y === y && player.lives > 0) {
         const isCurrentPlayer = player.id === currentPlayerId;
         elements.push(
-          <div key={player.id} className="absolute inset-1">
+          <div key={player.id} className="absolute inset-1 z-30">
             <Robot
               player={player}
               color={ROBOT_COLORS[getPlayerIndex(player.id) % ROBOT_COLORS.length]}
