@@ -1,6 +1,5 @@
 ## Backlog
 * when two robots reenter on the same archive marker, the second on picks an adjacent tile on which to reenter
-* refine the look of pits
 * somehow make checkpoints and possibly other board elements visible when a robot is sitting on them
 * reset cards is executing the logic on both the client and the server; only need one
 * server got stuck resetting or dealing cards for next turn; one robot had 9 damage, might be related to that
@@ -85,6 +84,7 @@
 * player wins the game if all other robots are dead
 * reentering players need to make their power down decision before cards are dealt
 * allow players to choose which direction they're facing when reentering
+* refine the look of pits
 
 
 ## Defect Fix History
