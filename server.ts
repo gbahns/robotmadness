@@ -6,7 +6,7 @@ import { GameState, ProgramCard, GamePhase, Course, Player, PowerState, Directio
 import { GameEngine, ServerGameState } from './lib/game/GameEngine';
 
 const dev = process.env.NODE_ENV !== 'production';
-const app = next({ dev });
+const app = next({ dev, turbo: dev }); // Enable Turbopack in development
 const handle = app.getRequestHandler();
 
 // Socket event types
