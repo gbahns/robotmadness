@@ -1,30 +1,23 @@
-import { BoardDefinition } from '../types';
-import { Direction, TileType } from '../types';
+import { BoardDefinition, TileType, Direction } from '../types';
 
-// ACCURATE EXCHANGE FACTORY FLOOR BOARD from official rulebook
 export const EXCHANGE_FACTORY_FLOOR_TEST: BoardDefinition = {
     id: 'exchange-factory-floor-test',
     name: 'Exchange Factory Floor Test',
     width: 12,
     height: 12,
-    startingPositions: [], // Will be provided by docking bay
-    tiles: [
-        // MAIN EXPRESS CONVEYOR SYSTEM - Yellow/orange conveyors from the image
 
-        // Top-left corner: 2 rows x 4 columns of rotating conveyors
-        // First row: clockwise rotating conveyors in a circle
+    startingPositions: [
+    ],
+
+    tiles: [
         { position: { x: 0, y: 0 }, type: TileType.CONVEYOR, direction: Direction.RIGHT, rotate: 'clockwise' },
         { position: { x: 1, y: 0 }, type: TileType.CONVEYOR, direction: Direction.DOWN, rotate: 'clockwise' },
         { position: { x: 1, y: 1 }, type: TileType.CONVEYOR, direction: Direction.LEFT, rotate: 'clockwise' },
         { position: { x: 0, y: 1 }, type: TileType.CONVEYOR, direction: Direction.UP, rotate: 'clockwise' },
-
-        // Second row: counterclockwise rotating express conveyors in a circle
         { position: { x: 2, y: 0 }, type: TileType.CONVEYOR, direction: Direction.DOWN, rotate: 'counterclockwise' },
         { position: { x: 3, y: 0 }, type: TileType.CONVEYOR, direction: Direction.LEFT, rotate: 'counterclockwise' },
         { position: { x: 3, y: 1 }, type: TileType.CONVEYOR, direction: Direction.UP, rotate: 'counterclockwise' },
         { position: { x: 2, y: 1 }, type: TileType.CONVEYOR, direction: Direction.RIGHT, rotate: 'counterclockwise' },
-
-        // Top horizontal express conveyor row (going RIGHT)
         { position: { x: 0, y: 5 }, type: TileType.EXPRESS_CONVEYOR, direction: Direction.RIGHT },
         { position: { x: 1, y: 5 }, type: TileType.EXPRESS_CONVEYOR, direction: Direction.RIGHT },
         { position: { x: 2, y: 5 }, type: TileType.EXPRESS_CONVEYOR, direction: Direction.RIGHT },
@@ -37,8 +30,6 @@ export const EXCHANGE_FACTORY_FLOOR_TEST: BoardDefinition = {
         { position: { x: 9, y: 5 }, type: TileType.EXPRESS_CONVEYOR, direction: Direction.RIGHT },
         { position: { x: 10, y: 5 }, type: TileType.EXPRESS_CONVEYOR, direction: Direction.RIGHT },
         { position: { x: 11, y: 5 }, type: TileType.EXPRESS_CONVEYOR, direction: Direction.RIGHT },
-
-        // Bottom horizontal express conveyor row (going LEFT)
         { position: { x: 0, y: 6 }, type: TileType.EXPRESS_CONVEYOR, direction: Direction.LEFT },
         { position: { x: 1, y: 6 }, type: TileType.EXPRESS_CONVEYOR, direction: Direction.LEFT },
         { position: { x: 2, y: 6 }, type: TileType.EXPRESS_CONVEYOR, direction: Direction.LEFT },
@@ -51,88 +42,72 @@ export const EXCHANGE_FACTORY_FLOOR_TEST: BoardDefinition = {
         { position: { x: 9, y: 6 }, type: TileType.EXPRESS_CONVEYOR, direction: Direction.LEFT },
         { position: { x: 10, y: 6 }, type: TileType.EXPRESS_CONVEYOR, direction: Direction.LEFT },
         { position: { x: 11, y: 6 }, type: TileType.EXPRESS_CONVEYOR, direction: Direction.LEFT },
-
-        // BLUE REGULAR CONVEYORS from the image
-
-        // Top-right vertical blue conveyors (going DOWN)
         { position: { x: 8, y: 1 }, type: TileType.CONVEYOR, direction: Direction.DOWN },
         { position: { x: 8, y: 2 }, type: TileType.CONVEYOR, direction: Direction.DOWN },
         { position: { x: 8, y: 3 }, type: TileType.CONVEYOR, direction: Direction.DOWN },
         { position: { x: 8, y: 4 }, type: TileType.CONVEYOR, direction: Direction.DOWN },
-
         { position: { x: 9, y: 1 }, type: TileType.CONVEYOR, direction: Direction.DOWN },
         { position: { x: 9, y: 2 }, type: TileType.CONVEYOR, direction: Direction.DOWN },
         { position: { x: 9, y: 3 }, type: TileType.CONVEYOR, direction: Direction.DOWN },
         { position: { x: 9, y: 4 }, type: TileType.CONVEYOR, direction: Direction.DOWN },
-
         { position: { x: 10, y: 1 }, type: TileType.CONVEYOR, direction: Direction.DOWN },
         { position: { x: 10, y: 2 }, type: TileType.CONVEYOR, direction: Direction.DOWN },
         { position: { x: 10, y: 3 }, type: TileType.CONVEYOR, direction: Direction.DOWN },
         { position: { x: 10, y: 4 }, type: TileType.CONVEYOR, direction: Direction.DOWN },
-
-        // Top-right horizontal blue conveyors (going RIGHT)  
         { position: { x: 11, y: 1 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
         { position: { x: 11, y: 2 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
         { position: { x: 11, y: 3 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
         { position: { x: 11, y: 4 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
-
-        // Bottom-right vertical blue conveyors (going UP)
         { position: { x: 8, y: 7 }, type: TileType.CONVEYOR, direction: Direction.RIGHT, rotate: 'clockwise' },
         { position: { x: 8, y: 8 }, type: TileType.CONVEYOR, direction: Direction.UP },
         { position: { x: 8, y: 9 }, type: TileType.CONVEYOR, direction: Direction.UP },
         { position: { x: 8, y: 10 }, type: TileType.CONVEYOR, direction: Direction.UP },
-
         { position: { x: 9, y: 8 }, type: TileType.CONVEYOR, direction: Direction.UP },
         { position: { x: 9, y: 9 }, type: TileType.CONVEYOR, direction: Direction.UP },
         { position: { x: 9, y: 10 }, type: TileType.CONVEYOR, direction: Direction.UP },
         { position: { x: 9, y: 11 }, type: TileType.CONVEYOR, direction: Direction.UP },
-
         { position: { x: 10, y: 7 }, type: TileType.CONVEYOR, direction: Direction.UP },
         { position: { x: 10, y: 8 }, type: TileType.CONVEYOR, direction: Direction.UP },
         { position: { x: 10, y: 9 }, type: TileType.CONVEYOR, direction: Direction.UP },
         { position: { x: 10, y: 10 }, type: TileType.CONVEYOR, direction: Direction.UP },
         { position: { x: 10, y: 11 }, type: TileType.CONVEYOR, direction: Direction.UP },
-
-        // Left side regular conveyors
         { position: { x: 0, y: 2 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
         { position: { x: 1, y: 2 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
         { position: { x: 2, y: 2 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
-
         { position: { x: 0, y: 3 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
         { position: { x: 1, y: 3 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
         { position: { x: 2, y: 3 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
-
-        // Left side bottom conveyors
         { position: { x: 0, y: 8 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
         { position: { x: 1, y: 8 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
         { position: { x: 2, y: 8 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
-
         { position: { x: 0, y: 9 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
         { position: { x: 1, y: 9 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
         { position: { x: 2, y: 9 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
-
-        // GEAR TILES (rotating elements visible in corners)
         { position: { x: 11, y: 11 }, type: TileType.GEAR_CCW },
         { position: { x: 1, y: 11 }, type: TileType.GEAR_CW },
         { position: { x: 11, y: 1 }, type: TileType.GEAR_CCW },
-
-        // REPAIR SITES (wrench symbols visible in image)
         { position: { x: 5, y: 2 }, type: TileType.REPAIR },
-        { position: { x: 7, y: 9 }, type: TileType.REPAIR }
+        { position: { x: 7, y: 9 }, type: TileType.REPAIR },
+        { position: { x: 3, y: 10 }, type: TileType.PUSHER, direction: Direction.DOWN, registers: [2, 4] },
+        { position: { x: 6, y: 10 }, type: TileType.PUSHER, direction: Direction.DOWN, registers: [1, 3, 5] },
+        { position: { x: 7, y: 7 }, type: TileType.PUSHER, direction: Direction.RIGHT, registers: [1, 3, 5] },
+        { position: { x: 3, y: 4 }, type: TileType.PUSHER, direction: Direction.RIGHT, registers: [2, 4] },
+        { position: { x: 6, y: 1 }, type: TileType.PUSHER, direction: Direction.UP, registers: [2, 4] },
+        { position: { x: 6, y: 0 }, type: TileType.PUSHER, direction: Direction.DOWN, registers: [1, 3, 5] },
     ],
+
     lasers: [
-        // Laser emitters from edges (red lines in image)
         { position: { x: 4, y: 0 }, direction: Direction.DOWN, damage: 1 },
         { position: { x: 0, y: 7 }, direction: Direction.RIGHT, damage: 1 },
-        { position: { x: 11, y: 9 }, direction: Direction.LEFT, damage: 1 }
+        { position: { x: 11, y: 9 }, direction: Direction.LEFT, damage: 1 },
     ],
+
     walls: [
-        // Walls around critical areas and edges
         { position: { x: 3, y: 1 }, sides: [Direction.UP] },
         { position: { x: 6, y: 1 }, sides: [Direction.UP] },
         { position: { x: 3, y: 10 }, sides: [Direction.DOWN] },
         { position: { x: 6, y: 10 }, sides: [Direction.DOWN] },
         { position: { x: 7, y: 7 }, sides: [Direction.RIGHT] },
-        { position: { x: 4, y: 4 }, sides: [Direction.LEFT] }
-    ]
+        { position: { x: 4, y: 4 }, sides: [Direction.LEFT] },
+    ],
 };

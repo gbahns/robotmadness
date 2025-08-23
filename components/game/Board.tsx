@@ -5,6 +5,7 @@ import Robot from './Robot';
 import { socketClient } from '@/lib/socket';
 import { getTileAt as getCanonicalTileAt } from '@/lib/game/tile-utils';
 import { Board as BoardType } from '@/lib/game/types';
+import { Pit, ConveyorBelt, Gear, RepairSite, Pusher } from './board-elements';
 
 
 interface BoardProps {
@@ -449,214 +450,55 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
 
       // Conveyor belts
       if (tile.type === 'conveyor' || tile.type === 'express') {
-        const isExpress = tile.type === 'express';
-        const color = isExpress ? 'bg-blue-400' : 'bg-yellow-600';
-        const arrowRotation = (tile.direction || 0) * 90;
-
         elements.push(
-          <div key="conveyor" className={`absolute inset-1 ${color} rounded-sm flex items-center justify-center`}>
-            {isExpress && !tile.rotate ? (
-              // Express conveyor with double arrows back-to-back
-              <div
-                className="relative flex items-center justify-center"
-                style={{
-                  transform: `rotate(${arrowRotation}deg)`,
-                  width: '100%',
-                  height: '100%'
-                }}
-              >
-                {/* First arrow */}
-                <svg
-                  className="text-gray-900 absolute"
-                  style={{
-                    width: `${arrowSize * 0.85}px`,
-                    height: `${arrowSize * 0.85}px`,
-                    transform: `translateY(${arrowSize * 0.35}px)`
-                  }}
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M12 2 L20 12 L16 12 L16 20 L8 20 L8 12 L4 12 Z" />
-                </svg>
-                {/* Second arrow */}
-                <svg
-                  className="text-gray-900 absolute"
-                  style={{
-                    width: `${arrowSize * 0.85}px`,
-                    height: `${arrowSize * 0.85}px`,
-                    transform: `translateY(-${arrowSize * 0.35}px)`
-                  }}
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M12 2 L20 12 L16 12 L16 20 L8 20 L8 12 L4 12 Z" />
-                </svg>
-              </div>
-            ) : isExpress && tile.rotate ? (
-              // Rotating EXPRESS conveyor - curved arrow plus straight entry arrow
-              <svg
-                className="text-gray-900"
-                style={{
-                  transform: `rotate(${arrowRotation - 90}deg)`,
-                  width: `${tileSize}px`,
-                  height: `${tileSize}px`,
-                }}
-                fill="currentColor"
-                viewBox="-8 -8 40 40"
-              >
-                {tile.rotate === 'clockwise' ? (
-                  // Clockwise rotation - enters from bottom, curves right
-                  <g>
-                    <path d="M12 24 Q12 12 24 12"
-                      fill="none" stroke="currentColor" strokeWidth="6" />
-                    <path d="M21 5 L31 12 L21 19 Z" />
-                    {/* Straight arrow entering from bottom - pointing up (narrower) */}
-                    <path d="M12 14 L6 24 L9 24 L9 32 L15 32 L15 24 L18 24 Z" />
-                  </g>
-                ) : (
-                  // Counter-clockwise rotation - enters from right, exits up (which becomes down after rotation)
-                  <g>
-                    <path d="M24 12 Q12 12 12 0"
-                      fill="none" stroke="currentColor" strokeWidth="6" />
-                    <path d="M19 5 L29 12 L19 19 Z" />
-                    {/* Arrow pointing up from top - after rotation will point left from right (narrower) */}
-                    <path d="M12 10 L6 0 L9 0 L9 -8 L15 -8 L15 0 L18 0 Z" />
-                  </g>
-                )}
-              </svg>
-            ) : tile.rotate ? (
-              // Rotating conveyor with curved arrow
-              <svg
-                className="text-gray-900"
-                style={{
-                  transform: `rotate(${arrowRotation - 90}deg)`,
-                  width: `${tileSize}px`,
-                  height: `${tileSize}px`,
-                }}
-                fill="currentColor"
-                viewBox="-8 -8 40 40"
-              >
-                {/* <rect x="-8" y="-8" width="40" height="40" fill="none" stroke="red" strokeWidth="1" /> */}
-                {tile.rotate === 'clockwise' ? (
-                  // Clockwise rotation - enters from bottom, curves right
-                  <g>
-                    <path d="M12 24 Q12 12 24 12"
-                      fill="none" stroke="currentColor" strokeWidth="8" />
-                    <path d="M21 5 L31 12 L21 19 Z" />
-                  </g>
-                ) : (
-                  // Counter-clockwise rotation - enters from right, exits up
-                  <g>
-                    <path d="M24 12 Q12 12 12 0"
-                      fill="none" stroke="currentColor" strokeWidth="8" />
-                    <path d="M19 5 L29 12 L19 19 Z" />
-                  </g>
-                )}
-              </svg>
-            ) : (
-              // Regular straight conveyor arrow
-              <svg
-                className="text-gray-900"
-                style={{
-                  transform: `rotate(${arrowRotation}deg)`,
-                  width: `${arrowSize}px`,
-                  height: `${arrowSize}px`
-                }}
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path d="M12 2 L20 12 L16 12 L16 20 L8 20 L8 12 L4 12 Z" />
-              </svg>
-            )}
-          </div>
+          <ConveyorBelt
+            key="conveyor"
+            type={tile.type === 'express' ? 'express' : 'conveyor'}
+            direction={tile.direction || 0}
+            rotate={tile.rotate === 'counterclockwise' ? 'counter-clockwise' : tile.rotate === 'clockwise' ? 'clockwise' : undefined}
+            tileSize={tileSize}
+          />
         );
       }
 
-      // ADD this after the existing conveyor belt rendering code (around line 215):
 
       // Pits
       if (tile.type === 'pit') {
         elements.push(
-          <div key="pit" className="absolute inset-0 bg-black opacity-80 flex items-center justify-center">
-            <div className="text-gray-600" style={{ fontSize: `${fontSize * 1.5}px` }}>⚫</div>
-          </div>
+          <Pit key="pit" tileSize={tileSize} />
         );
       }
 
       // Repair sites
       if (tile.type === 'repair') {
         elements.push(
-          <div key="repair" className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-yellow-600 rounded-full p-1" style={{ width: `${tileSize * 0.75}px`, height: `${tileSize * 0.75}px` }}>
-              <div className="bg-yellow-500 rounded-full w-full h-full flex items-center justify-center">
-                <span style={{ fontSize: `${fontSize * 1.4}px`, filter: 'grayscale(100%) brightness(0%)' }}>🔧</span>
-              </div>
-            </div>
-          </div>
+          <RepairSite key="repair" type="repair" tileSize={tileSize} />
         );
       }
 
       // Option sites
       if (tile.type === 'option') {
         elements.push(
-          <div key="option" className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-purple-600 rounded-full p-1" style={{ width: `${tileSize * 0.75}px`, height: `${tileSize * 0.75}px` }}>
-              <div className="bg-purple-500 rounded-full w-full h-full flex items-center justify-center">
-                <span style={{ fontSize: `${fontSize * 1.4}px` }}>🛠️</span>
-              </div>
-            </div>
-          </div>
+          <RepairSite key="option" type="option" tileSize={tileSize} />
         );
       }
 
       // Gears
       if (tile.type === 'gear_cw' || tile.type === 'gear_ccw') {
-        const isClockwise = tile.type === 'gear_cw';
         elements.push(
-          <div key="gear" className="absolute inset-0 flex items-center justify-center">
-            <div
-              className="text-gray-300"
-              style={{
-                fontSize: `${tileSize * 0.95}px`,
-                transform: `rotate(${isClockwise ? '0deg' : '180deg'})`,
-                textShadow: '1px 1px 0 black, -1px -1px 0 black, 1px -1px 0 black, -1px 1px 0 black'
-              }}
-            >
-              ⚙
-            </div>
-            <div
-              className="absolute font-black"
-              style={{
-                fontSize: `${fontSize * 1.5}px`,
-                color: isClockwise ? '#166534' : '#991b1b'
-              }}
-            >
-              {isClockwise ? '↻' : '↺'}
-            </div>
-          </div>
+          <Gear key="gear" type={tile.type} tileSize={tileSize} />
         );
       }
 
       // Pushers
       if (tile.type === 'pusher') {
         elements.push(
-          <div key="pusher" className="absolute inset-0">
-            {/* Register indicators */}
-            {(tile as any).registers && (tile as any).registers.length > 0 && (
-              <div
-                className="absolute text-sm text-yellow-300 font-bold bg-black bg-opacity-80 px-2 py-1 rounded"
-                style={{
-                  // Position based on pusher direction
-                  ...(tile.direction === 0 && { bottom: '2px', left: '50%', transform: 'translateX(-50%)' }), // UP - bar at bottom
-                  ...(tile.direction === 1 && { left: '-6px', top: '50%', transform: 'translateY(-50%) rotate(-90deg)' }), // RIGHT - bar at left edge, rotated CCW
-                  ...(tile.direction === 2 && { top: '2px', left: '50%', transform: 'translateX(-50%)' }), // DOWN - bar at top
-                  ...(tile.direction === 3 && { right: '0px', top: '50%', transform: 'translateY(-50%) rotate(90deg)' }) // LEFT - bar at right edge, rotated
-                }}
-              >
-                {(tile as any).registers.join(',')}
-              </div>
-            )}
-          </div>
+          <Pusher 
+            key="pusher"
+            direction={tile.direction || 0}
+            registers={(tile as any).registers}
+            tileSize={tileSize}
+          />
         );
       }
 

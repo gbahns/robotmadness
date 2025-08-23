@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { BoardDefinition, TileElement, LaserElement, WallElement, StartingPosition, TileType, Direction, Course } from '@/lib/game/types';
+import { BoardDefinition, TileElement, LaserElement, WallElement, StartingPosition as StartingPosType, TileType, Direction, Board, Checkpoint } from '@/lib/game/types';
 import {
     validateBoardDefinition,
     createEmptyBoard,
@@ -12,8 +12,9 @@ import {
     exportToTypeScript
 } from '@/lib/game/board-editor-utils';
 import { BOARD_TEMPLATES, TEMPLATE_CATEGORIES, getTemplateById } from '@/lib/game/board-templates';
-import { buildCourse, ALL_COURSES, getCourseById } from '@/lib/game/courses/courses';
 import { ALL_BOARD_DEFINITIONS, getBoardDefinitionById } from '@/lib/game/board-utils';
+import { RepairSite, ConveyorBelt, Gear, Pit, Pusher, LaserEmitter, StartingPosition, Wall } from '@/components/game/board-elements';
+import BoardRenderer from '@/components/game/BoardRenderer';
 
 // Tile palette for placing elements
 const TILE_PALETTE = [
@@ -47,14 +48,77 @@ export default function BoardEditorWithGameRendering() {
     const [selectedDirection, setSelectedDirection] = useState<Direction>(Direction.UP);
     const [selectedRotation, setSelectedRotation] = useState<'none' | 'clockwise' | 'counterclockwise'>('none');
     const [showGrid, setShowGrid] = useState(true);
+    const [showCoordinates, setShowCoordinates] = useState(false);
     const [showValidation, setShowValidation] = useState(false);
     const [showTemplates, setShowTemplates] = useState(false);
     const [showGameBoards, setShowGameBoards] = useState(false);
     const [isDrawing, setIsDrawing] = useState(false);
     const [history, setHistory] = useState<BoardDefinition[]>([createEmptyBoard()]);
     const [historyIndex, setHistoryIndex] = useState(0);
-    const [tileSize, setTileSize] = useState(50);
+    // Tile size will be calculated by BoardRenderer
+    const [calculatedTileSize, setCalculatedTileSize] = useState(50);
     const [hoveredTile, setHoveredTile] = useState<{ x: number; y: number; side?: Direction } | null>(null);
+
+    // Convert BoardDefinition to Board type for BoardRenderer
+    const convertToBoard = (def: BoardDefinition): Board => {
+        // Create a 2D array for tiles
+        const tiles: any[][] = [];
+        
+        // Initialize empty 2D array
+        for (let y = 0; y < def.height; y++) {
+            tiles[y] = [];
+            for (let x = 0; x < def.width; x++) {
+                tiles[y][x] = undefined;
+            }
+        }
+        
+        // Place tiles from BoardDefinition into 2D array
+        if (def.tiles) {
+            def.tiles.forEach(tile => {
+                const x = tile.position.x;
+                const y = tile.position.y;
+                if (y >= 0 && y < def.height && x >= 0 && x < def.width) {
+                    tiles[y][x] = {
+                        type: tile.type,
+                        direction: (tile as any).direction,
+                        rotate: (tile as any).rotate,
+                        registers: (tile as any).registers,
+                        walls: (tile as any).walls || []
+                    };
+                }
+            });
+        }
+        
+        console.log(`Converting board with ${def.tiles?.length || 0} tile definitions into ${def.width}x${def.height} grid`);
+
+        // Add walls to tiles
+        if (def.walls && def.walls.length > 0) {
+            console.log('Processing walls:', def.walls);
+            def.walls.forEach(wallElement => {
+                const x = wallElement.position.x;
+                const y = wallElement.position.y;
+                console.log(`Adding walls at (${x},${y}): sides`, wallElement.sides);
+                if (y >= 0 && y < def.height && x >= 0 && x < def.width) {
+                    if (!tiles[y][x]) {
+                        tiles[y][x] = { type: 0 }; // Empty tile
+                    }
+                    tiles[y][x].walls = wallElement.sides;
+                    console.log(`Tile at (${x},${y}) now has walls:`, tiles[y][x].walls);
+                }
+            });
+        } else {
+            console.log('No walls in board definition');
+        }
+
+        return {
+            width: def.width,
+            height: def.height,
+            tiles,
+            lasers: def.lasers || [],
+            startingPositions: def.startingPositions || [],
+            walls: def.walls || []
+        };
+    };
 
     // Add to history when board changes
     const addToHistory = useCallback((newBoard: BoardDefinition) => {
@@ -110,7 +174,7 @@ export default function BoardEditorWithGameRendering() {
         return boardDef.tiles?.find(tile => tile.position.x === x && tile.position.y === y);
     };
 
-    const getStartingPositionAt = (x: number, y: number): StartingPosition | undefined => {
+    const getStartingPositionAt = (x: number, y: number): StartingPosType | undefined => {
         return boardDef.startingPositions.find(pos => pos.position.x === x && pos.position.y === y);
     };
 
@@ -133,6 +197,7 @@ export default function BoardEditorWithGameRendering() {
     }, [addToHistory]);
 
     const placeTile = useCallback((x: number, y: number) => {
+        console.log(`placeTile called at (${x}, ${y}) with type: ${selectedTileType}`);
         updateBoard(prev => {
             const newTiles = prev.tiles?.filter(tile => !(tile.position.x === x && tile.position.y === y)) || [];
 
@@ -159,6 +224,13 @@ export default function BoardEditorWithGameRendering() {
                     if (selectedRotation === 'counterclockwise') {
                         newTile.type = TileType.GEAR_CCW;
                     }
+                }
+
+                // Add registers for pushers based on rotation selection
+                if (selectedTileType === TileType.PUSHER) {
+                    // Use rotation to determine odd/even registers
+                    (newTile as any).registers = selectedRotation === 'counterclockwise' ? [2, 4] : [1, 3, 5];
+                    console.log('Placing pusher with registers:', (newTile as any).registers);
                 }
 
                 newTiles.push(newTile);
@@ -229,8 +301,9 @@ export default function BoardEditorWithGameRendering() {
                 }];
             }
 
-            console.log(`Wall toggle at (${x},${y}) side ${Direction[side]}:`);
-            console.log('Current walls:', newWalls.filter(w => w.position.x === x && w.position.y === y));
+            console.log(`Wall toggle at (${x},${y}) side ${Direction[side]} (value: ${side}):`);
+            console.log('All walls in board:', newWalls);
+            console.log('Walls at this position:', newWalls.filter(w => w.position.x === x && w.position.y === y));
 
             return { ...prev, walls: newWalls };
         });
@@ -242,7 +315,7 @@ export default function BoardEditorWithGameRendering() {
 
             const nextNumber = Math.max(0, ...prev.startingPositions.map(p => p.number)) + 1;
 
-            const newStartingPosition: StartingPosition = {
+            const newStartingPosition: StartingPosType = {
                 number: nextNumber,
                 position: { x, y },
                 direction: selectedDirection
@@ -254,6 +327,7 @@ export default function BoardEditorWithGameRendering() {
     }, [selectedDirection, updateBoard]);
 
     const handleTileClick = useCallback((x: number, y: number, event?: React.MouseEvent) => {
+        console.log(`handleTileClick called at (${x}, ${y}) with tool: ${selectedTool}`);
         switch (selectedTool) {
             case 'tile':
                 placeTile(x, y);
@@ -269,22 +343,22 @@ export default function BoardEditorWithGameRendering() {
 
                     let side: Direction;
                     // More precise edge detection
-                    const edgeThreshold = tileSize * 0.3; // 30% from edges
+                    const edgeThreshold = calculatedTileSize * 0.3; // 30% from edges
 
                     if (relativeY < edgeThreshold) {
                         side = Direction.UP;
-                    } else if (relativeY > tileSize - edgeThreshold) {
+                    } else if (relativeY > calculatedTileSize - edgeThreshold) {
                         side = Direction.DOWN;
                     } else if (relativeX < edgeThreshold) {
                         side = Direction.LEFT;
-                    } else if (relativeX > tileSize - edgeThreshold) {
+                    } else if (relativeX > calculatedTileSize - edgeThreshold) {
                         side = Direction.RIGHT;
                     } else {
                         // Default to top if clicking in center
                         side = Direction.UP;
                     }
 
-                    console.log(`Wall click at (${x},${y}) - relative pos: (${relativeX.toFixed(1)}, ${relativeY.toFixed(1)}) - side: ${Direction[side]} - tile size: ${tileSize}`);
+                    console.log(`Wall click at (${x},${y}) - relative pos: (${relativeX.toFixed(1)}, ${relativeY.toFixed(1)}) - side: ${Direction[side]} (value: ${side}) - tile size: ${calculatedTileSize}`);
                     toggleWall(x, y, side);
                 }
                 break;
@@ -292,11 +366,15 @@ export default function BoardEditorWithGameRendering() {
                 placeStartingPosition(x, y);
                 break;
         }
-    }, [selectedTool, placeTile, placeLaser, toggleWall, placeStartingPosition, tileSize]);
+    }, [selectedTool, placeTile, placeLaser, toggleWall, placeStartingPosition, calculatedTileSize]);
 
     const handleMouseDown = (x: number, y: number, event: React.MouseEvent) => {
         setIsDrawing(true);
-        handleTileClick(x, y, event);
+        // Only handle tile placement on mouse down for drawing tiles
+        // Walls are handled by click only to avoid double-toggling
+        if (selectedTool === 'tile') {
+            handleTileClick(x, y, event);
+        }
     };
 
     const handleMouseMove = (x: number, y: number, event: React.MouseEvent) => {
@@ -316,15 +394,15 @@ export default function BoardEditorWithGameRendering() {
             const relativeY = event.clientY - rect.top;
             
             let side: Direction;
-            const edgeThreshold = tileSize * 0.3;
+            const edgeThreshold = calculatedTileSize * 0.3;
             
             if (relativeY < edgeThreshold) {
                 side = Direction.UP;
-            } else if (relativeY > tileSize - edgeThreshold) {
+            } else if (relativeY > calculatedTileSize - edgeThreshold) {
                 side = Direction.DOWN;
             } else if (relativeX < edgeThreshold) {
                 side = Direction.LEFT;
-            } else if (relativeX > tileSize - edgeThreshold) {
+            } else if (relativeX > calculatedTileSize - edgeThreshold) {
                 side = Direction.RIGHT;
             } else {
                 side = Direction.UP;
@@ -350,36 +428,39 @@ export default function BoardEditorWithGameRendering() {
                     // Show empty tile preview
                     return <div className="absolute inset-0 bg-gray-500 opacity-50" />;
                 }
-                // Show tile preview
-                const previewStyle: React.CSSProperties = {};
                 
-                if (selectedTileType === TileType.PIT) {
-                    return <div className="absolute inset-0 bg-black opacity-50 rounded-lg" />;
-                } else if (selectedTileType === TileType.REPAIR) {
-                    return <div className="absolute inset-0 bg-green-500 opacity-50" />;
-                } else if (selectedTileType === TileType.OPTION) {
-                    return <div className="absolute inset-0 bg-yellow-500 opacity-50" />;
-                } else if (selectedTileType === TileType.CONVEYOR || selectedTileType === TileType.EXPRESS_CONVEYOR) {
-                    const arrows = ['↑', '→', '↓', '←'];
-                    return (
-                        <div className={`absolute inset-0 ${selectedTileType === TileType.EXPRESS_CONVEYOR ? 'bg-orange-500' : 'bg-blue-500'} opacity-50 flex items-center justify-center`}>
-                            <span className="text-white text-2xl font-bold">{arrows[selectedDirection]}</span>
-                        </div>
-                    );
-                } else if (selectedTileType === TileType.GEAR_CW) {
-                    return (
-                        <div className="absolute inset-0 bg-purple-500 opacity-50 flex items-center justify-center">
-                            <span className="text-white text-xl">⚙️</span>
-                        </div>
-                    );
-                } else if (selectedTileType === TileType.PUSHER) {
-                    const arrows = ['↑', '→', '↓', '←'];
-                    return (
-                        <div className="absolute inset-0 bg-red-500 opacity-50 flex items-center justify-center">
-                            <span className="text-white text-2xl font-bold">{arrows[selectedDirection]}</span>
-                        </div>
-                    );
-                }
+                // Use actual components for preview with opacity
+                return (
+                    <div className="absolute inset-0 opacity-60 pointer-events-none">
+                        {selectedTileType === TileType.PIT && (
+                            <Pit tileSize={calculatedTileSize} />
+                        )}
+                        {(selectedTileType === TileType.REPAIR || selectedTileType === TileType.OPTION) && (
+                            <RepairSite type={selectedTileType} tileSize={calculatedTileSize} />
+                        )}
+                        {(selectedTileType === TileType.CONVEYOR || selectedTileType === TileType.EXPRESS_CONVEYOR) && (
+                            <ConveyorBelt 
+                                type={selectedTileType === TileType.EXPRESS_CONVEYOR ? 'express' : 'conveyor'}
+                                direction={selectedDirection}
+                                rotate={selectedRotation === 'clockwise' ? 'clockwise' : selectedRotation === 'counterclockwise' ? 'counter-clockwise' : undefined}
+                                tileSize={calculatedTileSize}
+                            />
+                        )}
+                        {(selectedTileType === TileType.GEAR_CW || selectedTileType === TileType.GEAR_CCW) && (
+                            <Gear 
+                                type={selectedRotation === 'counterclockwise' ? TileType.GEAR_CCW : TileType.GEAR_CW} 
+                                tileSize={calculatedTileSize} 
+                            />
+                        )}
+                        {selectedTileType === TileType.PUSHER && (
+                            <Pusher 
+                                direction={selectedDirection}
+                                registers={[1, 3, 5]} // Default to odd registers for preview
+                                tileSize={calculatedTileSize}
+                            />
+                        )}
+                    </div>
+                );
                 break;
                 
             case 'wall':
@@ -387,36 +468,53 @@ export default function BoardEditorWithGameRendering() {
                     const walls = getWallsAt(x, y);
                     const hasWall = walls.includes(hoveredTile.side);
                     
-                    // Show preview of wall toggle
-                    const wallStyles: Record<Direction, React.CSSProperties> = {
-                        [Direction.UP]: { top: 0, left: 0, right: 0, height: '4px' },
-                        [Direction.DOWN]: { bottom: 0, left: 0, right: 0, height: '4px' },
-                        [Direction.LEFT]: { top: 0, left: 0, bottom: 0, width: '4px' },
-                        [Direction.RIGHT]: { top: 0, right: 0, bottom: 0, width: '4px' }
-                    };
-                    
-                    return (
-                        <div 
-                            className={`absolute ${hasWall ? 'bg-red-500' : 'bg-green-500'} opacity-70`}
-                            style={wallStyles[hoveredTile.side]}
-                        />
-                    );
+                    // Show preview of wall toggle using the Wall component
+                    if (hasWall) {
+                        // Show red indicator for removal
+                        const wallStyles: Record<Direction, React.CSSProperties> = {
+                            [Direction.UP]: { top: 0, left: 0, right: 0, height: '4px' },
+                            [Direction.DOWN]: { bottom: 0, left: 0, right: 0, height: '4px' },
+                            [Direction.LEFT]: { top: 0, left: 0, bottom: 0, width: '4px' },
+                            [Direction.RIGHT]: { top: 0, right: 0, bottom: 0, width: '4px' }
+                        };
+                        return (
+                            <div 
+                                className="absolute bg-red-500 opacity-70"
+                                style={wallStyles[hoveredTile.side]}
+                            />
+                        );
+                    } else {
+                        // Show wall preview using actual Wall component
+                        return (
+                            <div className="absolute inset-0 opacity-60 pointer-events-none">
+                                <Wall directions={[hoveredTile.side]} tileSize={calculatedTileSize} />
+                            </div>
+                        );
+                    }
                 }
                 break;
                 
             case 'laser':
-                const directionArrows = ['↑', '→', '↓', '←'];
                 return (
-                    <div className="absolute inset-0 bg-red-600 opacity-50 flex items-center justify-center">
-                        <span className="text-white text-2xl font-bold">{directionArrows[selectedDirection]}</span>
+                    <div className="absolute inset-0 opacity-60 pointer-events-none">
+                        <LaserEmitter 
+                            direction={selectedDirection}
+                            damage={1}
+                            tileSize={calculatedTileSize}
+                        />
                     </div>
                 );
                 
             case 'start':
-                const startArrows = ['↑', '→', '↓', '←'];
+                // Find next available starting position number
+                const existingNumbers = boardDef.startingPositions.map(sp => sp.number);
+                const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
                 return (
-                    <div className="absolute inset-0 bg-cyan-500 opacity-50 flex items-center justify-center">
-                        <span className="text-white text-2xl font-bold">{startArrows[selectedDirection]}</span>
+                    <div className="absolute inset-0 opacity-60 pointer-events-none">
+                        <StartingPosition 
+                            number={nextNumber}
+                            tileSize={calculatedTileSize}
+                        />
                     </div>
                 );
         }
@@ -424,341 +522,54 @@ export default function BoardEditorWithGameRendering() {
         return null;
     };
 
-    // Using the same tile rendering logic as the game's Board component
-    const getTileContent = (x: number, y: number): React.ReactElement[] => {
-        const tile = getTileAt(x, y);
-        const walls = getWallsAt(x, y);
-        const elements: React.ReactElement[] = [];
-
-        // Base tile (using the same style as the game)
-        elements.push(
-            <div key="base" className="absolute inset-0 border border-gray-600 bg-gray-400" />
-        );
-
-        // Add tile-specific elements (matching the game's implementation)
-        if (tile) {
-            // Conveyor belts (using the exact same logic as the game's Board component)
-            if (tile.type === TileType.CONVEYOR || tile.type === TileType.EXPRESS_CONVEYOR) {
-                const isExpress = tile.type === TileType.EXPRESS_CONVEYOR;
-                const color = isExpress ? 'bg-blue-400' : 'bg-yellow-600';
-                const arrowRotation = (tile.direction || 0) * 90;
-                const arrowSize = Math.max(12, tileSize * 0.5);
-
-                elements.push(
-                    <div key="conveyor" className={`absolute inset-1 ${color} rounded-sm flex items-center justify-center`}>
-                        {isExpress && !tile.rotate ? (
-                            // Express conveyor with double arrows back-to-back
-                            <div
-                                className="relative flex items-center justify-center"
-                                style={{
-                                    transform: `rotate(${arrowRotation}deg)`,
-                                    width: '100%',
-                                    height: '100%'
-                                }}
-                            >
-                                {/* First arrow */}
-                                <svg
-                                    className="text-gray-900 absolute"
-                                    style={{
-                                        width: `${arrowSize * 0.85}px`,
-                                        height: `${arrowSize * 0.85}px`,
-                                        transform: `translateY(${arrowSize * 0.35}px)`
-                                    }}
-                                    fill="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path d="M12 2 L20 12 L16 12 L16 20 L8 20 L8 12 L4 12 Z" />
-                                </svg>
-                                {/* Second arrow */}
-                                <svg
-                                    className="text-gray-900 absolute"
-                                    style={{
-                                        width: `${arrowSize * 0.85}px`,
-                                        height: `${arrowSize * 0.85}px`,
-                                        transform: `translateY(-${arrowSize * 0.35}px)`
-                                    }}
-                                    fill="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path d="M12 2 L20 12 L16 12 L16 20 L8 20 L8 12 L4 12 Z" />
-                                </svg>
-                            </div>
-                        ) : isExpress && tile.rotate ? (
-                            // Rotating EXPRESS conveyor - curved arrow plus straight entry arrow (matching game rendering)
-                            <svg
-                                className="text-gray-900"
-                                style={{
-                                    transform: `rotate(${arrowRotation - 90}deg)`,
-                                    width: `${tileSize}px`,
-                                    height: `${tileSize}px`,
-                                }}
-                                fill="currentColor"
-                                viewBox="-8 -8 40 40"
-                            >
-                                {tile.rotate === 'clockwise' ? (
-                                    // Clockwise rotation - enters from bottom, curves right
-                                    <g>
-                                        <path d="M12 24 Q12 12 24 12"
-                                            fill="none" stroke="currentColor" strokeWidth="6" />
-                                        <path d="M21 5 L31 12 L21 19 Z" />
-                                        {/* Straight arrow entering from bottom - pointing up (narrower) */}
-                                        <path d="M12 14 L6 24 L9 24 L9 32 L15 32 L15 24 L18 24 Z" />
-                                    </g>
-                                ) : (
-                                    // Counter-clockwise rotation - enters from right, exits up (which becomes down after rotation)
-                                    <g>
-                                        <path d="M24 12 Q12 12 12 0"
-                                            fill="none" stroke="currentColor" strokeWidth="6" />
-                                        <path d="M19 5 L29 12 L19 19 Z" />
-                                        {/* Arrow pointing up from top - after rotation will point left from right (narrower) */}
-                                        <path d="M12 10 L6 0 L9 0 L9 -8 L15 -8 L15 0 L18 0 Z" />
-                                    </g>
-                                )}
-                            </svg>
-                        ) : tile.rotate ? (
-                            // Rotating conveyor with curved arrow (matching game rendering)
-                            <svg
-                                className="text-gray-900"
-                                style={{
-                                    transform: `rotate(${arrowRotation - 90}deg)`,
-                                    width: `${tileSize}px`,
-                                    height: `${tileSize}px`,
-                                }}
-                                fill="currentColor"
-                                viewBox="-8 -8 40 40"
-                            >
-                                {tile.rotate === 'clockwise' ? (
-                                    // Clockwise rotation - enters from bottom, curves right
-                                    <g>
-                                        <path d="M12 24 Q12 12 24 12"
-                                            fill="none" stroke="currentColor" strokeWidth="8" />
-                                        <path d="M21 5 L31 12 L21 19 Z" />
-                                    </g>
-                                ) : (
-                                    // Counter-clockwise rotation - enters from right, exits up
-                                    <g>
-                                        <path d="M24 12 Q12 12 12 0"
-                                            fill="none" stroke="currentColor" strokeWidth="8" />
-                                        <path d="M19 5 L29 12 L19 19 Z" />
-                                    </g>
-                                )}
-                            </svg>
-                        ) : (
-                            // Regular straight conveyor arrow
-                            <svg
-                                className="text-gray-900"
-                                style={{
-                                    transform: `rotate(${arrowRotation}deg)`,
-                                    width: `${arrowSize}px`,
-                                    height: `${arrowSize}px`
-                                }}
-                                fill="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path d="M12 2 L20 12 L16 12 L16 20 L8 20 L8 12 L4 12 Z" />
-                            </svg>
-                        )}
-                    </div>
-                );
-            }
-
-            // Gears
-            if (tile.type === TileType.GEAR_CW || tile.type === TileType.GEAR_CCW) {
-                const isClockwise = tile.type === TileType.GEAR_CW;
-                elements.push(
-                    <div key="gear" className="absolute inset-1 bg-purple-500 rounded-full flex items-center justify-center">
-                        <div className="text-white text-lg font-bold">
-                            {isClockwise ? '↻' : '↺'}
-                        </div>
-                    </div>
-                );
-            }
-
-            // Pits
-            if (tile.type === TileType.PIT) {
-                elements.push(
-                    <div key="pit" className="absolute inset-0 bg-black flex items-center justify-center">
-                        <div className="absolute inset-1 border-4 border-yellow-400 border-dashed bg-black"></div>
-                    </div>
-                );
-            }
-
-            // Repair sites
-            if (tile.type === TileType.REPAIR) {
-                elements.push(
-                    <div key="repair" className="absolute inset-1 bg-green-600 rounded-sm flex items-center justify-center">
-                        <div className="text-white text-lg font-bold">🔧</div>
-                    </div>
-                );
-            }
-
-            // Option sites
-            if (tile.type === TileType.OPTION) {
-                elements.push(
-                    <div key="option" className="absolute inset-1 bg-blue-600 rounded-sm flex items-center justify-center">
-                        <div className="text-white text-lg font-bold">?</div>
-                    </div>
-                );
-            }
-
-            // Pushers
-            if (tile.type === TileType.PUSHER) {
-                const arrowRotation = (tile.direction || 0) * 90;
-                elements.push(
-                    <div key="pusher" className="absolute inset-1 bg-red-600 rounded-sm flex items-center justify-center">
-                        <div
-                            className="text-white text-lg font-bold"
-                            style={{ transform: `rotate(${arrowRotation}deg)` }}
-                        >
-                            ⤴
-                        </div>
-                    </div>
-                );
-            }
-        }
-
-        // Walls (using the same wall rendering as the game)
-        if (walls.length > 0) {
-            const wallThickness = Math.max(3, Math.floor(tileSize * 0.08));
-
-            walls.forEach(direction => {
-                let wallStyle: React.CSSProperties = {
-                    position: 'absolute',
-                    backgroundColor: '#fbbf24', // yellow-400
-                    zIndex: 10,
-                };
-
-                switch (direction) {
-                    case Direction.UP:
-                        wallStyle = {
-                            ...wallStyle,
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            height: `${wallThickness}px`,
-                        };
-                        break;
-                    case Direction.RIGHT:
-                        wallStyle = {
-                            ...wallStyle,
-                            top: 0,
-                            right: 0,
-                            bottom: 0,
-                            width: `${wallThickness}px`,
-                        };
-                        break;
-                    case Direction.DOWN:
-                        wallStyle = {
-                            ...wallStyle,
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            height: `${wallThickness}px`,
-                        };
-                        break;
-                    case Direction.LEFT:
-                        wallStyle = {
-                            ...wallStyle,
-                            top: 0,
-                            left: 0,
-                            bottom: 0,
-                            width: `${wallThickness}px`,
-                        };
-                        break;
-                }
-
-                elements.push(
-                    <div
-                        key={`wall-${direction}`}
-                        style={wallStyle}
-                    />
-                );
-            });
-        }
-
-        // Starting positions (using the same style as the game)
-        const startingPosition = getStartingPositionAt(x, y);
-        if (startingPosition) {
-            elements.push(
-                <div key="starting-pos" className="absolute inset-0">
-                    <div className="absolute inset-0 bg-green-600 opacity-30" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <div
-                            className="bg-white text-black font-bold rounded-full flex items-center justify-center shadow-lg border-2 border-green-600"
-                            style={{
-                                width: tileSize * 0.6,
-                                height: tileSize * 0.6,
-                                fontSize: tileSize * 0.3
-                            }}
-                        >
-                            {startingPosition.number}
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
-        // Laser source indicator (small red dot)
-        const laser = getLaserAt(x, y);
-        if (laser) {
-            elements.push(
-                <div key="laser" className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-white" />
-            );
-        }
-
-        return elements;
-    };
-
-    const renderTile = (x: number, y: number) => {
-        const tileContent = getTileContent(x, y);
-        const previewContent = getPreviewContent(x, y);
-
-        return (
-            <div
-                key={`${x}-${y}`}
-                className="relative cursor-pointer"
-                style={{ width: tileSize, height: tileSize }}
-                onMouseDown={(e) => handleMouseDown(x, y, e)}
-                onMouseMove={(e) => {
-                    handleMouseMove(x, y, e);
-                    if (selectedTool === 'wall') {
-                        handleMouseEnter(x, y, e);
-                    }
-                }}
-                onMouseEnter={(e) => handleMouseEnter(x, y, e)}
-                onMouseLeave={handleMouseLeave}
-                onMouseUp={handleMouseUp}
-                title={`(${x}, ${y})`}
-            >
-                {tileContent}
-
-                {/* Preview overlay - shows what will happen on click */}
-                {previewContent}
-
-                {/* Grid coordinates overlay */}
-                {showGrid && tileSize >= 30 && (
-                    <div className="absolute top-0 left-0 text-xs text-gray-800 bg-white bg-opacity-75 px-1 rounded-br leading-none pointer-events-none z-10">
-                        {x},{y}
-                    </div>
-                )}
-            </div>
-        );
-    };
+    // getTileContent and renderTile removed - now handled by BoardRenderer
 
     const renderBoard = () => {
-        const rows = [];
-        for (let y = 0; y < boardDef.height; y++) {
-            const cols = [];
-            for (let x = 0; x < boardDef.width; x++) {
-                cols.push(renderTile(x, y));
-            }
-            rows.push(
-                <div key={y} className="flex">
-                    {cols}
-                </div>
-            );
-        }
-        return rows;
+        const board = convertToBoard(boardDef);
+        
+        // Create checkpoints array - BoardDefinition doesn't have checkpoints
+        const checkpoints: Checkpoint[] = [];
+        
+        return (
+            <BoardRenderer
+                board={board}
+                checkpoints={checkpoints}
+                startingPositions={boardDef.startingPositions || []}
+                editMode={true}
+                showGrid={showGrid}
+                showCoordinates={showCoordinates}
+                hoveredTile={hoveredTile ? { x: hoveredTile.x, y: hoveredTile.y } : undefined}
+                selectedTool={selectedTool}
+                previewElement={getPreviewContent(hoveredTile?.x || 0, hoveredTile?.y || 0)}
+                onTileClick={handleTileClick}
+                onTileMouseDown={selectedTool === 'tile' ? handleMouseDown : undefined}
+                onTileMouseEnter={handleMouseEnter}
+                onTileMouseMove={(x, y, e) => {
+                    handleMouseMove(x, y, e);
+                    if (selectedTool === 'wall') {
+                        // Determine which side of the tile the mouse is on
+                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                        const relativeX = e.clientX - rect.left;
+                        const relativeY = e.clientY - rect.top;
+                        const tileWidth = rect.width;
+                        const tileHeight = rect.height;
+                        
+                        let side: Direction | undefined;
+                        const edgeThreshold = 0.3;
+                        
+                        if (relativeY < tileHeight * edgeThreshold) side = Direction.UP;
+                        else if (relativeY > tileHeight * (1 - edgeThreshold)) side = Direction.DOWN;
+                        else if (relativeX < tileWidth * edgeThreshold) side = Direction.LEFT;
+                        else if (relativeX > tileWidth * (1 - edgeThreshold)) side = Direction.RIGHT;
+                        
+                        setHoveredTile({ x, y, side });
+                    }
+                }}
+                onTileMouseUp={handleMouseUp}
+                onTileMouseLeave={handleMouseLeave}
+                onTileSizeChange={setCalculatedTileSize}
+            />
+        );
     };
 
     // Other utility functions (export, import, templates, etc.)
@@ -782,37 +593,7 @@ export default function BoardEditorWithGameRendering() {
     };
 
     const loadGameBoard = (boardId: string) => {
-        // First try to get it as a board definition
-        let boardDefinition = getBoardDefinitionById(boardId);
-
-        // If not found as individual board, try to get it from a course
-        if (!boardDefinition) {
-            const course = ALL_COURSES.find(c => c.id === boardId);
-            if (course) {
-                try {
-                    const builtCourse = buildCourse(course);
-                    // Convert the built course board back to a board definition
-                    boardDefinition = {
-                        id: course.id,
-                        name: course.name,
-                        width: builtCourse.board.width,
-                        height: builtCourse.board.height,
-                        startingPositions: builtCourse.board.startingPositions,
-                        tiles: extractTilesFromBoard(builtCourse.board),
-                        lasers: builtCourse.board.lasers?.map(laser => ({
-                            position: laser.position,
-                            direction: laser.direction as Direction,
-                            damage: laser.damage
-                        })),
-                        walls: builtCourse.board.walls
-                    };
-                } catch (error) {
-                    console.error('Error loading course:', error);
-                    return;
-                }
-            }
-        }
-
+        const boardDefinition = getBoardDefinitionById(boardId);
         if (boardDefinition) {
             const newBoard = cloneBoardDefinition(boardDefinition);
             setBoardDef(newBoard);
@@ -820,38 +601,6 @@ export default function BoardEditorWithGameRendering() {
         }
     };
 
-    // Helper function to extract tiles from a built board
-    const extractTilesFromBoard = (board: Course['board']): TileElement[] => {
-        const tiles: TileElement[] = [];
-
-        for (let y = 0; y < board.height; y++) {
-            for (let x = 0; x < board.width; x++) {
-                const tile = board.tiles[y]?.[x];
-                if (tile && tile.type !== TileType.EMPTY) {
-                    const tileElement: TileElement = {
-                        position: { x, y },
-                        type: tile.type,
-                    };
-
-                    if (tile.direction !== undefined) {
-                        tileElement.direction = tile.direction;
-                    }
-
-                    if (tile.rotate) {
-                        tileElement.rotate = tile.rotate;
-                    }
-
-                    if (tile.registers) {
-                        tileElement.registers = tile.registers;
-                    }
-
-                    tiles.push(tileElement);
-                }
-            }
-        }
-
-        return tiles;
-    };
 
     const exportBoard = () => {
         const dataStr = JSON.stringify(boardDef, null, 2);
@@ -1021,60 +770,26 @@ export default function BoardEditorWithGameRendering() {
                 )}
 
                 {/* Game Boards Panel */}
-                {
-                    showGameBoards && (
-                        <div className="bg-gray-800 p-4 rounded-lg mb-6">
-                            <h3 className="text-lg font-semibold mb-3">Load Game Boards</h3>
-
-                            {/* Courses */}
-                            <div className="mb-4">
-                                <h4 className="text-md font-medium mb-2">Official Courses</h4>
-                                <p className="text-sm text-gray-400 mb-2">Complete courses with checkpoints and multiple boards</p>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                    {ALL_COURSES.map(course => (
-                                        <button
-                                            key={course.id}
-                                            onClick={() => loadGameBoard(course.id)}
-                                            className="p-3 bg-gray-700 hover:bg-gray-600 rounded text-sm text-left"
-                                        >
-                                            <div className="font-medium">{course.name}</div>
-                                            <div className="text-xs text-gray-400 mt-1">{course.description}</div>
-                                            <div className="text-xs text-gray-500 mt-1">
-                                                <span className={`inline-block px-2 py-1 rounded mr-2 ${course.difficulty === 'beginner' ? 'bg-green-900 text-green-300' :
-                                                    course.difficulty === 'intermediate' ? 'bg-yellow-900 text-yellow-300' :
-                                                        'bg-red-900 text-red-300'
-                                                    }`}>
-                                                    {course.difficulty}
-                                                </span>
-                                                {course.minPlayers}-{course.maxPlayers} players
-                                            </div>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Individual Boards */}
-                            <div>
-                                <h4 className="text-md font-medium mb-2">Individual Board Definitions</h4>
-                                <p className="text-sm text-gray-400 mb-2">Raw board layouts from the game files</p>
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                                    {ALL_BOARD_DEFINITIONS.map(board => (
-                                        <button
-                                            key={board.id}
-                                            onClick={() => loadGameBoard(board.id)}
-                                            className="p-2 bg-gray-700 hover:bg-gray-600 rounded text-sm text-left"
-                                        >
-                                            <div className="font-medium text-xs">{board.name}</div>
-                                            <div className="text-xs text-gray-500 mt-1">
-                                                {board.width}×{board.height} • {board.startingPositions.length} starts
-                                            </div>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
+                {showGameBoards && (
+                    <div className="bg-gray-800 p-4 rounded-lg mb-6">
+                        <h3 className="text-lg font-semibold mb-3">Load Game Boards</h3>
+                        <p className="text-sm text-gray-400 mb-2">Raw board layouts from the game files</p>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                            {ALL_BOARD_DEFINITIONS.map(board => (
+                                <button
+                                    key={board.id}
+                                    onClick={() => loadGameBoard(board.id)}
+                                    className="p-2 bg-gray-700 hover:bg-gray-600 rounded text-sm text-left"
+                                >
+                                    <div className="font-medium text-xs">{board.name}</div>
+                                    <div className="text-xs text-gray-500 mt-1">
+                                        {board.width}×{board.height} • {board.startingPositions.length} starts
+                                    </div>
+                                </button>
+                            ))}
                         </div>
-                    )
-                } <button
+                    </div>
+                )} <button
                     onClick={() => setShowGameBoards(!showGameBoards)}
                     className="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-sm"
                 >
@@ -1120,21 +835,17 @@ export default function BoardEditorWithGameRendering() {
                             <div className="flex justify-between items-center mb-4">
                                 <h2 className="text-xl font-semibold">Board: {boardDef.name}</h2>
                                 <div className="flex gap-2 items-center">
-                                    <label className="text-sm">Zoom:</label>
-                                    <input
-                                        type="range"
-                                        min="20"
-                                        max="80"
-                                        value={tileSize}
-                                        onChange={(e) => setTileSize(parseInt(e.target.value))}
-                                        className="w-20"
-                                    />
-                                    <span className="text-xs w-8">{tileSize}px</span>
                                     <button
                                         onClick={() => setShowGrid(!showGrid)}
                                         className={`px-2 py-1 rounded text-sm ${showGrid ? 'bg-blue-600' : 'bg-gray-600'}`}
                                     >
                                         Grid
+                                    </button>
+                                    <button
+                                        onClick={() => setShowCoordinates(!showCoordinates)}
+                                        className={`px-2 py-1 rounded text-sm ${showCoordinates ? 'bg-blue-600' : 'bg-gray-600'}`}
+                                    >
+                                        Coords
                                     </button>
                                     <button
                                         onClick={clearBoard}
@@ -1145,10 +856,8 @@ export default function BoardEditorWithGameRendering() {
                                 </div>
                             </div>
 
-                            <div className="overflow-auto border border-gray-600 p-2 bg-gray-700" style={{ maxHeight: '70vh' }}>
-                                <div className="inline-block" onMouseLeave={handleMouseUp}>
-                                    {renderBoard()}
-                                </div>
+                            <div className="relative border border-gray-600 bg-gray-700 overflow-hidden" style={{ height: 'calc(70vh - 100px)' }} onMouseLeave={handleMouseUp}>
+                                {renderBoard()}
                             </div>
 
                             {/* Board Stats */}
@@ -1253,20 +962,26 @@ export default function BoardEditorWithGameRendering() {
                                 )}
 
                             {/* Rotation Selection */}
-                            {(selectedTool === 'tile' && (selectedTileType === TileType.CONVEYOR || selectedTileType === TileType.EXPRESS_CONVEYOR || selectedTileType === TileType.GEAR_CW)) && (
+                            {(selectedTool === 'tile' && (selectedTileType === TileType.CONVEYOR || selectedTileType === TileType.EXPRESS_CONVEYOR || selectedTileType === TileType.GEAR_CW || selectedTileType === TileType.PUSHER)) && (
                                 <div className="mb-3">
                                     <label className="block text-sm font-medium mb-2">
-                                        {selectedTileType === TileType.GEAR_CW ? 'Rotation' : 'Curve'}
+                                        {selectedTileType === TileType.GEAR_CW ? 'Rotation' : 
+                                         selectedTileType === TileType.PUSHER ? 'Registers' : 'Curve'}
                                     </label>
                                     <div className="grid grid-cols-1 gap-1">
-                                        {ROTATION_OPTIONS.map(({ value, name, icon }) => {
+                                        {(selectedTileType === TileType.PUSHER ? 
+                                            [
+                                                { value: 'none', name: 'Odd (1,3,5)', icon: '1️⃣' },
+                                                { value: 'counterclockwise', name: 'Even (2,4)', icon: '2️⃣' }
+                                            ] : ROTATION_OPTIONS
+                                        ).map(({ value, name, icon }) => {
                                             // For gears, don't show 'none' option
                                             if (selectedTileType === TileType.GEAR_CW && value === 'none') return null;
 
                                             return (
                                                 <button
                                                     key={value}
-                                                    onClick={() => setSelectedRotation(value)}
+                                                    onClick={() => setSelectedRotation(value as 'none' | 'clockwise' | 'counterclockwise')}
                                                     className={`px-2 py-1 rounded text-sm flex items-center gap-2 ${selectedRotation === value ? 'bg-blue-600' : 'bg-gray-600 hover:bg-gray-500'}`}
                                                 >
                                                     <span>{icon}</span>

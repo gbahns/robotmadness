@@ -327,6 +327,9 @@ export class GameEngine {
         // Execute all 5 registers
         await this.executeRegisters(gameState, gameState.roomCode);
         //console.log('Registers executed, moving to cleanup phase...');
+        
+        // If game ended during register execution, don't continue
+        if ((gameState.phase as GamePhase) === GamePhase.ENDED) return;
 
         // Respawn any dead robots and check if we need to wait for their decisions
         const needToWaitForRespawnDecisions = this.respawnDeadRobots(gameState);
@@ -387,6 +390,9 @@ export class GameEngine {
     }
 
     async endTurn(gameState: ServerGameState): Promise<void> {
+        // Don't end turn if game has already ended
+        if (gameState.phase === GamePhase.ENDED) return;
+        
         console.log('Ending turn and dealing cards for next turn');
 
         // Execute repairs at the end of the turn (robots on repair sites get healed)
@@ -425,6 +431,9 @@ export class GameEngine {
     }
 
     async executeRegister(gameState: ServerGameState, registerIndex: number): Promise<void> {
+        // Don't execute register if game has ended
+        if (gameState.phase === GamePhase.ENDED) return;
+        
         console.log(`Executing register ${registerIndex + 1}`);
         const programmedCards: Array<{ playerId: string; card: ProgramCard; player: Player }> = [];
 
@@ -697,6 +706,9 @@ export class GameEngine {
     }
 
     async executeBoardElements(gameState: ServerGameState) {
+        // Don't execute board elements if game has ended
+        if (gameState.phase === GamePhase.ENDED) return;
+        
         console.log('Executing board elements...');
         await this.executeConveyorBelts(gameState, true, false);
         await this.executeConveyorBelts(gameState, true, true);
@@ -1003,6 +1015,7 @@ export class GameEngine {
                 // Check if player has won
                 if (player.checkpointsVisited === gameState.course.definition.checkpoints.length) {
                     gameState.winner = player.name;
+                    gameState.phase = GamePhase.ENDED;
                     console.log(`${player.name} wins the game!`);
                     this.io.to(gameState.roomCode).emit('game-over', { winner: player.name });
                 }
@@ -1033,6 +1046,7 @@ export class GameEngine {
         if (playersAlive.length === 1 && Object.keys(gameState.players).length > 1) {
             const winner = playersAlive[0];
             gameState.winner = winner.name;
+            gameState.phase = GamePhase.ENDED;
             console.log(`${winner.name} wins by being the last robot standing!`);
             this.io.to(gameState.roomCode).emit('game-over', { winner: winner.name });
         }
