@@ -127,7 +127,7 @@ export default function RobotLaserAnimation({ players, activeLasers, tileSize }:
                         left: `${explosionX}px`,
                         top: `${explosionY}px`,
                         transform: 'translate(-50%, -50%)',
-                        zIndex: 25
+                        zIndex: 45
                     }}
                 >
                     {/* Explosion burst effect */}

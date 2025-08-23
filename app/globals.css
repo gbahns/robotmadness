@@ -131,3 +131,15 @@ body {
     opacity: 0;
   }
 }
+
+@keyframes fadeUp {
+  0% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-30px);
+  }
+}

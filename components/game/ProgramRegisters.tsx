@@ -116,12 +116,6 @@ export default function ProgramRegisters({
         })}
       </div>
 
-      {isSubmitted && phase !== 'executing' && (
-        <div className="mt-4 text-center text-green-400">
-          ✓ Program submitted! Waiting for other players...
-        </div>
-      )}
-
       {phase === 'executing' && (
         <div className="mt-4 text-center text-yellow-400">
           <div className="text-lg font-semibold">

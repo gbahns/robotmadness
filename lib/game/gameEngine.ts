@@ -365,9 +365,6 @@ export class GameEngine {
             // Execute board elements after player cards have been executed for this register phase
             await this.executeBoardElements(gameState);
 
-            // Execute repairs after each register (robots on repair sites get healed)
-            await this.executeRepairs(gameState);
-
             // Broadcast updated game state after each register
             this.io.to(gameState.roomCode).emit('game-state', gameState);
 
@@ -391,6 +388,9 @@ export class GameEngine {
 
     async endTurn(gameState: ServerGameState): Promise<void> {
         console.log('Ending turn and dealing cards for next turn');
+
+        // Execute repairs at the end of the turn (robots on repair sites get healed)
+        await this.executeRepairs(gameState);
 
         for (const playerId in gameState.players) {
             const player = gameState.players[playerId];

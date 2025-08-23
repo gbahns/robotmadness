@@ -47,6 +47,7 @@ interface ClientToServerEvents {
     'toggle-power-down': (data: { roomCode: string; playerId: string; selectedCards: (ProgramCard | null)[] }) => void;
     'continue-power-down': (data: { roomCode: string; playerId: string; continueDown: boolean }) => void;
     'respawn-decision': (data: { roomCode: string; playerId: string; powerDown: boolean; direction: Direction }) => void;
+    'respawn-preview': (data: { roomCode: string; playerId: string; direction: Direction }) => void;
 }
 
 interface InterServerEvents { }
@@ -369,6 +370,24 @@ app.prepare().then(() => {
                     gameEngine.proceedWithDealingCards(gameState);
                     io.to(roomCode).emit('game-state', gameState);
                 }
+            }
+        });
+
+        // Handle respawn preview - update robot position and direction for preview
+        socket.on('respawn-preview', ({ roomCode, playerId, direction }) => {
+            const gameState = games.get(roomCode);
+            if (!gameState) return;
+
+            const player = gameState.players[playerId];
+            if (!player) return;
+
+            // Place robot at archive position with selected direction for preview
+            if (player.lives <= 0 || (player as any).awaitingRespawn) {
+                player.position = { ...player.archiveMarker };
+                player.direction = direction;
+                
+                // Broadcast updated game state to all players so they see the robot
+                io.to(roomCode).emit('game-state', gameState);
             }
         });
 

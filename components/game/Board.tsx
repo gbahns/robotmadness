@@ -968,7 +968,7 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
 
     // Only show explosions during execution phase
     //const shouldShowExplosions = gameState?.phase === 'executing';
-    const shouldShowExplosions = false;
+    const shouldShowExplosions = true;
 
     beams.forEach((beam, beamIndex) => {
       // Skip robot lasers if handled by RobotLaserAnimation
@@ -1134,7 +1134,7 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
               left: `${explosionX}px`,
               top: `${explosionY}px`,
               transform: 'translate(-50%, -50%)',
-              zIndex: 15
+              zIndex: 40
             }}
           >
             {/* Explosion burst */}
@@ -1152,23 +1152,24 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
               }}
             />
 
-            {/* Impact core */}
+            {/* Impact core - Yellow explosion */}
             <div
               className="absolute"
               style={{
-                width: isRobotHit ? '30px' : '20px',
-                height: isRobotHit ? '30px' : '20px',
+                width: isRobotHit ? '40px' : '20px',
+                height: isRobotHit ? '40px' : '20px',
                 left: '50%',
                 top: '50%',
                 transform: 'translate(-50%, -50%)',
                 background: isRobotHit
-                  ? 'radial-gradient(circle, rgba(255,255,0,0.8) 0%, rgba(255,0,0,0.6) 50%, transparent 100%)'
+                  ? 'radial-gradient(circle, rgba(255,255,0,1) 0%, rgba(255,200,0,0.8) 40%, rgba(255,150,0,0.4) 70%, transparent 100%)'
                   : 'radial-gradient(circle, rgba(255,255,0,0.8) 0%, rgba(255,165,0,0.6) 50%, transparent 100%)',
                 borderRadius: '50%',
                 boxShadow: isRobotHit
-                  ? '0 0 20px rgba(255, 0, 0, 0.8), 0 0 40px rgba(255, 255, 0, 0.6)'
+                  ? '0 0 30px rgba(255, 255, 0, 1), 0 0 50px rgba(255, 200, 0, 0.8)'
                   : '0 0 15px rgba(255, 165, 0, 0.8)',
-                animation: 'explosionCore 0.5s ease-out forwards'
+                animation: 'explosionCore 0.5s ease-out forwards',
+                zIndex: 41  // Put yellow core above red burst
               }}
             />
           </div>

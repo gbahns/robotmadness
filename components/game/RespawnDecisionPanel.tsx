@@ -33,6 +33,28 @@ export default function RespawnDecisionPanel({
     onComplete
 }: RespawnDecisionPanelProps) {
     const [selectedDirection, setSelectedDirection] = useState<Direction>(Direction.UP);
+    
+    // Emit respawn preview when direction changes or on mount
+    React.useEffect(() => {
+        if (isRespawn) {
+            socketClient.emit('respawn-preview', {
+                roomCode,
+                playerId,
+                direction: selectedDirection
+            });
+        }
+    }, [selectedDirection, isRespawn, roomCode, playerId]);
+    
+    // Send initial preview on mount for respawn
+    React.useEffect(() => {
+        if (isRespawn) {
+            socketClient.emit('respawn-preview', {
+                roomCode,
+                playerId,
+                direction: Direction.UP
+            });
+        }
+    }, []);
 
     const handleDecision = (powerDown: boolean) => {
         console.log(`${playerName} chooses to ${powerDown ? 'enter powered down' : 'stay powered on'} ${isRespawn ? `facing ${Direction[selectedDirection]}` : ''}`);
