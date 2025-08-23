@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { socketClient } from '@/lib/socket';
 import { Player } from '@/lib/game/types';
 import { ALL_COURSES, getCourseById } from '@/lib/game/courses/courses';
@@ -28,9 +28,46 @@ export default function GameControls({
   onPowerDownDecision
 }: GameControlsProps) {
   const [internalSelectedCourse, setInternalSelectedCourse] = useState<string>('test');
-  const [timerMode, setTimerMode] = useState<'players-submitted' | 'players-remaining'>('players-remaining');
-  const [timerThreshold, setTimerThreshold] = useState(1);
-  const [timerDuration, setTimerDuration] = useState(30);
+  const [timerMode, setTimerMode] = useState<'players-submitted' | 'players-remaining'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('timerMode');
+      return saved === 'players-submitted' ? 'players-submitted' : 'players-remaining';
+    }
+    return 'players-remaining';
+  });
+  const [timerThreshold, setTimerThreshold] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('timerThreshold');
+      return saved ? Math.max(1, parseInt(saved)) : 1;
+    }
+    return 1;
+  });
+  const [timerDuration, setTimerDuration] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('timerDuration');
+      return saved ? Math.max(10, Math.min(120, parseInt(saved))) : 30;
+    }
+    return 30;
+  });
+
+  // Save timer settings to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('timerMode', timerMode);
+    }
+  }, [timerMode]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('timerThreshold', timerThreshold.toString());
+    }
+  }, [timerThreshold]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('timerDuration', timerDuration.toString());
+    }
+  }, [timerDuration]);
 
   // Use external course if provided, otherwise use internal state
   const selectedCourse = externalSelectedCourse || internalSelectedCourse;
