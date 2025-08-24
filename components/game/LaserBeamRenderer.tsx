@@ -25,14 +25,14 @@ export const calculateLaserBeamPath = (
   
   const direction = Number(laser.direction);
   
+  // Start from the laser source tile itself
+  path.push({ x: currentX, y: currentY });
+  
   // Check if laser is blocked by wall at source
   const walls = getWallsAt(currentX, currentY);
   if (walls.includes(direction)) {
-    return []; // Laser blocked immediately
+    return path; // Laser blocked immediately but still show on source tile
   }
-  
-  // Start from the laser source tile itself
-  path.push({ x: currentX, y: currentY });
   
   // Move to next tile
   currentX += dx[direction];
@@ -80,8 +80,10 @@ const LaserBeamRenderer: React.FC<LaserBeamRendererProps> = ({
       const path = calculateLaserBeamPath(laser, boardWidth, boardHeight, getWallsAt);
       const direction = Number(laser.direction);
       const isHorizontal = direction === 1 || direction === 3;
-      const isDoubleLaser = laser.damage > 1;
+      const isTripleLaser = laser.damage >= 3;
+      const isDoubleLaser = laser.damage === 2;
       const beamWidth = isDoubleLaser ? 8 : 4;
+      
       
       path.forEach((pos, pathIndex) => {
         let left = pos.x * tileSize;
@@ -114,26 +116,32 @@ const LaserBeamRenderer: React.FC<LaserBeamRendererProps> = ({
           }
         }
         
-        // Center the beam within the tile
-        if (isHorizontal) {
-          top += (tileSize - beamWidth) / 2;
-        } else {
-          left += (tileSize - beamWidth) / 2;
+        // Center the beam within the tile for single lasers
+        if (!isTripleLaser && !isDoubleLaser) {
+          if (isHorizontal) {
+            top += (tileSize - beamWidth) / 2;
+          } else {
+            left += (tileSize - beamWidth) / 2;
+          }
         }
         
-        if (laser.damage >= 3) {
-          // Triple laser - 3 parallel beams
-          const spacing = 5;
+        if (isTripleLaser) {
+          // Triple laser - render 3 beams with perpendicular offset
+          const beamSpacing = 10;
           const singleBeamWidth = 2;
           
-          allBeams.push(
-            <React.Fragment key={`laser-${laserIndex}-${pathIndex}`}>
-              {/* First beam */}
+          // Center beam should be at tile center
+          const tileCenter = tileSize / 2;
+          
+          for (let i = -1; i <= 1; i++) {
+            const offset = i * beamSpacing;
+            allBeams.push(
               <div
+                key={`laser-${laserIndex}-${pathIndex}-beam${i}`}
                 className="absolute animate-pulse pointer-events-none"
                 style={{
-                  left: isHorizontal ? `${left}px` : `${left - spacing}px`,
-                  top: isHorizontal ? `${top - spacing}px` : `${top}px`,
+                  left: isHorizontal ? `${left}px` : `${left + tileCenter - singleBeamWidth/2 + offset}px`,
+                  top: isHorizontal ? `${top + tileCenter - singleBeamWidth/2 + offset}px` : `${top}px`,
                   width: isHorizontal ? `${beamLength}px` : `${singleBeamWidth}px`,
                   height: isHorizontal ? `${singleBeamWidth}px` : `${beamLength}px`,
                   backgroundColor: 'rgba(220, 38, 38, 0.7)',
@@ -141,45 +149,25 @@ const LaserBeamRenderer: React.FC<LaserBeamRendererProps> = ({
                   zIndex: 15
                 }}
               />
-              {/* Middle beam */}
-              <div
-                className="absolute animate-pulse pointer-events-none"
-                style={{
-                  left: `${left}px`,
-                  top: `${top}px`,
-                  width: isHorizontal ? `${beamLength}px` : `${singleBeamWidth}px`,
-                  height: isHorizontal ? `${singleBeamWidth}px` : `${beamLength}px`,
-                  backgroundColor: 'rgba(220, 38, 38, 0.7)',
-                  boxShadow: '0 0 4px rgba(220, 38, 38, 0.8)',
-                  zIndex: 15
-                }}
-              />
-              {/* Third beam */}
-              <div
-                className="absolute animate-pulse pointer-events-none"
-                style={{
-                  left: isHorizontal ? `${left}px` : `${left + spacing}px`,
-                  top: isHorizontal ? `${top + spacing}px` : `${top}px`,
-                  width: isHorizontal ? `${beamLength}px` : `${singleBeamWidth}px`,
-                  height: isHorizontal ? `${singleBeamWidth}px` : `${beamLength}px`,
-                  backgroundColor: 'rgba(220, 38, 38, 0.7)',
-                  boxShadow: '0 0 4px rgba(220, 38, 38, 0.8)',
-                  zIndex: 15
-                }}
-              />
-            </React.Fragment>
-          );
-        } else if (isDoubleLaser && laser.damage >= 2) {
-          const spacing = 6;
+            );
+          }
+        } else if (isDoubleLaser) {
+          // Double laser - render 2 beams with perpendicular offset
+          const beamSpacing = 10;
           const singleBeamWidth = 3;
           
-          allBeams.push(
-            <React.Fragment key={`laser-${laserIndex}-${pathIndex}`}>
+          // Center the group of beams
+          const centerOffset = (tileSize - beamSpacing) / 2;
+          
+          for (let i = 0; i <= 1; i++) {
+            const offset = i * beamSpacing;
+            allBeams.push(
               <div
+                key={`laser-${laserIndex}-${pathIndex}-beam${i}`}
                 className="absolute animate-pulse pointer-events-none"
                 style={{
-                  left: isHorizontal ? `${left}px` : `${left - spacing/2}px`,
-                  top: isHorizontal ? `${top - spacing/2}px` : `${top}px`,
+                  left: isHorizontal ? `${left}px` : `${left + centerOffset + offset}px`,
+                  top: isHorizontal ? `${top + centerOffset + offset}px` : `${top}px`,
                   width: isHorizontal ? `${beamLength}px` : `${singleBeamWidth}px`,
                   height: isHorizontal ? `${singleBeamWidth}px` : `${beamLength}px`,
                   backgroundColor: 'rgba(220, 38, 38, 0.7)',
@@ -187,20 +175,8 @@ const LaserBeamRenderer: React.FC<LaserBeamRendererProps> = ({
                   zIndex: 15
                 }}
               />
-              <div
-                className="absolute animate-pulse pointer-events-none"
-                style={{
-                  left: isHorizontal ? `${left}px` : `${left + spacing/2}px`,
-                  top: isHorizontal ? `${top + spacing/2}px` : `${top}px`,
-                  width: isHorizontal ? `${beamLength}px` : `${singleBeamWidth}px`,
-                  height: isHorizontal ? `${singleBeamWidth}px` : `${beamLength}px`,
-                  backgroundColor: 'rgba(220, 38, 38, 0.7)',
-                  boxShadow: '0 0 4px rgba(220, 38, 38, 0.8)',
-                  zIndex: 15
-                }}
-              />
-            </React.Fragment>
-          );
+            );
+          }
         } else {
           allBeams.push(
             <div
