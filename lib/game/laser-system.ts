@@ -1,4 +1,4 @@
-import { GameState, Player, Position, Course, GamePhase } from './types';
+import { GameState, Player, Position, Course } from './types';
 import { getTileAt } from './tile-utils';
 
 export interface LaserSource {

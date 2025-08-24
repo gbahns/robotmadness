@@ -9,7 +9,6 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 export default function CourseViewerPage() {  // Renamed from BoardViewerPage
     const [selectedCourseId, setSelectedCourseId] = useState<string>('');
     const [course, setCourse] = useState<CourseType | null>(null);
-    const [showDebug, setShowDebug] = useState(false);
     const [loadError, setLoadError] = useState<string | null>(null);
 
     // Get all course IDs from ALL_COURSES
@@ -20,7 +19,7 @@ export default function CourseViewerPage() {  // Renamed from BoardViewerPage
         if (courseIds.length > 0 && !selectedCourseId) {
             setSelectedCourseId(courseIds[0]);
         }
-    }, []);
+    }, [courseIds, selectedCourseId]);
 
     useEffect(() => {
         if (selectedCourseId) {
@@ -146,7 +145,7 @@ export default function CourseViewerPage() {  // Renamed from BoardViewerPage
                         <Course
                             courseId={selectedCourseId}
                             players={{}}
-                            gameState={{ phase: 'viewing' }}
+                            gameState={undefined}
                         />
                     </div>
                 ) : (

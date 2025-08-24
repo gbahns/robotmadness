@@ -1,0 +1,134 @@
+
+> robotmadness-online@0.1.0 build
+> next build && npm run db:generate
+
+   ▲ Next.js 15.4.5
+   - Environments: .env.local, .env
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 1000ms
+   Linting and checking validity of types ...
+
+./app/board-editor/page.tsx
+269:11  Warning: 'getTileAt' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+273:11  Warning: 'getStartingPositionAt' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+277:11  Warning: 'getLaserAt' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+337:8  Warning: React Hook useCallback has a missing dependency: 'selectedItem.tool'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./app/board-viewer/page.tsx
+24:8  Warning: React Hook useEffect has missing dependencies: 'boardIds' and 'selectedBoardId'. Either include them or remove the dependency array.  react-hooks/exhaustive-deps
+
+./app/course-viewer/page.tsx
+22:8  Warning: React Hook useEffect has missing dependencies: 'courseIds' and 'selectedCourseId'. Either include them or remove the dependency array.  react-hooks/exhaustive-deps
+
+./app/game/[roomCode]/page.tsx
+36:10  Warning: 'executionMessage' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+41:10  Warning: 'previewBoard' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/game/board-elements/Tile.tsx
+55:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+56:32  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+75:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+76:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/game/Board.tsx
+22:7  Warning: 'DIRECTION_ARROWS' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+35:7  Warning: Unexpected var, use let or const instead.  no-var
+37:7  Warning: Unexpected var, use let or const instead.  no-var
+85:6  Warning: React Hook useEffect has a missing dependency: 'onTileSizeChange'. Either include it or remove the dependency array. If 'onTileSizeChange' changes too often, find the parent component that defines it and wrap that definition in useCallback.  react-hooks/exhaustive-deps
+162:11  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+171:31  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+171:51  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+245:9  Warning: 'getAllLaserBeams' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+250:36  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+349:9  Warning: 'checkpointSize' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+350:9  Warning: 'arrowSize' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+351:9  Warning: 'fontSize' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+499:33  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+813:36  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/game/BoardPreview.tsx
+18:37  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+32:44  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+39:38  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/game/BoardRenderer.tsx
+62:10  Warning: 'fontSize' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+168:46  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+259:36  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/game/Course.tsx
+13:17  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/game/ExecutionLog.tsx
+17:5  Warning: Unexpected var, use let or const instead.  no-var
+
+./components/game/LoadingStates.tsx
+59:17  Warning: Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+
+./components/game/ProgrammingControls.tsx
+19:5  Warning: 'onSubmitCards' is defined but never used.  @typescript-eslint/no-unused-vars
+23:11  Warning: 'canSubmit' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/game/RespawnDecisionPanel.tsx
+57:8  Warning: React Hook React.useEffect has missing dependencies: 'isRespawn', 'playerId', and 'roomCode'. Either include them or remove the dependency array.  react-hooks/exhaustive-deps
+
+./components/game/RobotLaserAnimation.tsx
+20:7  Warning: 'isRobotLaserBlocked' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+20:55  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/game/board-editor-utils.ts
+4:27  Warning: 'TileElement' is defined but never used.  @typescript-eslint/no-unused-vars
+4:40  Warning: 'LaserElement' is defined but never used.  @typescript-eslint/no-unused-vars
+4:54  Warning: 'WallElement' is defined but never used.  @typescript-eslint/no-unused-vars
+4:67  Warning: 'StartingPosition' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./lib/game/boards/docking-bay/docking-bay-2.ts
+2:21  Warning: 'TileType' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./lib/game/boards/test.ts
+1:38  Warning: 'TileType' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./lib/game/constants.ts
+3:20  Warning: 'ProgramCard' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./lib/game/courses/courses.ts
+1:93  Warning: 'Tile' is defined but never used.  @typescript-eslint/no-unused-vars
+1:99  Warning: 'Laser' is defined but never used.  @typescript-eslint/no-unused-vars
+1:106  Warning: 'TileType' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./lib/game/GameEngine.ts
+392:13  Warning: Unexpected var, use let or const instead.  no-var
+
+./lib/game/laser-system.ts
+1:47  Warning: 'GamePhase' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./lib/game/wall-utils.ts
+1:31  Warning: 'Tile' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./lib/socket.ts
+8:38  Warning: The `Function` type accepts any function-like value.
+Prefer explicitly defining any function parameters and return type.  @typescript-eslint/no-unsafe-function-type
+42:30  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+48:31  Warning: The `Function` type accepts any function-like value.
+Prefer explicitly defining any function parameters and return type.  @typescript-eslint/no-unsafe-function-type
+56:39  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+59:32  Warning: The `Function` type accepts any function-like value.
+Prefer explicitly defining any function parameters and return type.  @typescript-eslint/no-unsafe-function-type
+65:42  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+Failed to compile.
+
+./app/board-editor/page.tsx:576:34
+Type error: Type '{ tileSize: number; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'tileSize' does not exist on type 'IntrinsicAttributes'.
+
+[0m [90m 574 |[39m                     [33m<[39m[33mdiv[39m className[33m=[39m[32m"absolute inset-0 opacity-60 pointer-events-none"[39m[33m>[39m
+ [90m 575 |[39m                         {selectedItem[33m.[39mtype [33m===[39m [33mTileType[39m[33m.[39m[33mPIT[39m [33m&&[39m (
+[31m[1m>[22m[39m[90m 576 |[39m                             [33m<[39m[33mPit[39m tileSize[33m=[39m{calculatedTileSize} [33m/[39m[33m>[39m
+ [90m     |[39m                                  [31m[1m^[22m[39m
+ [90m 577 |[39m                         )}
+ [90m 578 |[39m                         {(selectedItem[33m.[39mtype [33m===[39m [33mTileType[39m[33m.[39m[33mREPAIR[39m [33m||[39m selectedItem[33m.[39mtype [33m===[39m [33mTileType[39m[33m.[39m[33mOPTION[39m) [33m&&[39m (
+ [90m 579 |[39m                             [33m<[39m[33mRepairSite[39m type[33m=[39m{selectedItem[33m.[39mtype} tileSize[33m=[39m{calculatedTileSize} [33m/[39m[33m>[39m[0m
+Next.js build worker exited with code: 1 and signal: null

@@ -21,7 +21,7 @@ export default function BoardViewerPage() {
         if (boardIds.length > 0 && !selectedBoardId) {
             setSelectedBoardId(boardIds[0]);
         }
-    }, [boardCategory]);
+    }, [boardCategory, boardIds, selectedBoardId]);
 
     useEffect(() => {
         if (selectedBoardId) {

@@ -1,7 +1,7 @@
 // lib/game/board-editor-utils.ts
 // Utilities for the board editor
 
-import { BoardDefinition, TileElement, LaserElement, WallElement, StartingPosition, TileType, Direction } from './types';
+import { BoardDefinition, TileType, Direction } from './types';
 
 /**
  * Validates a board definition to ensure it's valid for gameplay

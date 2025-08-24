@@ -1,7 +1,7 @@
 // components/game/Card.tsx
 
 import React from 'react';
-import { ProgramCard, CardType } from '@/lib/game/types';
+import { ProgramCard } from '@/lib/game/types';
 import { CARD_DISPLAY } from '@/lib/game/constants';
 import { useDrag } from 'react-dnd';
 

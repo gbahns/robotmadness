@@ -1,0 +1,185 @@
+
+> robotmadness-online@0.1.0 build
+> next build && npm run db:generate
+
+   ▲ Next.js 15.4.5
+   - Environments: .env.local, .env
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 1000ms
+   Linting and checking validity of types ...
+
+./app/board-editor/page.tsx
+269:11  Warning: 'getTileAt' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+273:11  Warning: 'getStartingPositionAt' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+277:11  Warning: 'getLaserAt' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+337:8  Warning: React Hook useCallback has a missing dependency: 'selectedItem.tool'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./app/board-viewer/page.tsx
+24:8  Warning: React Hook useEffect has missing dependencies: 'boardIds' and 'selectedBoardId'. Either include them or remove the dependency array.  react-hooks/exhaustive-deps
+
+./app/course-viewer/page.tsx
+22:8  Warning: React Hook useEffect has missing dependencies: 'courseIds' and 'selectedCourseId'. Either include them or remove the dependency array.  react-hooks/exhaustive-deps
+
+./app/game/[roomCode]/page.tsx
+36:10  Warning: 'executionMessage' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+41:10  Warning: 'previewBoard' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/game/board-elements/Pit.tsx
+7:31  Warning: 'tileSize' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/game/board-elements/StartingPosition.tsx
+9:52  Warning: 'playerName' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/game/board-elements/Tile.tsx
+37:3  Warning: 'x' is defined but never used.  @typescript-eslint/no-unused-vars
+38:3  Warning: 'y' is defined but never used.  @typescript-eslint/no-unused-vars
+59:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+60:32  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+79:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+80:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/game/Board.tsx
+2:10  Warning: 'BoardDefinition' is defined but never used.  @typescript-eslint/no-unused-vars
+2:27  Warning: 'Course' is defined but never used.  @typescript-eslint/no-unused-vars
+2:89  Warning: 'TileType' is defined but never used.  @typescript-eslint/no-unused-vars
+5:10  Warning: 'socketClient' is defined but never used.  @typescript-eslint/no-unused-vars
+23:7  Warning: 'DIRECTION_ARROWS' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+36:7  Warning: Unexpected var, use let or const instead.  no-var
+38:7  Warning: Unexpected var, use let or const instead.  no-var
+86:6  Warning: React Hook useEffect has a missing dependency: 'onTileSizeChange'. Either include it or remove the dependency array. If 'onTileSizeChange' changes too often, find the parent component that defines it and wrap that definition in useCallback.  react-hooks/exhaustive-deps
+163:11  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+172:31  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+172:51  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+246:9  Warning: 'getAllLaserBeams' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+251:36  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+350:9  Warning: 'checkpointSize' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+351:9  Warning: 'arrowSize' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+352:9  Warning: 'fontSize' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+500:33  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+515:33  Warning: 'index' is defined but never used.  @typescript-eslint/no-unused-vars
+814:36  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/game/BoardPreview.tsx
+2:10  Warning: 'BoardDefinition' is defined but never used.  @typescript-eslint/no-unused-vars
+19:37  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+33:44  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+40:38  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/game/BoardRenderer.tsx
+52:3  Warning: 'selectedTool' is defined but never used.  @typescript-eslint/no-unused-vars
+64:10  Warning: 'fontSize' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+65:10  Warning: 'arrowSize' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+173:46  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+217:35  Warning: 'index' is defined but never used.  @typescript-eslint/no-unused-vars
+264:36  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/game/Card.tsx
+4:23  Warning: 'CardType' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/game/Course.tsx
+3:40  Warning: 'Board' is defined but never used.  @typescript-eslint/no-unused-vars
+13:17  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+24:5  Warning: 'roomCode' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/game/ExecutionLog.tsx
+17:5  Warning: Unexpected var, use let or const instead.  no-var
+
+./components/game/LoadingStates.tsx
+59:17  Warning: Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+
+./components/game/ProgrammingControls.tsx
+19:5  Warning: 'onSubmitCards' is defined but never used.  @typescript-eslint/no-unused-vars
+23:11  Warning: 'canSubmit' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/game/RespawnDecisionPanel.tsx
+57:8  Warning: React Hook React.useEffect has missing dependencies: 'isRespawn', 'playerId', and 'roomCode'. Either include them or remove the dependency array.  react-hooks/exhaustive-deps
+
+./components/game/Robot.tsx
+4:18  Warning: 'Direction' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/game/RobotLaserAnimation.tsx
+20:7  Warning: 'isRobotLaserBlocked' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+20:55  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/game/board-editor-utils.ts
+4:27  Warning: 'TileElement' is defined but never used.  @typescript-eslint/no-unused-vars
+4:40  Warning: 'LaserElement' is defined but never used.  @typescript-eslint/no-unused-vars
+4:54  Warning: 'WallElement' is defined but never used.  @typescript-eslint/no-unused-vars
+4:67  Warning: 'StartingPosition' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./lib/game/boards/docking-bay/docking-bay-2.ts
+2:21  Warning: 'TileType' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./lib/game/boards/test.ts
+1:38  Warning: 'TileType' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./lib/game/constants.ts
+3:20  Warning: 'ProgramCard' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./lib/game/courses/courses.ts
+1:93  Warning: 'Tile' is defined but never used.  @typescript-eslint/no-unused-vars
+1:99  Warning: 'Laser' is defined but never used.  @typescript-eslint/no-unused-vars
+1:106  Warning: 'TileType' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./lib/game/GameEngine.ts
+392:13  Warning: Unexpected var, use let or const instead.  no-var
+
+./lib/game/laser-system.ts
+1:47  Warning: 'GamePhase' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./lib/game/wall-utils.ts
+1:31  Warning: 'Tile' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./lib/socket.ts
+8:38  Warning: The `Function` type accepts any function-like value.
+Prefer explicitly defining any function parameters and return type.  @typescript-eslint/no-unsafe-function-type
+42:30  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+48:31  Warning: The `Function` type accepts any function-like value.
+Prefer explicitly defining any function parameters and return type.  @typescript-eslint/no-unsafe-function-type
+56:39  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+59:32  Warning: The `Function` type accepts any function-like value.
+Prefer explicitly defining any function parameters and return type.  @typescript-eslint/no-unsafe-function-type
+65:42  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+   Collecting page data ...
+   Generating static pages (0/10) ...
+   Generating static pages (2/10) 
+   Generating static pages (4/10) 
+   Generating static pages (7/10) 
+ ✓ Generating static pages (10/10)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                     2.1 kB         105 kB
+├ ○ /_not-found                            990 B         101 kB
+├ ƒ /api/games                             127 B        99.8 kB
+├ ƒ /api/games/open                        127 B        99.8 kB
+├ ○ /board-editor                        9.98 kB         119 kB
+├ ○ /board-viewer                        1.07 kB         112 kB
+├ ○ /course-viewer                       3.51 kB         115 kB
+└ ƒ /game/[roomCode]                       39 kB         154 kB
++ First Load JS shared by all            99.7 kB
+  ├ chunks/4bd1b696-cf72ae8a39fa05aa.js  54.1 kB
+  ├ chunks/964-02efbd2195ef91bd.js       43.5 kB
+  └ other shared chunks (total)             2 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+
+> robotmadness-online@0.1.0 db:generate
+> prisma generate
+
+Environment variables loaded from .env
+Prisma schema loaded from prisma\schema.prisma
+
+✔ Generated Prisma Client (v6.13.0) to .\node_modules\@prisma\client in 44ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+Tip: Interested in query caching in just a few lines of code? Try Accelerate today! https://pris.ly/tip-3-accelerate
+

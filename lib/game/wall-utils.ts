@@ -1,4 +1,4 @@
-import { Position, Direction, WallElement, Tile, Course } from './types';
+import { Position, Direction, Course } from './types';
 import { getTileAt } from './tile-utils';
 
 /**

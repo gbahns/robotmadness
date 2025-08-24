@@ -1,6 +1,6 @@
 // lib/game/constants.ts
 
-import { CardType, ProgramCard } from './types';
+import { CardType } from './types';
 
 export const GAME_CONFIG = {
   MAX_PLAYERS: 8,

@@ -54,7 +54,7 @@ export default function RespawnDecisionPanel({
                 direction: Direction.UP
             });
         }
-    }, []);
+    }, [isRespawn, playerId, roomCode]);
 
     const handleDecision = (powerDown: boolean) => {
         console.log(`${playerName} chooses to ${powerDown ? 'enter powered down' : 'stay powered on'} ${isRespawn ? `facing ${Direction[selectedDirection]}` : ''}`);

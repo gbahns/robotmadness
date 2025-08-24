@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { socketClient } from '@/lib/socket';
-import { Player } from '@/lib/game/types';
+import { Player, GameState } from '@/lib/game/types';
 import { ALL_COURSES, getCourseById } from '@/lib/game/courses/courses';
 import CoursePreview from './CoursePreview';
 
@@ -9,7 +9,7 @@ interface GameControlsProps {
   roomCode: string;
   playerCount: number;
   currentPlayer?: Player;
-  gameState: any;
+  gameState: GameState | null;
   selectedCourse?: string;
   onCourseChange?: (courseId: string) => void;
   showPowerDownPrompt?: boolean;

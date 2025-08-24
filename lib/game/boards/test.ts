@@ -1,4 +1,4 @@
-import { BoardDefinition, Direction, TileType } from '../types';
+import { BoardDefinition, Direction } from '../types';
 
 // Test board for development
 export const TEST_BOARD: BoardDefinition = {

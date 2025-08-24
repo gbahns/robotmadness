@@ -1,6 +1,5 @@
 import React from 'react';
-import { BoardDefinition } from '@/lib/game/types';
-import { Course } from '@/lib/game/types';
+import { Course, Tile, StartingPosition, Laser } from '@/lib/game/types';
 
 interface BoardPreviewProps {
     course: Course;
@@ -16,7 +15,7 @@ export default function BoardPreview({ course, size = 300 }: BoardPreviewProps) 
     const boardHeight = board.height * tileSize;
 
     // Create a map of special tiles for quick lookup
-    const tileMap = new Map<string, any>();
+    const tileMap = new Map<string, Tile>();
     board.tiles?.flat().forEach(tile => {
         const key = `${tile.position.x},${tile.position.y}`;
         tileMap.set(key, tile);
@@ -30,14 +29,14 @@ export default function BoardPreview({ course, size = 300 }: BoardPreviewProps) 
     });
 
     // Create a map of starting positions
-    const startingPosMap = new Map<string, any>();
+    const startingPosMap = new Map<string, StartingPosition & { index: number }>();
     board.startingPositions.forEach((sp, index) => {
         const key = `${sp.position.x},${sp.position.y}`;
         startingPosMap.set(key, { ...sp, index });
     });
 
     // Create a map of lasers
-    const laserMap = new Map<string, any>();
+    const laserMap = new Map<string, Laser>();
     board.lasers?.forEach(laser => {
         const key = `${laser.position.x},${laser.position.y}`;
         laserMap.set(key, laser);

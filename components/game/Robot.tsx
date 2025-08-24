@@ -1,7 +1,7 @@
 // components/game/Robot.tsx
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Player, Direction, PowerState } from '@/lib/game/types';
+import { Player, PowerState } from '@/lib/game/types';
 
 interface RobotProps {
   player: Player;

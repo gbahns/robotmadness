@@ -1,5 +1,5 @@
 import { BoardDefinition } from '../../types';
-import { Direction, TileType } from '../../types';
+import { Direction } from '../../types';
 
 export const DOCKING_BAY_2: BoardDefinition = {
     id: 'docking-bay-2',

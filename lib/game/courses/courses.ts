@@ -1,4 +1,4 @@
-import { BoardDefinition, CourseDefinition, Course, TileElement, LaserElement, WallElement, Tile, Laser, TileType } from '../types';
+import { BoardDefinition, CourseDefinition, Course, TileElement, LaserElement, WallElement } from '../types';
 import { getBoardDefinitionById, buildBoard } from '../board-utils';
 
 // =============================================================================

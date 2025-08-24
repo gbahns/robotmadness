@@ -3,7 +3,7 @@ import React from 'react';
 interface ConveyorBeltProps {
   type: 'conveyor' | 'express';
   direction: number;
-  rotate?: 'clockwise' | 'counter-clockwise';
+  rotate?: 'clockwise' | 'counterclockwise';
   tileSize: number;
 }
 

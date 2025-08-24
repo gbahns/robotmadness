@@ -1,7 +1,7 @@
 // components/game/PoweredDownIndicator.tsx
 
 import React from 'react';
-import { PowerState } from '@/lib/game/types';
+import { PowerState, Player } from '@/lib/game/types';
 
 interface PoweredDownIndicatorProps {
     powerState: PowerState;
@@ -61,7 +61,7 @@ export function RobotWithPowerIndicator({
     player,
     cellSize
 }: {
-    player: any;
+    player: Player;
     cellSize: number;
 }) {
     const robotColors = [
@@ -89,7 +89,7 @@ export function RobotWithPowerIndicator({
         >
             <div className="relative w-full h-full flex items-center justify-center">
                 {/* Robot body */}
-                <div className={`w-3/4 h-3/4 ${robotColors[player.robotId % 8]} 
+                <div className={`w-3/4 h-3/4 ${robotColors[(player.startingPosition?.number || 0) % 8]} 
           rounded-lg flex items-center justify-center text-white font-bold
           ${player.powerState === PowerState.OFF ? 'opacity-50' : ''}
           ${player.isDead ? 'opacity-30' : ''}

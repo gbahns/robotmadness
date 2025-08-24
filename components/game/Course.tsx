@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { getCourseById, buildCourse } from '@/lib/game/courses/courses';
-import { Course as CourseType, Player, Board } from '@/lib/game/types';
+import { Course as CourseType, Player, GameState } from '@/lib/game/types';
 import BoardComponent from './Board';
 import CheckpointOverlay from './CheckpointOverlay';
 import { RobotLaserShot } from './RobotLaserAnimation';
@@ -10,8 +10,7 @@ interface CourseProps {
     players: Record<string, Player>;
     currentPlayerId?: string;
     isHost?: boolean;
-    gameState?: any;
-    roomCode?: string;
+    gameState?: GameState;
     activeLasers?: RobotLaserShot[];
 }
 
@@ -21,7 +20,6 @@ export default function Course({
     currentPlayerId,
     isHost,
     gameState,
-    roomCode,
     activeLasers = []
 }: CourseProps) {
     const [course, setCourse] = useState<CourseType | null>(null);

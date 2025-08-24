@@ -7,30 +7,15 @@ import { GameState, Player } from '@/lib/game/types';
 interface ProgrammingControlsProps {
     gameState: GameState;
     currentPlayer: Player | null;
-    selectedCards: (any | null)[];
-    onSubmitCards: () => void;
     isSubmitted?: boolean;
 }
 
 export default function ProgrammingControls({
     gameState,
     currentPlayer,
-    selectedCards,
-    onSubmitCards,
     isSubmitted = false
 }: ProgrammingControlsProps) {
 
-    const canSubmit = () => {
-        if (!currentPlayer) return false;
-
-        // If powered down, auto-ready
-        if (currentPlayer.powerState === 'OFF') return true;
-
-        // Check if all non-locked registers have cards
-        const requiredCards = 5 - currentPlayer.lockedRegisters;
-        const selectedCount = selectedCards.filter(c => c !== null).length;
-        return selectedCount === requiredCards;
-    };
 
     if (gameState.phase !== 'programming' || !currentPlayer) {
         return null;

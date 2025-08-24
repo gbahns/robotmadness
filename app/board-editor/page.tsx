@@ -1,18 +1,20 @@
 'use client';
 
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { BoardDefinition, TileElement, LaserElement, WallElement, StartingPosition as StartingPosType, TileType, Direction, Board, Checkpoint } from '@/lib/game/types';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import { BoardDefinition, TileElement, LaserElement, WallElement, StartingPosition as StartingPosType, TileType, Direction, Board, Checkpoint, Tile } from '@/lib/game/types';
 import {
     validateBoardDefinition,
     createEmptyBoard,
     cloneBoardDefinition,
-    rotateBoardClockwise,
-    mirrorBoardHorizontally,
     getBoardStats,
     exportToTypeScript
 } from '@/lib/game/board-editor-utils';
-import { BOARD_TEMPLATES, TEMPLATE_CATEGORIES, getTemplateById } from '@/lib/game/board-templates';
-import { ALL_BOARD_DEFINITIONS, getBoardDefinitionById, BOARD_CATEGORIES } from '@/lib/game/board-utils';
+import {
+    getLaserElementAt,
+    getWallsAt
+} from '@/lib/game/board-editor-helpers';
+import { TEMPLATE_CATEGORIES, getTemplateById } from '@/lib/game/board-templates';
+import { getBoardDefinitionById, BOARD_CATEGORIES } from '@/lib/game/board-utils';
 import { RepairSite, ConveyorBelt, Gear, Pit, Pusher, LaserEmitter, StartingPosition, Wall } from '@/components/game/board-elements';
 import BoardRenderer from '@/components/game/BoardRenderer';
 
@@ -57,7 +59,7 @@ const MiniElementRenderer: React.FC<{ item: PaletteItem; direction?: Direction; 
                 case TileType.PIT:
                     return (
                         <div style={{ position: 'relative', width: miniTileSize, height: miniTileSize, backgroundColor: '#e5e7eb', overflow: 'hidden' }}>
-                            <Pit tileSize={miniTileSize} />
+                            <Pit />
                         </div>
                     );
                 case TileType.REPAIR:
@@ -151,13 +153,17 @@ export default function BoardEditorWithGameRendering() {
     // Convert BoardDefinition to Board type for BoardRenderer
     const convertToBoard = (def: BoardDefinition): Board => {
         // Create a 2D array for tiles
-        const tiles: any[][] = [];
+        const tiles: Tile[][] = [];
         
-        // Initialize empty 2D array
+        // Initialize empty 2D array with empty tiles
         for (let y = 0; y < def.height; y++) {
             tiles[y] = [];
             for (let x = 0; x < def.width; x++) {
-                tiles[y][x] = undefined;
+                tiles[y][x] = {
+                    position: { x, y },
+                    type: TileType.EMPTY,
+                    walls: []
+                };
             }
         }
         
@@ -168,11 +174,12 @@ export default function BoardEditorWithGameRendering() {
                 const y = tile.position.y;
                 if (y >= 0 && y < def.height && x >= 0 && x < def.width) {
                     tiles[y][x] = {
+                        position: { x, y },
                         type: tile.type,
-                        direction: (tile as any).direction,
-                        rotate: (tile as any).rotate,
-                        registers: (tile as any).registers,
-                        walls: (tile as any).walls || []
+                        direction: tile.direction,
+                        rotate: tile.rotate,
+                        registers: tile.registers,
+                        walls: []
                     };
                 }
             });
@@ -189,7 +196,11 @@ export default function BoardEditorWithGameRendering() {
                 // console.log(`Adding walls at (${x},${y}): sides`, wallElement.sides);
                 if (y >= 0 && y < def.height && x >= 0 && x < def.width) {
                     if (!tiles[y][x]) {
-                        tiles[y][x] = { type: 0 }; // Empty tile
+                        tiles[y][x] = { 
+                            position: { x, y },
+                            type: TileType.EMPTY,
+                            walls: []
+                        };
                     }
                     tiles[y][x].walls = wallElement.sides;
                     // console.log(`Tile at (${x},${y}) now has walls:`, tiles[y][x].walls);
@@ -258,23 +269,7 @@ export default function BoardEditorWithGameRendering() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [undo, redo]);
 
-    // Helper functions to get elements at position
-    const getTileAt = (x: number, y: number): TileElement | undefined => {
-        return boardDef.tiles?.find(tile => tile.position.x === x && tile.position.y === y);
-    };
-
-    const getStartingPositionAt = (x: number, y: number): StartingPosType | undefined => {
-        return boardDef.startingPositions.find(pos => pos.position.x === x && pos.position.y === y);
-    };
-
-    const getLaserAt = (x: number, y: number): LaserElement | undefined => {
-        return boardDef.lasers?.find(laser => laser.position.x === x && laser.position.y === y);
-    };
-
-    const getWallsAt = (x: number, y: number): Direction[] => {
-        const wallElement = boardDef.walls?.find(wall => wall.position.x === x && wall.position.y === y);
-        return wallElement?.sides || [];
-    };
+    // Helper functions are imported from board-editor-helpers.ts
 
     // Board modification functions
     const updateBoard = useCallback((updater: (prev: BoardDefinition) => BoardDefinition) => {
@@ -318,8 +313,8 @@ export default function BoardEditorWithGameRendering() {
                 // Add registers for pushers based on rotation selection
                 if (selectedItem.type === TileType.PUSHER) {
                     // Use rotation to determine odd/even registers
-                    (newTile as any).registers = selectedRotation === 'counterclockwise' ? [2, 4] : [1, 3, 5];
-                    console.log('Placing pusher with registers:', (newTile as any).registers);
+                    newTile.registers = selectedRotation === 'counterclockwise' ? [2, 4] : [1, 3, 5];
+                    console.log('Placing pusher with registers:', newTile.registers);
                 }
 
                 newTiles.push(newTile);
@@ -327,7 +322,7 @@ export default function BoardEditorWithGameRendering() {
 
             return { ...prev, tiles: newTiles };
         });
-    }, [selectedItem.type, selectedDirection, selectedRotation, updateBoard]);
+    }, [selectedItem.type, selectedItem.tool, selectedDirection, selectedRotation, updateBoard]);
 
     const placeLaser = useCallback((x: number, y: number, direction: Direction) => {
         updateBoard(prev => {
@@ -566,7 +561,7 @@ export default function BoardEditorWithGameRendering() {
                 return (
                     <div className="absolute inset-0 opacity-60 pointer-events-none">
                         {selectedItem.type === TileType.PIT && (
-                            <Pit tileSize={calculatedTileSize} />
+                            <Pit />
                         )}
                         {(selectedItem.type === TileType.REPAIR || selectedItem.type === TileType.OPTION) && (
                             <RepairSite type={selectedItem.type} tileSize={calculatedTileSize} />
@@ -575,7 +570,7 @@ export default function BoardEditorWithGameRendering() {
                             <ConveyorBelt 
                                 type={selectedItem.type === TileType.EXPRESS_CONVEYOR ? 'express' : 'conveyor'}
                                 direction={selectedDirection}
-                                rotate={selectedRotation === 'clockwise' ? 'clockwise' : selectedRotation === 'counterclockwise' ? 'counter-clockwise' : undefined}
+                                rotate={selectedRotation === 'clockwise' ? 'clockwise' : selectedRotation === 'counterclockwise' ? 'counterclockwise' : undefined}
                                 tileSize={calculatedTileSize}
                             />
                         )}
@@ -598,7 +593,7 @@ export default function BoardEditorWithGameRendering() {
                 
             case 'wall':
                 if (hoveredTile.side !== undefined) {
-                    const walls = getWallsAt(x, y);
+                    const walls = getWallsAt(boardDef, x, y);
                     const hasWall = walls.includes(hoveredTile.side);
                     
                     // Show preview of wall toggle using the Wall component
@@ -630,9 +625,7 @@ export default function BoardEditorWithGameRendering() {
             case 'laser':
                 if (hoveredTile?.side !== undefined) {
                     // Check if there's already a laser at this position
-                    const existingLaser = boardDef.lasers?.find(
-                        laser => laser.position.x === x && laser.position.y === y
-                    );
+                    const existingLaser = getLaserElementAt(boardDef, x, y);
                     
                     if (existingLaser && existingLaser.direction === hoveredTile.side) {
                         // Show red indicator for removal
@@ -696,7 +689,6 @@ export default function BoardEditorWithGameRendering() {
                 showGrid={showGrid}
                 showCoordinates={showCoordinates}
                 hoveredTile={hoveredTile ? { x: hoveredTile.x, y: hoveredTile.y } : undefined}
-                selectedTool={selectedItem.tool}
                 previewElement={getPreviewContent(hoveredTile?.x || 0, hoveredTile?.y || 0)}
                 onTileClick={handleTileClick}
                 onTileMouseDown={selectedItem.tool === 'tile' ? handleMouseDown : undefined}
@@ -871,7 +863,7 @@ export default function BoardEditorWithGameRendering() {
                     const imported = JSON.parse(e.target?.result as string);
                     setBoardDef(imported);
                     addToHistory(imported);
-                } catch (error) {
+                } catch {
                     alert('Invalid board file format');
                 }
             };

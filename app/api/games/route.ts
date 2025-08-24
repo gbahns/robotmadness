@@ -15,7 +15,8 @@ function generateRoomCode(): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, playerName } = await request.json();
+    // const { name, playerName } = await request.json();
+    await request.json(); // Parse body but don't use values (database disabled)
     
     // Generate room code (no database uniqueness check for now)
     const roomCode = generateRoomCode();

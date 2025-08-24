@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Board as BoardType, Player, Direction, Position, Tile as TileType, Checkpoint, Laser, StartingPosition } from '@/lib/game/types';
-import { Tile, ConveyorBelt, Gear, Pit, RepairSite, Pusher, LaserEmitter, Wall } from './board-elements';
+import { Board as BoardType, Player, Direction, Tile as TileType, Checkpoint, Laser, StartingPosition } from '@/lib/game/types';
+import { Tile } from './board-elements';
 import Robot from './Robot';
 import RobotLaserAnimation, { RobotLaserShot } from './RobotLaserAnimation';
 import { getTileAt as getCanonicalTileAt } from '@/lib/game/tile-utils';
@@ -13,16 +13,15 @@ interface BoardRendererProps {
   checkpoints?: Checkpoint[];
   startingPositions?: StartingPosition[];
   activeLasers?: RobotLaserShot[];
-  
+
   // Editor-specific props
   editMode?: boolean;
   showGrid?: boolean;
   showCoordinates?: boolean;
   fixedTileSize?: number;
   hoveredTile?: { x: number; y: number };
-  selectedTool?: 'tile' | 'laser' | 'wall' | 'start';
   previewElement?: React.ReactNode;
-  
+
   // Event handlers for edit mode
   onTileClick?: (x: number, y: number, e: React.MouseEvent) => void;
   onTileMouseDown?: (x: number, y: number, e: React.MouseEvent) => void;
@@ -30,7 +29,7 @@ interface BoardRendererProps {
   onTileMouseMove?: (x: number, y: number, e: React.MouseEvent) => void;
   onTileMouseUp?: (x: number, y: number, e: React.MouseEvent) => void;
   onTileMouseLeave?: () => void;
-  
+
   // Callbacks
   onTileSizeChange?: (tileSize: number) => void;
 }
@@ -49,7 +48,6 @@ export default function BoardRenderer({
   showCoordinates = false,
   fixedTileSize,
   hoveredTile,
-  selectedTool,
   previewElement,
   onTileClick,
   onTileMouseDown,
@@ -61,15 +59,11 @@ export default function BoardRenderer({
 }: BoardRendererProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [tileSize, setTileSize] = useState(fixedTileSize || 50);
-  const [fontSize, setFontSize] = useState(12);
-  const [arrowSize, setArrowSize] = useState(30);
 
   // Calculate tile size dynamically if not fixed
   useEffect(() => {
     if (fixedTileSize) {
       setTileSize(fixedTileSize);
-      setFontSize(fixedTileSize * 0.3);
-      setArrowSize(fixedTileSize * 0.6);
       return;
     }
 
@@ -81,7 +75,7 @@ export default function BoardRenderer({
 
       const parentWidth = parent.clientWidth;
       const parentHeight = parent.clientHeight;
-      
+
       // Account for padding (16px = 8px on each side)
       const availableWidth = parentWidth - 16;
       const availableHeight = parentHeight - 16;
@@ -93,8 +87,6 @@ export default function BoardRenderer({
       const finalTileSize = Math.max(newTileSize, 30);
 
       setTileSize(finalTileSize);
-      setFontSize(finalTileSize * 0.3);
-      setArrowSize(finalTileSize * 0.6);
 
       if (onTileSizeChange) {
         onTileSizeChange(finalTileSize);
@@ -140,7 +132,7 @@ export default function BoardRenderer({
     // First check if there's a laser in the board's laser array
     const boardLaser = board.lasers?.find(l => l.position.x === x && l.position.y === y);
     if (boardLaser) return boardLaser;
-    
+
     // Then check if the tile itself has a laser property
     const tile = getTileAt(x, y);
     if (tile && typeof tile === 'object' && 'laser' in tile && tile.laser) {
@@ -151,7 +143,7 @@ export default function BoardRenderer({
         damage: laserElement.damage || 1
       };
     }
-    
+
     return undefined;
   };
 
@@ -168,13 +160,8 @@ export default function BoardRenderer({
     const playersHere = getPlayersAt(x, y);
     const isHovered = hoveredTile?.x === x && hoveredTile?.y === y;
 
-    // Find assigned player for starting position
-    const assignedPlayer = startingPos ? 
-      Object.values(players).find(p => (p as any).startingPosition?.number === startingPos.number) : 
-      undefined;
-
     // Get visited players for checkpoint
-    const visitedBy = checkpoint ? 
+    const visitedBy = checkpoint ?
       Object.values(players)
         .filter(p => p.checkpointsVisited >= checkpoint.number)
         .map(p => p.name) :
@@ -198,11 +185,8 @@ export default function BoardRenderer({
           checkpoint={checkpoint}
           startingPosition={startingPos}
           laser={laser}
-          playerName={assignedPlayer?.name}
           visitedBy={visitedBy}
           tileSize={tileSize}
-          x={x}
-          y={y}
           showGrid={showGrid}
         />
 
@@ -214,10 +198,10 @@ export default function BoardRenderer({
         )}
 
         {/* Render robots */}
-        {playersHere.map((player, index) => {
+        {playersHere.map((player) => {
           const playerIndex = Object.keys(players).indexOf(player.id);
           const robotColor = ROBOT_COLORS[playerIndex % ROBOT_COLORS.length];
-          
+
           return (
             <div key={player.id} className="absolute inset-1 z-30">
               <Robot
@@ -243,7 +227,7 @@ export default function BoardRenderer({
   // Collect all lasers for rendering
   const collectLasers = (): Laser[] => {
     const lasers: Laser[] = [];
-    
+
     // Collect all laser emitters on the board
     for (let y = 0; y < board.height; y++) {
       for (let x = 0; x < board.width; x++) {
@@ -258,10 +242,10 @@ export default function BoardRenderer({
         }
       }
     }
-    
+
     // Also check for separate laser array (if provided by BoardDefinition)
     if ('lasers' in board && Array.isArray(board.lasers)) {
-      board.lasers.forEach((laser: any) => {
+      board.lasers.forEach((laser) => {
         lasers.push({
           position: laser.position,
           direction: Number(laser.direction) as Direction,
@@ -269,7 +253,7 @@ export default function BoardRenderer({
         });
       });
     }
-    
+
     return lasers;
   };
 
@@ -282,22 +266,22 @@ export default function BoardRenderer({
   }
 
   return (
-    <div 
+    <div
       ref={containerRef}
       className="flex items-center justify-center"
-      style={{ 
+      style={{
         width: '100%',
         height: '100%'
       }}
     >
-      <div 
+      <div
         className="relative bg-gray-800"
         style={{
           width: board.width * tileSize,
           height: board.height * tileSize
         }}
       >
-        <div className="grid" style={{ 
+        <div className="grid" style={{
           gridTemplateColumns: `repeat(${board.width}, ${tileSize}px)`,
           gridTemplateRows: `repeat(${board.height}, ${tileSize}px)`
         }}>
@@ -306,7 +290,7 @@ export default function BoardRenderer({
           )}
         </div>
 
-        <LaserBeamRenderer 
+        <LaserBeamRenderer
           lasers={collectLasers()}
           boardWidth={board.width}
           boardHeight={board.height}
@@ -316,10 +300,10 @@ export default function BoardRenderer({
 
         {/* Active laser animations - only in game mode */}
         {!editMode && activeLasers.length > 0 && (
-          <RobotLaserAnimation 
+          <RobotLaserAnimation
             players={players}
-            activeLasers={activeLasers} 
-            tileSize={tileSize} 
+            activeLasers={activeLasers}
+            tileSize={tileSize}
           />
         )}
       </div>

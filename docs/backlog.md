@@ -16,7 +16,6 @@
     * make the move 2 card a slightly darker shade of blue, and the move 3 slightly darker than the move 3
     * make the turn left and turn right cards thicker and rounded arrows
 * make the screen layout adapt correctly to different window sizes and zoom level
-* improve the game page layout
 * display the list phases and sub-phases and highlight the active one
 * delete the code for the game start modal (unless we think of a reason to reinstate it; board selection needs to be either here or on the game screen)
 * add all standard game boards
@@ -85,6 +84,7 @@
 * reentering players need to make their power down decision before cards are dealt
 * allow players to choose which direction they're facing when reentering
 * refine the look of pits
+* improve the game page layout
 
 
 ## Defect Fix History

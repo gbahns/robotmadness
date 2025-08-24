@@ -1,4 +1,4 @@
-import { GameState, Player, ProgramCard, Tile, Direction, CardType, GamePhase, Course, PowerState } from './types';
+import { GameState, Player, ProgramCard, Tile, Direction, CardType, GamePhase, Course, PowerState, Position } from './types';
 import { TileType } from './types/enums';
 import { GAME_CONFIG } from './constants';
 import { buildCourse, getCourseById, RISKY_EXCHANGE } from './courses/courses';
@@ -15,11 +15,28 @@ export interface ServerGameState extends GameState {
 }
 
 interface IoServer {
-    to(room: string): { emit(event: string, ...args: any[]): void; };
+    to(room: string): { emit(event: string, ...args: unknown[]): void; };
 }
 
 interface DirectionVectors {
     [key: number]: { x: number; y: number; };
+}
+
+interface ConveyorMovement {
+    player: Player;
+    to: Position;
+    fromTile: Tile;
+}
+
+interface RobotHit {
+    player: Player;
+    shooterName: string;
+    damage: number;
+}
+
+interface LaserPath {
+    x: number;
+    y: number;
 }
 
 export class GameEngine {
@@ -259,6 +276,14 @@ export class GameEngine {
         gameState.waitingForPowerDownDecisions = undefined;
         // Clear the respawn decisions tracking after dealing cards
         gameState.playersWhoMadeRespawnDecisions = undefined;
+        
+        // Clear timer state for new turn
+        gameState.timerStartTime = undefined;
+        gameState.timerDuration = undefined;
+        this.stopTimer(gameState.roomCode);
+        
+        // Emit timer clear to clients
+        this.io.to(gameState.roomCode).emit('timer-update', { timeLeft: 0 });
 
         // Emit the updated game state
         this.io.to(gameState.roomCode).emit('game-state', gameState);
@@ -364,7 +389,7 @@ export class GameEngine {
 
             await this.executeRegister(gameState, i);
 
-            var playerToLog = gameState.players[gameState.host];
+            const playerToLog = gameState.players[gameState.host];
             console.log(`Player ${playerToLog.name} (${gameState.host}) submitted cards:`, playerToLog.selectedCards);
 
             // Execute board elements after player cards have been executed for this register phase
@@ -455,11 +480,11 @@ export class GameEngine {
             `${c.player.name}: ${c.card.type}(${c.card.priority})`
         ));
 
-        var playerToLog = gameState.players[gameState.host];
+        //var playerToLog = gameState.players[gameState.host];
         //console.log(`BEFORE EXECUTING THIS REGISTER: Player ${playerToLog.name}'s CARDS:`, playerToLog.selectedCards);
 
         for (const { playerId, card, player } of programmedCards) {
-            if ((player as any).isDead) continue;
+            if (player.isDead) continue;
 
             //console.log(`BEFORE EXECUTING THIS CARD: Player ${playerToLog.name}'s CARDS:`, playerToLog.selectedCards);
             console.log(`${player.name} executes ${card.type} (priority ${card.priority})`);
@@ -589,17 +614,17 @@ export class GameEngine {
     }
 
     getPlayerAt(gameState: ServerGameState, x: number, y: number): Player | undefined {
-        return Object.values(gameState.players).find(p => p.position.x === x && p.position.y === y && !(p as any).isDead);
+        return Object.values(gameState.players).find(p => p.position.x === x && p.position.y === y && !p.isDead);
     }
 
     destroyRobot(gameState: ServerGameState, player: Player, reason: string): void {
-        if ((player as any).isDead) return;
+        if (player.isDead) return;
 
         console.log(`${player.name} destroyed: ${reason}`);
 
         player.lives--;
         player.damage = 2;
-        (player as any).isDead = true;
+        player.isDead = true;
         player.position = { x: -1, y: -1 };
 
         this.io.to(gameState.roomCode).emit('robot-destroyed', {
@@ -629,7 +654,7 @@ export class GameEngine {
         }
 
         const allPlayers = Object.values(gameState.players);
-        const allDead = allPlayers.every(p => (p as any).isDead || p.lives <= 0);
+        const allDead = allPlayers.every(p => p.isDead || p.lives <= 0);
         if (allDead) {
             gameState.allPlayersDead = true;
             console.log('All players are destroyed. Turn will end early.');
@@ -638,7 +663,7 @@ export class GameEngine {
 
     performRespawn(gameState: ServerGameState, playerId: string, direction: Direction) {
         const player = gameState.players[playerId];
-        if (!player || !(player as any).awaitingRespawn) return;
+        if (!player || !player.awaitingRespawn) return;
 
         console.log(`Performing respawn for ${player.name} at archive position facing ${Direction[direction]}`);
 
@@ -647,8 +672,8 @@ export class GameEngine {
         player.direction = direction;
 
         // Robot is no longer dead or awaiting respawn
-        (player as any).isDead = false;
-        (player as any).awaitingRespawn = false;
+        player.isDead = false;
+        player.awaitingRespawn = false;
 
         // Robots reenter with 2 damage tokens (per rules)
         player.damage = 2;
@@ -666,8 +691,8 @@ export class GameEngine {
     respawnDeadRobots(gameState: ServerGameState): boolean {
         const respawningPlayers: string[] = [];
         Object.values(gameState.players).forEach(player => {
-            if ((player as any).isDead) {
-                console.log(`Checking respawn for ${player.name}: lives=${player.lives}, isDead=${(player as any).isDead}`);
+            if (player.isDead) {
+                console.log(`Checking respawn for ${player.name}: lives=${player.lives}, isDead=${player.isDead}`);
                 if (player.lives > 0) {
                     console.log(`${player.name} will respawn at their archive marker.`);
 
@@ -678,7 +703,7 @@ export class GameEngine {
                     player.dealtCards = [];
 
                     // Mark that this player is awaiting respawn (but don't respawn yet!)
-                    (player as any).awaitingRespawn = true;
+                    player.awaitingRespawn = true;
 
                     // Ask the player to choose direction and power down mode
                     console.log(`Emitting respawn-power-down-option ONLY to player ${player.id} (${player.name})`);
@@ -722,13 +747,13 @@ export class GameEngine {
     }
 
     async executeConveyorBelts(gameState: ServerGameState, includeExpress: boolean, includeNormal: boolean) {
-        const movements: any[] = [];
+        const movements: ConveyorMovement[] = [];
         Object.values(gameState.players).forEach(player => {
             if (player.lives <= 0) return;
             const tile = this.getTileAt(gameState, player.position.x, player.position.y);
             if (!tile) return;
             if ((tile.type === TileType.EXPRESS_CONVEYOR && includeExpress) || (tile.type === TileType.CONVEYOR && includeNormal)) {
-                const vector = this.DIRECTION_VECTORS[(tile as any).direction];
+                const vector = this.DIRECTION_VECTORS[tile.direction!];
                 const newX = player.position.x + vector.x;
                 const newY = player.position.y + vector.y;
                 this.executionLog(gameState, `${player.name} moved by conveyor`);
@@ -750,10 +775,10 @@ export class GameEngine {
             }
             player.position = { ...to };
             const toTile = this.getTileAt(gameState, to.x, to.y);
-            if (toTile && (toTile as any).rotate && (fromTile.type === TileType.CONVEYOR || fromTile.type === TileType.EXPRESS_CONVEYOR)) {
-                if ((toTile as any).rotate === 'clockwise') {
+            if (toTile && toTile.rotate && (fromTile.type === TileType.CONVEYOR || fromTile.type === TileType.EXPRESS_CONVEYOR)) {
+                if (toTile.rotate === 'clockwise') {
                     player.direction = (player.direction + 1) % 4;
-                } else if ((toTile as any).rotate === 'counterclockwise') {
+                } else if (toTile.rotate === 'counterclockwise') {
                     player.direction = (player.direction + 3) % 4;
                 }
                 this.executionLog(gameState, `${player.name} rotated by conveyor`);
@@ -763,8 +788,8 @@ export class GameEngine {
         await new Promise(resolve => setTimeout(resolve, this.boardElementDelay));
     }
 
-    resolveConveyorMovements(gameState: ServerGameState, movements: any[]) {
-        const resolved: any[] = [];
+    resolveConveyorMovements(gameState: ServerGameState, movements: ConveyorMovement[]) {
+        const resolved: ConveyorMovement[] = [];
         const destinations = new Map();
         movements.forEach(movement => {
             const key = `${movement.to.x},${movement.to.y}`;
@@ -795,9 +820,9 @@ export class GameEngine {
             if (player.lives <= 0) return;
             const tile = this.getTileAt(gameState, player.position.x, player.position.y);
             if (!tile || tile.type !== TileType.PUSHER) return;
-            if ((tile as any).registers && (tile as any).registers.includes(currentRegister + 1)) {
-                this.pushRobot(gameState, player, (tile as any).direction);
-                // if (this.pushRobot(gameState, player, (tile as any).direction)) {
+            if (tile.registers && tile.registers.includes(currentRegister + 1)) {
+                this.pushRobot(gameState, player, tile.direction!);
+                // if (this.pushRobot(gameState, player, tile.direction!)) {
                 //     this.executionLog(gameState, `${player.name} pushed by pusher`);
                 //}
             }
@@ -855,7 +880,7 @@ export class GameEngine {
             });
         }
 
-        const robotLaserShots: any[] = [];
+        const robotLaserShots: {shooterId: string; targetId?: string; path: LaserPath[]; damage: number; timestamp?: number}[] = [];
         Object.values(gameState.players).forEach(shooter => {
             if (shooter.lives <= 0 || shooter.powerState === PowerState.OFF) return;
 
@@ -873,10 +898,10 @@ export class GameEngine {
 
             // Trace the laser using the standard traceLaser function
             // Start from the shooter's position, not one tile ahead
-            const hits = this.traceLaser(gameState, shooter.position.x, shooter.position.y, shooter.direction, 1);
+            const hits = this.traceLaser(gameState, shooter.position.x, shooter.position.y, shooter.direction, 1, shooter.name);
 
             // Build laser path for animation
-            const path: any[] = [];
+            const path: LaserPath[] = [];
             let x = frontX;
             let y = frontY;
 
@@ -917,6 +942,7 @@ export class GameEngine {
                 robotLaserShots.push({
                     shooterId: shooter.id,
                     path: path,
+                    damage: 1,
                     targetId: hits.length > 0 ? hits[0].player.id : undefined,
                     timestamp: Date.now()
                 });
@@ -938,7 +964,7 @@ export class GameEngine {
 
         damages.forEach((damageInfo, playerId) => {
             const victim = gameState.players[playerId];
-            const totalDamage = damageInfo.boardDamage + damageInfo.robotHits.reduce((sum: number, hit: any) => sum + hit.damage, 0);
+            const totalDamage = damageInfo.boardDamage + damageInfo.robotHits.reduce((sum: number, hit: RobotHit) => sum + hit.damage, 0);
             if (totalDamage === 0) return;
             victim.damage += totalDamage;
 
@@ -950,7 +976,7 @@ export class GameEngine {
                 console.log(message);
                 this.io.to(gameState.roomCode).emit('robot-damaged', { playerName: victim.name, damage: damageInfo.boardDamage, reason: 'laser' });
             }
-            damageInfo.robotHits.forEach((hit: any) => {
+            damageInfo.robotHits.forEach((hit: RobotHit) => {
                 const message = `${victim.name} shot by ${hit.shooterName}`;
                 console.log(message);
                 this.io.to(gameState.roomCode).emit('robot-damaged', { playerName: victim.name, damage: hit.damage, reason: hit.shooterName, shooterName: hit.shooterName, message });
@@ -962,8 +988,8 @@ export class GameEngine {
         });
     }
 
-    traceLaser(gameState: ServerGameState, startX: number, startY: number, direction: Direction, damage: number) {
-        const hits: any[] = [];
+    traceLaser(gameState: ServerGameState, startX: number, startY: number, direction: Direction, damage: number, shooterName?: string) {
+        const hits: RobotHit[] = [];
         const vector = this.DIRECTION_VECTORS[direction];
         let x = startX + vector.x;
         let y = startY + vector.y;
@@ -983,7 +1009,7 @@ export class GameEngine {
             // Check for robot
             const player = this.getPlayerAt(gameState, x, y);
             if (player) {
-                hits.push({ player, damage });
+                hits.push({ player, damage, shooterName: shooterName || 'board laser' });
                 break; // Laser stops at first robot
             }
 

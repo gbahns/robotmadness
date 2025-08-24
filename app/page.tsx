@@ -20,7 +20,6 @@ export default function Home() {
   const [error, setError] = useState('');
   const [openGames, setOpenGames] = useState<GameInfo[]>([]);
   const [loadingGames, setLoadingGames] = useState(true);
-  const [selectedBoardId, setSelectedBoardId] = useState('test');
   const [isSettingName, setIsSettingName] = useState(false);
 
   useEffect(() => {
@@ -73,7 +72,7 @@ export default function Home() {
       }
 
       router.push(`/game/${roomCode}`);
-    } catch (err) {
+    } catch {
       setError('Failed to create game. Please try again.');
     }
   };

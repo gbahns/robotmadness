@@ -16,11 +16,8 @@ interface TileProps {
   checkpoint?: CheckpointType;
   startingPosition?: StartingPosType;
   laser?: { position: { x: number; y: number }; direction: number; damage: number };
-  playerName?: string; // For starting position
   visitedBy?: string[]; // For checkpoints
   tileSize: number;
-  x: number;
-  y: number;
   showGrid?: boolean;
   onClick?: () => void;
 }
@@ -31,11 +28,8 @@ export default function Tile({
   checkpoint, 
   startingPosition,
   laser,
-  playerName,
   visitedBy = [],
   tileSize, 
-  x, 
-  y,
   showGrid = true,
   onClick
 }: TileProps) {
@@ -56,8 +50,8 @@ export default function Tile({
           {(tile.type === 'conveyor' || tile.type === 'express') && (
             <ConveyorBelt
               type={tile.type}
-              direction={(tile as any).direction || 0}
-              rotate={(tile as any).rotate}
+              direction={tile.direction || 0}
+              rotate={tile.rotate}
               tileSize={tileSize}
             />
           )}
@@ -67,7 +61,7 @@ export default function Tile({
           )}
           
           {tile.type === 'pit' && (
-            <Pit tileSize={tileSize} />
+            <Pit />
           )}
           
           {(tile.type === 'repair' || tile.type === 'option') && (
@@ -76,8 +70,8 @@ export default function Tile({
           
           {tile.type === 'pusher' && (
             <Pusher
-              direction={(tile as any).direction || 0}
-              registers={(tile as any).registers}
+              direction={tile.direction || 0}
+              registers={tile.registers}
               tileSize={tileSize}
             />
           )}
@@ -97,7 +91,6 @@ export default function Tile({
       {startingPosition && (
         <StartingPosition
           number={startingPosition.number}
-          playerName={playerName}
           tileSize={tileSize}
         />
       )}

@@ -2,11 +2,10 @@ import React from 'react';
 
 interface StartingPositionProps {
   number: number;
-  playerName?: string;
   tileSize: number;
 }
 
-export default function StartingPosition({ number, playerName, tileSize }: StartingPositionProps) {
+export default function StartingPosition({ number, tileSize }: StartingPositionProps) {
   const fontSize = tileSize * 0.3;
   
   return (

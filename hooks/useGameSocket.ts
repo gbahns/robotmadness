@@ -1,5 +1,5 @@
 import { useRef, useCallback, MutableRefObject } from 'react';
-import { GameState, Player, PowerState } from '@/lib/game/types';
+import { GameState, Player, PowerState, ProgramCard } from '@/lib/game/types';
 import { socketClient } from '@/lib/socket';
 import { RobotLaserShot } from '@/components/game/RobotLaserAnimation';
 
@@ -235,9 +235,10 @@ export function useGameSocket({
             }
         };
 
-        const handleCardExecuted = (data: { playerId: string; playerName: string; card: any; register: number }) => {
+        const handleCardExecuted = (data: { playerId: string; playerName: string; card: unknown; register: number }) => {
             console.log('Card executed:', data);
-            const message = `${data.playerName} ${data.card.type.replace(/_/g, ' ')} (Priority: ${data.card.priority})`;
+            const card = data.card as { type: string; priority: number };
+            const message = `${data.playerName} ${card.type.replace(/_/g, ' ')} (Priority: ${card.priority})`;
             onLogEntry({
                 id: logIdCounter.current++,
                 message,
@@ -283,19 +284,20 @@ export function useGameSocket({
             });
         };
 
-        const handleRegisterExecuted = (data: any) => {
-            if (data.isPoweredDown) {
-                onExecutionMessage(`${data.playerName} is powered down - skipping turn`);
+        const handleRegisterExecuted = (data: unknown) => {
+            const typedData = data as { isPoweredDown?: boolean; playerName?: string };
+            if (typedData.isPoweredDown) {
+                onExecutionMessage(`${typedData.playerName} is powered down - skipping turn`);
                 onLogEntry({
                     id: logIdCounter.current++,
                     type: 'execution',
-                    message: `${data.playerName} is powered down`,
+                    message: `${typedData.playerName} is powered down`,
                     timestamp: Date.now()
                 });
             }
         };
 
-        const handleCourseSelected = (data: { courseId: string; previewBoard: any }) => {
+        const handleCourseSelected = (data: { courseId: string; previewBoard: unknown }) => {
             console.log('Course selected by host:', data.courseId);
             onSelectedCourse(data.courseId);
             if (data.previewBoard) {
@@ -333,54 +335,55 @@ export function useGameSocket({
         // ===== Register all event handlers =====
         
         // Simple inline handlers
-        socketClient.on('game-over', (data: { winner: string }) => onWinner(data.winner));
-        socketClient.on('board-phase', (data: { phase: string | null }) => onBoardPhase(data.phase));
-        socketClient.on('register-start', (data: { register: number }) => console.log('Executing register:', data.register));
+        socketClient.on('game-over', (data) => onWinner((data as { winner: string }).winner));
+        socketClient.on('board-phase', (data) => onBoardPhase((data as { phase: string | null }).phase));
+        socketClient.on('register-start', (data) => console.log('Executing register:', (data as { register: number }).register));
         socketClient.onGameError((data: { message: string }) => onError(data.message));
         
         // Timer events
         if (onTimerUpdate) {
-            socketClient.on('timer-update', (data: { timeLeft: number }) => onTimerUpdate(data.timeLeft));
+            socketClient.on('timer-update', (data) => onTimerUpdate((data as { timeLeft: number }).timeLeft));
         }
         if (onTimerExpired) {
             socketClient.on('timer-expired', onTimerExpired);
         }
 
         // Complex handlers
-        socketClient.on('register-started', handleRegisterStarted);
-        socketClient.on('robot-damaged', handleRobotDamaged);
-        socketClient.on('robot-fell-off-board', handleRobotFellOffBoard);
-        socketClient.on('robot-destroyed', handleRobotDestroyed);
-        socketClient.on('checkpoint-reached', handleCheckpointReached);
-        socketClient.on('robot-lasers-fired', handleRobotLasersFired);
-        socketClient.on('course-selected', handleCourseSelected);
+        socketClient.on('register-started', (data) => handleRegisterStarted(data as { register: number }));
+        socketClient.on('robot-damaged', (data) => handleRobotDamaged(data as { playerId: string; damage: number }));
+        socketClient.on('robot-fell-off-board', (data) => handleRobotFellOffBoard(data as { playerId: string }));
+        socketClient.on('robot-destroyed', (data) => handleRobotDestroyed(data as { playerId: string; reason: string }));
+        socketClient.on('checkpoint-reached', (data) => handleCheckpointReached(data as { playerId: string; checkpointNumber: number }));
+        socketClient.on('robot-lasers-fired', (data) => handleRobotLasersFired(data as RobotLaserShot[]));
+        socketClient.on('course-selected', (data) => handleCourseSelected(data as { courseId: string; previewBoard: unknown }));
         socketClient.onGameState(handleGameState);
         socketClient.onPlayerJoined(handlePlayerJoined);
         socketClient.onPlayerLeft(handlePlayerLeft);
-        socketClient.on('player-disconnected', handlePlayerDisconnected);
-        socketClient.on('player-reconnected', handlePlayerReconnected);
-        socketClient.on('player-submitted', handlePlayerSubmitted);
-        socketClient.on('execution-log', handleExecutionLog);
-        socketClient.on('card-executed', handleCardExecuted);
-        socketClient.on('player-power-state-changed', handlePlayerPowerStateChanged);
-        socketClient.on('player-powered-down', handlePlayerPoweredDown);
-        socketClient.on('power-down-option', handlePowerDownOption);
-        socketClient.on('respawn-power-down-option', handleRespawnPowerDownOption);
-        socketClient.on('register-executed', handleRegisterExecuted);
+        socketClient.on('player-disconnected', (data) => handlePlayerDisconnected(data as { playerId: string }));
+        socketClient.on('player-reconnected', (data) => handlePlayerReconnected(data as { playerId: string }));
+        socketClient.on('player-submitted', (data) => handlePlayerSubmitted(data as { playerId: string; playerName: string }));
+        socketClient.on('execution-log', (data) => handleExecutionLog(data as { message: string; type: string }));
+        socketClient.on('card-executed', (data) => handleCardExecuted(data as { playerId: string; playerName: string; card: unknown; register: number }));
+        socketClient.on('player-power-state-changed', (data) => handlePlayerPowerStateChanged(data as { playerId: string; playerName: string; powerState: PowerState; announcedPowerDown: boolean }));
+        socketClient.on('player-powered-down', (data) => handlePlayerPoweredDown(data as { playerId: string; playerName: string }));
+        socketClient.on('power-down-option', (data) => handlePowerDownOption(data as { message: string }));
+        socketClient.on('respawn-power-down-option', (data) => handleRespawnPowerDownOption(data as { message: string; isRespawn?: boolean }));
+        socketClient.on('register-executed', (data) => handleRegisterExecuted(data as unknown));
         
         // Handle register updates from other players
-        socketClient.on('register-update', (data: { playerId: string; selectedCards: any[] }) => {
+        socketClient.on('register-update', (data) => {
             // Update the game state with the new register programming
             onGameStateUpdate(prevState => {
-                if (!prevState || data.playerId === playerIdRef.current) return prevState;
+                const typedData = data as { playerId: string; selectedCards: (ProgramCard | null)[] };
+                if (!prevState || typedData.playerId === playerIdRef.current) return prevState;
                 
                 return {
                     ...prevState,
                     players: {
                         ...prevState.players,
-                        [data.playerId]: {
-                            ...prevState.players[data.playerId],
-                            selectedCards: data.selectedCards
+                        [typedData.playerId]: {
+                            ...prevState.players[typedData.playerId],
+                            selectedCards: typedData.selectedCards
                         }
                     }
                 };

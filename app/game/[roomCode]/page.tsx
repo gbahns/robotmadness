@@ -1,10 +1,10 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState, useRef, useCallback } from 'react';
-import { GameState, ProgramCard, Player, PowerState } from '@/lib/game/types';
+import { useEffect, useState, useRef } from 'react';
+import { GameState, ProgramCard, Player, Course } from '@/lib/game/types';
 import { socketClient } from '@/lib/socket';
-import Course from '@/components/game/Course';
+import CourseComponent from '@/components/game/Course';
 import Hand from '@/components/game/Hand';
 import ProgramRegisters from '@/components/game/ProgramRegisters';
 import GameContent from '@/components/game/GameContent';
@@ -13,7 +13,7 @@ import { RobotLaserShot } from '@/components/game/RobotLaserAnimation';
 import GameControls from '@/components/game/GameControls';
 import ProgrammingControls from '@/components/game/ProgrammingControls';
 import PowerDownButton from '@/components/game/PowerDownButton';
-import { getCourseById } from '@/lib/game/courses/courses';
+import { getCourseById, buildCourse } from '@/lib/game/courses/courses';
 import RespawnDecisionPanel from '@/components/game/RespawnDecisionPanel';
 import PlayersList from '@/components/game/PlayersList';
 import GameHeader from '@/components/game/GameHeader';
@@ -31,14 +31,16 @@ export default function GamePage() {
   const [error, setError] = useState('');
   const [playerName, setPlayerName] = useState('');
   const [showNameModal, setShowNameModal] = useState(false);
-  const [logEntries, setLogEntries] = useState<any[]>([]);
+  const [logEntries, setLogEntries] = useState<{id: number; message: string; type: 'info' | 'action' | 'damage' | 'checkpoint'; timestamp: Date}[]>([]);
   const playerIdRef = useRef<string>('');
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [executionMessage, setExecutionMessage] = useState<string>('');
   const [winner, setWinner] = useState<string | null>(null);
   const [boardPhase, setBoardPhase] = useState<string | null>(null);
   const [activeLasers, setActiveLasers] = useState<RobotLaserShot[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<string>();
-  const [previewBoard, setPreviewBoard] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [previewBoard, setPreviewBoard] = useState<Course | null>(null);
   //const [showPowerDownModal, setShowPowerDownModal] = useState(false);
   const [showPowerDownPrompt, setShowPowerDownPrompt] = useState(false);
   const [showRespawnModal, setShowRespawnModal] = useState(false);
@@ -49,8 +51,9 @@ export default function GamePage() {
   useEffect(() => {
     // Build preview board when course is selected
     if (!selectedCourse) return;
-    const course = getCourseById(selectedCourse);
-    if (course) {
+    const courseDef = getCourseById(selectedCourse);
+    if (courseDef) {
+      const course = buildCourse(courseDef);
       setPreviewBoard(course);
     }
   }, [selectedCourse]);
@@ -218,13 +221,12 @@ export default function GamePage() {
             <div className="flex-1 flex flex-col gap-6">
               {/* Game Board - takes most space */}
               <div className="flex-1 flex items-center justify-center">
-                <Course
+                <CourseComponent
                   courseId={selectedCourse || ""}
                   players={gameState?.players || {}}
                   currentPlayerId={playerIdRef.current}
                   isHost={isHost}
-                  gameState={gameState}
-                  roomCode={roomCode}
+                  gameState={gameState || undefined}
                   activeLasers={activeLasers}
                 />
               </div>
@@ -380,8 +382,6 @@ export default function GamePage() {
                   <ProgrammingControls
                     gameState={gameState}
                     currentPlayer={currentPlayer || {} as Player}
-                    selectedCards={currentPlayer?.selectedCards || []}
-                    onSubmitCards={handleSubmitCards}
                     isSubmitted={isSubmitted}
                   />
                 )}

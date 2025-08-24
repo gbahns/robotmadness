@@ -58,6 +58,7 @@ export interface Player {
   archiveMarker: Position;
   isDead?: boolean;
   respawnDirection?: Direction;
+  awaitingRespawn?: boolean;
 
   // Cards
   dealtCards: ProgramCard[];

@@ -5,7 +5,7 @@ import { GameState, Player, SocketEvent } from './game/types';
 
 class SocketClient {
   private socket: Socket | null = null;
-  private listeners: Map<string, Set<Function>> = new Map();
+  private listeners: Map<string, Set<(...args: unknown[]) => void>> = new Map();
 
   connect(): Socket {
     if (!this.socket) {
@@ -39,13 +39,13 @@ class SocketClient {
     }
   }
 
-  emit(event: string, data?: any): void {
+  emit(event: string, data?: unknown): void {
     if (this.socket) {
       this.socket.emit(event, data);
     }
   }
 
-  on(event: string, callback: Function): void {
+  on(event: string, callback: (...args: unknown[]) => void): void {
     if (!this.socket) return;
 
     if (!this.listeners.has(event)) {
@@ -53,16 +53,16 @@ class SocketClient {
     }
 
     this.listeners.get(event)!.add(callback);
-    this.socket.on(event, callback as any);
+    this.socket.on(event, callback);
   }
 
-  off(event: string, callback: Function): void {
+  off(event: string, callback: (...args: unknown[]) => void): void {
     if (!this.socket) return;
 
     const callbacks = this.listeners.get(event);
     if (callbacks) {
       callbacks.delete(callback);
-      this.socket.off(event, callback as any);
+      this.socket.off(event, callback);
     }
   }
 
@@ -80,19 +80,19 @@ class SocketClient {
   }
 
   onGameState(callback: (gameState: GameState) => void): void {
-    this.on(SocketEvent.GAME_STATE, callback);
+    this.on(SocketEvent.GAME_STATE, (data) => callback(data as GameState));
   }
 
   onPlayerJoined(callback: (data: { player: Player }) => void): void {
-    this.on(SocketEvent.PLAYER_JOINED, callback);
+    this.on(SocketEvent.PLAYER_JOINED, (data) => callback(data as { player: Player }));
   }
 
   onPlayerLeft(callback: (data: { playerId: string }) => void): void {
-    this.on(SocketEvent.PLAYER_LEFT, callback);
+    this.on(SocketEvent.PLAYER_LEFT, (data) => callback(data as { playerId: string }));
   }
 
   onGameError(callback: (data: { message: string }) => void): void {
-    this.on(SocketEvent.GAME_ERROR, callback);
+    this.on(SocketEvent.GAME_ERROR, (data) => callback(data as { message: string }));
   }
 }
 

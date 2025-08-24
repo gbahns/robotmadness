@@ -14,7 +14,7 @@ interface ExecutionLogProps {
 }
 
 export default function ExecutionLog({ entries }: ExecutionLogProps) {
-    var id = 0;
+    let id = 0;
     const scrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {

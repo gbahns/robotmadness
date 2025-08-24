@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { BoardDefinition, TileElement, LaserElement, WallElement, StartingPosition, TileType, Direction } from '@/lib/game/types';
+import React, { useState, useCallback, useEffect } from 'react';
+import { BoardDefinition, TileElement, StartingPosition, TileType, Direction, LaserElement } from '@/lib/game/types';
 import {
     validateBoardDefinition,
     createEmptyBoard,
@@ -11,7 +11,7 @@ import {
     getBoardStats,
     exportToTypeScript
 } from '@/lib/game/board-editor-utils';
-import { BOARD_TEMPLATES, TEMPLATE_CATEGORIES, getTemplateById } from '@/lib/game/board-templates';
+import { TEMPLATE_CATEGORIES, getTemplateById } from '@/lib/game/board-templates';
 import LaserBeamRenderer from '@/components/game/LaserBeamRenderer';
 
 // Complete tool palette for all board elements
@@ -332,7 +332,7 @@ export default function EnhancedBoardEditor() {
                     const imported = JSON.parse(e.target?.result as string);
                     setBoardDef(imported);
                     addToHistory(imported);
-                } catch (error) {
+                } catch {
                     alert('Invalid board file format');
                 }
             };

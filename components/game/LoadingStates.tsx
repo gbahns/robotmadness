@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 
 interface LoadingScreenProps {
     message?: string;
@@ -56,9 +57,9 @@ export function ErrorScreen({ error }: ErrorScreenProps) {
             <div className="text-center">
                 <h2 className="text-2xl text-red-500 mb-4">Error</h2>
                 <p>{error}</p>
-                <a href="/" className="text-blue-400 hover:underline mt-4 inline-block">
+                <Link href="/" className="text-blue-400 hover:underline mt-4 inline-block">
                     Back to Home
-                </a>
+                </Link>
             </div>
         </div>
     );
