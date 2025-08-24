@@ -14,7 +14,7 @@ export default function Wall({ directions, tileSize }: WallProps) {
     const baseStyle: React.CSSProperties = {
       position: 'absolute',
       backgroundColor: wallColor,
-      zIndex: 10, // Above tiles but below robots
+      zIndex: 20, // Above tiles and laser beams, but below robots
     };
 
     switch (direction) {
