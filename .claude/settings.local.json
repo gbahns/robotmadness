@@ -9,7 +9,8 @@
       "Bash(echo $?)",
       "Bash(npm run dev:*)",
       "Bash(taskkill:*)",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []
