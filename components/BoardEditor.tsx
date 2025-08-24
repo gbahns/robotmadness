@@ -14,17 +14,33 @@ import {
 import { BOARD_TEMPLATES, TEMPLATE_CATEGORIES, getTemplateById } from '@/lib/game/board-templates';
 import LaserBeamRenderer from '@/components/game/LaserBeamRenderer';
 
-// Tile palette for placing elements
-const TILE_PALETTE = [
-    { type: TileType.EMPTY, name: 'Empty', color: 'bg-gray-500', icon: '□' },
-    { type: TileType.PIT, name: 'Pit', color: 'bg-black', icon: '⚫' },
-    { type: TileType.REPAIR, name: 'Repair', color: 'bg-green-600', icon: '🔧' },
-    { type: TileType.OPTION, name: 'Option', color: 'bg-blue-600', icon: '?' },
-    { type: TileType.CONVEYOR, name: 'Conveyor', color: 'bg-yellow-600', icon: '→' },
-    { type: TileType.EXPRESS_CONVEYOR, name: 'Express', color: 'bg-blue-400', icon: '⇒' },
-    { type: TileType.GEAR_CW, name: 'Gear CW', color: 'bg-purple-600', icon: '↻' },
-    { type: TileType.GEAR_CCW, name: 'Gear CCW', color: 'bg-purple-400', icon: '↺' },
-    { type: TileType.PUSHER, name: 'Pusher', color: 'bg-red-600', icon: '⤴' },
+// Complete tool palette for all board elements
+type ToolType = 'tile' | 'laser' | 'wall' | 'start';
+
+interface PaletteItem {
+    tool: ToolType;
+    type?: TileType;
+    name: string;
+    color: string;
+    icon: string;
+    needsDirection?: boolean;
+}
+
+const TOOL_PALETTE: PaletteItem[] = [
+    // Tiles
+    { tool: 'tile', type: TileType.EMPTY, name: 'Empty', color: 'bg-gray-500', icon: '□' },
+    { tool: 'tile', type: TileType.PIT, name: 'Pit', color: 'bg-black', icon: '⚫' },
+    { tool: 'tile', type: TileType.REPAIR, name: 'Repair', color: 'bg-green-600', icon: '🔧' },
+    { tool: 'tile', type: TileType.OPTION, name: 'Option', color: 'bg-blue-600', icon: '?' },
+    { tool: 'tile', type: TileType.CONVEYOR, name: 'Conveyor', color: 'bg-yellow-600', icon: '→', needsDirection: true },
+    { tool: 'tile', type: TileType.EXPRESS_CONVEYOR, name: 'Express', color: 'bg-blue-400', icon: '⇒', needsDirection: true },
+    { tool: 'tile', type: TileType.GEAR_CW, name: 'Gear CW', color: 'bg-purple-600', icon: '↻' },
+    { tool: 'tile', type: TileType.GEAR_CCW, name: 'Gear CCW', color: 'bg-purple-400', icon: '↺' },
+    { tool: 'tile', type: TileType.PUSHER, name: 'Pusher', color: 'bg-red-600', icon: '⤴', needsDirection: true },
+    // Other tools
+    { tool: 'wall', name: 'Wall', color: 'bg-yellow-400', icon: '🧱' },
+    { tool: 'laser', name: 'Laser', color: 'bg-red-500', icon: '🔴', needsDirection: true },
+    { tool: 'start', name: 'Start Position', color: 'bg-green-500', icon: '🚀', needsDirection: true },
 ];
 
 const DIRECTION_OPTIONS = [
@@ -36,8 +52,7 @@ const DIRECTION_OPTIONS = [
 
 export default function EnhancedBoardEditor() {
     const [boardDef, setBoardDef] = useState<BoardDefinition>(createEmptyBoard());
-    const [selectedTool, setSelectedTool] = useState<'tile' | 'laser' | 'wall' | 'start'>('tile');
-    const [selectedTileType, setSelectedTileType] = useState<TileType>(TileType.EMPTY);
+    const [selectedItem, setSelectedItem] = useState<PaletteItem>(TOOL_PALETTE[0]);
     const [selectedDirection, setSelectedDirection] = useState<Direction>(Direction.UP);
     const [selectedLaserStrength, setSelectedLaserStrength] = useState<number>(1);
     const [showGrid, setShowGrid] = useState(true);
@@ -126,20 +141,20 @@ export default function EnhancedBoardEditor() {
         updateBoard(prev => {
             const newTiles = prev.tiles?.filter(tile => !(tile.position.x === x && tile.position.y === y)) || [];
 
-            if (selectedTileType !== TileType.EMPTY) {
+            if (selectedItem.tool === 'tile' && selectedItem.type && selectedItem.type !== TileType.EMPTY) {
                 const newTile: TileElement = {
                     position: { x, y },
-                    type: selectedTileType,
-                    ...(selectedTileType === TileType.CONVEYOR || selectedTileType === TileType.EXPRESS_CONVEYOR || selectedTileType === TileType.PUSHER ? { direction: selectedDirection } : {}),
-                    ...(selectedTileType === TileType.GEAR_CW ? { rotate: 'clockwise' as const } : {}),
-                    ...(selectedTileType === TileType.GEAR_CCW ? { rotate: 'counterclockwise' as const } : {}),
+                    type: selectedItem.type,
+                    ...(selectedItem.type === TileType.CONVEYOR || selectedItem.type === TileType.EXPRESS_CONVEYOR || selectedItem.type === TileType.PUSHER ? { direction: selectedDirection } : {}),
+                    ...(selectedItem.type === TileType.GEAR_CW ? { rotate: 'clockwise' as const } : {}),
+                    ...(selectedItem.type === TileType.GEAR_CCW ? { rotate: 'counterclockwise' as const } : {}),
                 };
                 newTiles.push(newTile);
             }
 
             return { ...prev, tiles: newTiles };
         });
-    }, [selectedTileType, selectedDirection, updateBoard]);
+    }, [selectedItem, selectedDirection, updateBoard]);
 
     const placeLaser = useCallback((x: number, y: number) => {
         console.log('Placing laser at', x, y, 'with direction', selectedDirection, 'and damage', selectedLaserStrength);
@@ -204,7 +219,7 @@ export default function EnhancedBoardEditor() {
     }, [selectedDirection, updateBoard]);
 
     const handleTileClick = useCallback((x: number, y: number, event?: React.MouseEvent) => {
-        switch (selectedTool) {
+        switch (selectedItem.tool) {
             case 'tile':
                 placeTile(x, y);
                 break;
@@ -230,7 +245,7 @@ export default function EnhancedBoardEditor() {
                 placeStartingPosition(x, y);
                 break;
         }
-    }, [selectedTool, placeTile, placeLaser, toggleWall, placeStartingPosition, tileSize]);
+    }, [selectedItem, placeTile, placeLaser, toggleWall, placeStartingPosition, tileSize]);
 
     const handleMouseDown = (x: number, y: number, event: React.MouseEvent) => {
         setIsDrawing(true);
@@ -238,7 +253,7 @@ export default function EnhancedBoardEditor() {
     };
 
     const handleMouseMove = (x: number, y: number, event: React.MouseEvent) => {
-        if (isDrawing && selectedTool === 'tile') {
+        if (isDrawing && selectedItem.tool === 'tile') {
             handleTileClick(x, y, event);
         }
     };
@@ -334,7 +349,7 @@ export default function EnhancedBoardEditor() {
         const laser = getLaserAt(x, y);
         const walls = getWallsAt(x, y);
 
-        const tileClass = tile ? TILE_PALETTE.find(p => p.type === tile.type)?.color || 'bg-gray-300' : 'bg-gray-300';
+        const tileClass = tile ? TOOL_PALETTE.find(p => p.tool === 'tile' && p.type === tile.type)?.color || 'bg-gray-300' : 'bg-gray-300';
 
         return (
             <div
@@ -365,7 +380,7 @@ export default function EnhancedBoardEditor() {
                 {/* Tile icon */}
                 {tile && (
                     <div className="absolute inset-0 flex items-center justify-center text-white font-bold text-xs">
-                        {TILE_PALETTE.find(p => p.type === tile.type)?.icon}
+                        {TOOL_PALETTE.find(p => p.tool === 'tile' && p.type === tile.type)?.icon}
                     </div>
                 )}
 
@@ -641,30 +656,26 @@ export default function EnhancedBoardEditor() {
                             </div>
                         </div>
 
-                        {/* Tool Selection */}
+                        {/* Tool Palette */}
                         <div className="bg-gray-800 p-4 rounded-lg">
-                            <h3 className="text-lg font-semibold mb-3">Tools</h3>
-                            <div className="grid grid-cols-2 gap-2 mb-3">
-                                {[
-                                    { tool: 'tile' as const, name: 'Tiles', icon: '🟦' },
-                                    { tool: 'laser' as const, name: 'Lasers', icon: '🔴' },
-                                    { tool: 'wall' as const, name: 'Walls', icon: '🧱' },
-                                    { tool: 'start' as const, name: 'Start', icon: '🚀' },
-                                ].map(({ tool, name, icon }) => (
+                            <h3 className="text-lg font-semibold mb-3">Tools & Tiles</h3>
+                            <div className="space-y-1 mb-3">
+                                {TOOL_PALETTE.map((item, index) => (
                                     <button
-                                        key={tool}
-                                        onClick={() => setSelectedTool(tool)}
-                                        className={`px-3 py-2 rounded text-sm flex items-center gap-2 ${selectedTool === tool ? 'bg-blue-600' : 'bg-gray-600 hover:bg-gray-500'}`}
+                                        key={index}
+                                        onClick={() => setSelectedItem(item)}
+                                        className={`w-full px-3 py-2 rounded text-sm text-left flex items-center gap-2 ${selectedItem === item ? 'bg-blue-600' : 'bg-gray-600 hover:bg-gray-500'}`}
                                     >
-                                        <span>{icon}</span>
-                                        {name}
+                                        <div className={`w-4 h-4 ${item.color} rounded flex items-center justify-center text-xs`}>
+                                            {item.icon}
+                                        </div>
+                                        {item.name}
                                     </button>
                                 ))}
                             </div>
 
                             {/* Direction Selection */}
-                            {(selectedTool === 'laser' || selectedTool === 'start' ||
-                                (selectedTool === 'tile' && (selectedTileType === TileType.CONVEYOR || selectedTileType === TileType.EXPRESS_CONVEYOR || selectedTileType === TileType.PUSHER))) && (
+                            {selectedItem.needsDirection && (
                                     <div className="mb-3">
                                         <label className="block text-sm font-medium mb-2">Direction</label>
                                         <div className="grid grid-cols-2 gap-1">
@@ -682,7 +693,7 @@ export default function EnhancedBoardEditor() {
                                 )}
 
                             {/* Laser Damage Selection */}
-                            {selectedTool === 'laser' && (
+                            {selectedItem.tool === 'laser' && (
                                 <div className="mb-3">
                                     <label className="block text-sm font-medium mb-2">Laser Damage</label>
                                     <div className="flex gap-1">
@@ -700,26 +711,6 @@ export default function EnhancedBoardEditor() {
                             )}
                         </div>
 
-                        {/* Tile Palette */}
-                        {selectedTool === 'tile' && (
-                            <div className="bg-gray-800 p-4 rounded-lg">
-                                <h3 className="text-lg font-semibold mb-3">Tile Types</h3>
-                                <div className="space-y-1">
-                                    {TILE_PALETTE.map(({ type, name, color, icon }) => (
-                                        <button
-                                            key={type}
-                                            onClick={() => setSelectedTileType(type)}
-                                            className={`w-full px-3 py-2 rounded text-sm text-left flex items-center gap-2 ${selectedTileType === type ? 'bg-blue-600' : 'bg-gray-600 hover:bg-gray-500'}`}
-                                        >
-                                            <div className={`w-4 h-4 ${color} rounded flex items-center justify-center text-xs`}>
-                                                {icon}
-                                            </div>
-                                            {name}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
 
                         {/* Export/Import */}
                         <div className="bg-gray-800 p-4 rounded-lg">

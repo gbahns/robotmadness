@@ -121,7 +121,55 @@ const LaserBeamRenderer: React.FC<LaserBeamRendererProps> = ({
           left += (tileSize - beamWidth) / 2;
         }
         
-        if (isDoubleLaser && laser.damage >= 2) {
+        if (laser.damage >= 3) {
+          // Triple laser - 3 parallel beams
+          const spacing = 5;
+          const singleBeamWidth = 2;
+          
+          allBeams.push(
+            <React.Fragment key={`laser-${laserIndex}-${pathIndex}`}>
+              {/* First beam */}
+              <div
+                className="absolute animate-pulse pointer-events-none"
+                style={{
+                  left: isHorizontal ? `${left}px` : `${left - spacing}px`,
+                  top: isHorizontal ? `${top - spacing}px` : `${top}px`,
+                  width: isHorizontal ? `${beamLength}px` : `${singleBeamWidth}px`,
+                  height: isHorizontal ? `${singleBeamWidth}px` : `${beamLength}px`,
+                  backgroundColor: 'rgba(220, 38, 38, 0.7)',
+                  boxShadow: '0 0 4px rgba(220, 38, 38, 0.8)',
+                  zIndex: 15
+                }}
+              />
+              {/* Middle beam */}
+              <div
+                className="absolute animate-pulse pointer-events-none"
+                style={{
+                  left: `${left}px`,
+                  top: `${top}px`,
+                  width: isHorizontal ? `${beamLength}px` : `${singleBeamWidth}px`,
+                  height: isHorizontal ? `${singleBeamWidth}px` : `${beamLength}px`,
+                  backgroundColor: 'rgba(220, 38, 38, 0.7)',
+                  boxShadow: '0 0 4px rgba(220, 38, 38, 0.8)',
+                  zIndex: 15
+                }}
+              />
+              {/* Third beam */}
+              <div
+                className="absolute animate-pulse pointer-events-none"
+                style={{
+                  left: isHorizontal ? `${left}px` : `${left + spacing}px`,
+                  top: isHorizontal ? `${top + spacing}px` : `${top}px`,
+                  width: isHorizontal ? `${beamLength}px` : `${singleBeamWidth}px`,
+                  height: isHorizontal ? `${singleBeamWidth}px` : `${beamLength}px`,
+                  backgroundColor: 'rgba(220, 38, 38, 0.7)',
+                  boxShadow: '0 0 4px rgba(220, 38, 38, 0.8)',
+                  zIndex: 15
+                }}
+              />
+            </React.Fragment>
+          );
+        } else if (isDoubleLaser && laser.damage >= 2) {
           const spacing = 6;
           const singleBeamWidth = 3;
           

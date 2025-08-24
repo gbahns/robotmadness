@@ -17,15 +17,31 @@ import { RepairSite, ConveyorBelt, Gear, Pit, Pusher, LaserEmitter, StartingPosi
 import BoardRenderer from '@/components/game/BoardRenderer';
 
 // Tile palette for placing elements
-const TILE_PALETTE = [
-    { type: TileType.EMPTY, name: 'Empty', icon: '□' },
-    { type: TileType.PIT, name: 'Pit', icon: '⚫' },
-    { type: TileType.REPAIR, name: 'Repair', icon: '🔧' },
-    { type: TileType.OPTION, name: 'Option', icon: '?' },
-    { type: TileType.CONVEYOR, name: 'Conveyor', icon: '→' },
-    { type: TileType.EXPRESS_CONVEYOR, name: 'Express', icon: '⇒' },
-    { type: TileType.GEAR_CW, name: 'Gear', icon: '⚙️' }, // Use GEAR_CW as the base gear type
-    { type: TileType.PUSHER, name: 'Pusher', icon: '⤴' },
+// Unified tool and tile palette
+type ToolType = 'tile' | 'laser' | 'wall' | 'start';
+
+interface PaletteItem {
+    tool: ToolType;
+    type?: TileType;
+    name: string;
+    icon: string;
+    needsDirection?: boolean;
+}
+
+const TOOL_PALETTE: PaletteItem[] = [
+    // Tiles
+    { tool: 'tile', type: TileType.EMPTY, name: 'Empty', icon: '□' },
+    { tool: 'tile', type: TileType.PIT, name: 'Pit', icon: '⚫' },
+    { tool: 'tile', type: TileType.REPAIR, name: 'Repair', icon: '🔧' },
+    { tool: 'tile', type: TileType.OPTION, name: 'Option', icon: '?' },
+    { tool: 'tile', type: TileType.CONVEYOR, name: 'Conveyor', icon: '→', needsDirection: true },
+    { tool: 'tile', type: TileType.EXPRESS_CONVEYOR, name: 'Express', icon: '⇒', needsDirection: true },
+    { tool: 'tile', type: TileType.GEAR_CW, name: 'Gear', icon: '⚙️' },
+    { tool: 'tile', type: TileType.PUSHER, name: 'Pusher', icon: '⤴', needsDirection: true },
+    // Other tools
+    { tool: 'wall', name: 'Wall', icon: '🧱' },
+    { tool: 'laser', name: 'Laser', icon: '🔴' },
+    { tool: 'start', name: 'Start Position', icon: '🚀', needsDirection: true },
 ];
 
 const DIRECTION_OPTIONS = [
@@ -43,8 +59,7 @@ const ROTATION_OPTIONS = [
 
 export default function BoardEditorWithGameRendering() {
     const [boardDef, setBoardDef] = useState<BoardDefinition>(createEmptyBoard());
-    const [selectedTool, setSelectedTool] = useState<'tile' | 'laser' | 'wall' | 'start'>('tile');
-    const [selectedTileType, setSelectedTileType] = useState<TileType>(TileType.EMPTY);
+    const [selectedItem, setSelectedItem] = useState<PaletteItem>(TOOL_PALETTE[0]);
     const [selectedDirection, setSelectedDirection] = useState<Direction>(Direction.UP);
     const [selectedRotation, setSelectedRotation] = useState<'none' | 'clockwise' | 'counterclockwise'>('none');
     const [selectedLaserStrength, setSelectedLaserStrength] = useState<number>(1);
@@ -198,28 +213,28 @@ export default function BoardEditorWithGameRendering() {
     }, [addToHistory]);
 
     const placeTile = useCallback((x: number, y: number) => {
-        console.log(`placeTile called at (${x}, ${y}) with type: ${selectedTileType}`);
+        console.log(`placeTile called at (${x}, ${y}) with type: ${selectedItem.type}`);
         updateBoard(prev => {
             const newTiles = prev.tiles?.filter(tile => !(tile.position.x === x && tile.position.y === y)) || [];
 
-            if (selectedTileType !== TileType.EMPTY) {
+            if (selectedItem.tool === 'tile' && selectedItem.type && selectedItem.type !== TileType.EMPTY) {
                 const newTile: TileElement = {
                     position: { x, y },
-                    type: selectedTileType,
+                    type: selectedItem.type,
                 };
 
                 // Add direction for tiles that need it
-                if (selectedTileType === TileType.CONVEYOR || selectedTileType === TileType.EXPRESS_CONVEYOR || selectedTileType === TileType.PUSHER) {
+                if (selectedItem.type === TileType.CONVEYOR || selectedItem.type === TileType.EXPRESS_CONVEYOR || selectedItem.type === TileType.PUSHER) {
                     newTile.direction = selectedDirection;
                 }
 
                 // Add rotation for conveyors if selected
-                if ((selectedTileType === TileType.CONVEYOR || selectedTileType === TileType.EXPRESS_CONVEYOR) && selectedRotation !== 'none') {
+                if ((selectedItem.type === TileType.CONVEYOR || selectedItem.type === TileType.EXPRESS_CONVEYOR) && selectedRotation !== 'none') {
                     newTile.rotate = selectedRotation as 'clockwise' | 'counterclockwise';
                 }
 
                 // Handle gears - they always need rotation, use selectedRotation or default to clockwise
-                if (selectedTileType === TileType.GEAR_CW) {
+                if (selectedItem.type === TileType.GEAR_CW) {
                     newTile.rotate = selectedRotation === 'counterclockwise' ? 'counterclockwise' : 'clockwise';
                     // For gears, we need to set the correct type based on rotation
                     if (selectedRotation === 'counterclockwise') {
@@ -228,7 +243,7 @@ export default function BoardEditorWithGameRendering() {
                 }
 
                 // Add registers for pushers based on rotation selection
-                if (selectedTileType === TileType.PUSHER) {
+                if (selectedItem.type === TileType.PUSHER) {
                     // Use rotation to determine odd/even registers
                     (newTile as any).registers = selectedRotation === 'counterclockwise' ? [2, 4] : [1, 3, 5];
                     console.log('Placing pusher with registers:', (newTile as any).registers);
@@ -239,22 +254,46 @@ export default function BoardEditorWithGameRendering() {
 
             return { ...prev, tiles: newTiles };
         });
-    }, [selectedTileType, selectedDirection, selectedRotation, updateBoard]);
+    }, [selectedItem.type, selectedDirection, selectedRotation, updateBoard]);
 
-    const placeLaser = useCallback((x: number, y: number) => {
+    const placeLaser = useCallback((x: number, y: number, direction: Direction) => {
         updateBoard(prev => {
-            const newLasers = prev.lasers?.filter(laser => !(laser.position.x === x && laser.position.y === y)) || [];
-
-            const newLaser: LaserElement = {
-                position: { x, y },
-                direction: selectedDirection,
-                damage: selectedLaserStrength || 1
-            };
-            newLasers.push(newLaser);
+            const existingLasers = prev.lasers || [];
+            
+            // Check if there's already a laser at this position
+            const existingLaserIndex = existingLasers.findIndex(
+                laser => laser.position.x === x && laser.position.y === y
+            );
+            
+            let newLasers: LaserElement[];
+            
+            if (existingLaserIndex !== -1) {
+                // If there's a laser at this position with the same direction, remove it (toggle off)
+                const existingLaser = existingLasers[existingLaserIndex];
+                if (existingLaser.direction === direction) {
+                    // Remove the laser
+                    newLasers = existingLasers.filter((_, index) => index !== existingLaserIndex);
+                } else {
+                    // Replace with new direction
+                    newLasers = existingLasers.map((laser, index) => 
+                        index === existingLaserIndex 
+                            ? { ...laser, direction, damage: selectedLaserStrength || 1 }
+                            : laser
+                    );
+                }
+            } else {
+                // Add new laser
+                const newLaser: LaserElement = {
+                    position: { x, y },
+                    direction,
+                    damage: selectedLaserStrength || 1
+                };
+                newLasers = [...existingLasers, newLaser];
+            }
             
             return { ...prev, lasers: newLasers };
         });
-    }, [selectedDirection, selectedLaserStrength, updateBoard]);
+    }, [selectedLaserStrength, updateBoard]);
 
     const toggleWall = useCallback((x: number, y: number, side: Direction) => {
         updateBoard(prev => {
@@ -328,12 +367,33 @@ export default function BoardEditorWithGameRendering() {
     }, [selectedDirection, updateBoard]);
 
     const handleTileClick = useCallback((x: number, y: number, event?: React.MouseEvent) => {
-        switch (selectedTool) {
+        switch (selectedItem.tool) {
             case 'tile':
                 placeTile(x, y);
                 break;
             case 'laser':
-                placeLaser(x, y);
+                if (event) {
+                    const rect = (event.target as HTMLElement).getBoundingClientRect();
+                    const relativeX = event.clientX - rect.left;
+                    const relativeY = event.clientY - rect.top;
+                    
+                    // Determine laser direction based on which edge the mouse is closest to
+                    const centerX = calculatedTileSize / 2;
+                    const centerY = calculatedTileSize / 2;
+                    const dx = relativeX - centerX;
+                    const dy = relativeY - centerY;
+                    
+                    let direction: Direction;
+                    if (Math.abs(dx) > Math.abs(dy)) {
+                        // Horizontal - closer to left or right edge
+                        direction = dx > 0 ? Direction.RIGHT : Direction.LEFT;
+                    } else {
+                        // Vertical - closer to top or bottom edge
+                        direction = dy > 0 ? Direction.DOWN : Direction.UP;
+                    }
+                    
+                    placeLaser(x, y, direction);
+                }
                 break;
             case 'wall':
                 if (event) {
@@ -366,19 +426,19 @@ export default function BoardEditorWithGameRendering() {
                 placeStartingPosition(x, y);
                 break;
         }
-    }, [selectedTool, placeTile, placeLaser, toggleWall, placeStartingPosition, calculatedTileSize]);
+    }, [selectedItem.tool, placeTile, placeLaser, toggleWall, placeStartingPosition, calculatedTileSize]);
 
     const handleMouseDown = (x: number, y: number, event: React.MouseEvent) => {
         setIsDrawing(true);
         // Only handle tile placement on mouse down for drawing tiles
         // Walls are handled by click only to avoid double-toggling
-        if (selectedTool === 'tile') {
+        if (selectedItem.tool === 'tile') {
             handleTileClick(x, y, event);
         }
     };
 
     const handleMouseMove = (x: number, y: number, event: React.MouseEvent) => {
-        if (isDrawing && selectedTool === 'tile') {
+        if (isDrawing && selectedItem.tool === 'tile') {
             handleTileClick(x, y, event);
         }
     };
@@ -388,7 +448,7 @@ export default function BoardEditorWithGameRendering() {
     };
 
     const handleMouseEnter = (x: number, y: number, event: React.MouseEvent) => {
-        if (selectedTool === 'wall' && event) {
+        if ((selectedItem.tool === 'wall' || selectedItem.tool === 'laser') && event) {
             const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
             const relativeX = event.clientX - rect.left;
             const relativeY = event.clientY - rect.top;
@@ -422,9 +482,9 @@ export default function BoardEditorWithGameRendering() {
     const getPreviewContent = (x: number, y: number): React.ReactElement | null => {
         if (!hoveredTile || hoveredTile.x !== x || hoveredTile.y !== y) return null;
         
-        switch (selectedTool) {
+        switch (selectedItem.tool) {
             case 'tile':
-                if (selectedTileType === TileType.EMPTY) {
+                if (selectedItem.type === TileType.EMPTY) {
                     // Show empty tile preview
                     return <div className="absolute inset-0 bg-gray-500 opacity-50" />;
                 }
@@ -432,27 +492,27 @@ export default function BoardEditorWithGameRendering() {
                 // Use actual components for preview with opacity
                 return (
                     <div className="absolute inset-0 opacity-60 pointer-events-none">
-                        {selectedTileType === TileType.PIT && (
+                        {selectedItem.type === TileType.PIT && (
                             <Pit tileSize={calculatedTileSize} />
                         )}
-                        {(selectedTileType === TileType.REPAIR || selectedTileType === TileType.OPTION) && (
-                            <RepairSite type={selectedTileType} tileSize={calculatedTileSize} />
+                        {(selectedItem.type === TileType.REPAIR || selectedItem.type === TileType.OPTION) && (
+                            <RepairSite type={selectedItem.type} tileSize={calculatedTileSize} />
                         )}
-                        {(selectedTileType === TileType.CONVEYOR || selectedTileType === TileType.EXPRESS_CONVEYOR) && (
+                        {(selectedItem.type === TileType.CONVEYOR || selectedItem.type === TileType.EXPRESS_CONVEYOR) && (
                             <ConveyorBelt 
-                                type={selectedTileType === TileType.EXPRESS_CONVEYOR ? 'express' : 'conveyor'}
+                                type={selectedItem.type === TileType.EXPRESS_CONVEYOR ? 'express' : 'conveyor'}
                                 direction={selectedDirection}
                                 rotate={selectedRotation === 'clockwise' ? 'clockwise' : selectedRotation === 'counterclockwise' ? 'counter-clockwise' : undefined}
                                 tileSize={calculatedTileSize}
                             />
                         )}
-                        {(selectedTileType === TileType.GEAR_CW || selectedTileType === TileType.GEAR_CCW) && (
+                        {(selectedItem.type === TileType.GEAR_CW || selectedItem.type === TileType.GEAR_CCW) && (
                             <Gear 
                                 type={selectedRotation === 'counterclockwise' ? TileType.GEAR_CCW : TileType.GEAR_CW} 
                                 tileSize={calculatedTileSize} 
                             />
                         )}
-                        {selectedTileType === TileType.PUSHER && (
+                        {selectedItem.type === TileType.PUSHER && (
                             <Pusher 
                                 direction={selectedDirection}
                                 registers={[1, 3, 5]} // Default to odd registers for preview
@@ -495,15 +555,38 @@ export default function BoardEditorWithGameRendering() {
                 break;
                 
             case 'laser':
-                return (
-                    <div className="absolute inset-0 opacity-60 pointer-events-none">
-                        <LaserEmitter 
-                            direction={selectedDirection}
-                            damage={1}
-                            tileSize={calculatedTileSize}
-                        />
-                    </div>
-                );
+                if (hoveredTile?.side !== undefined) {
+                    // Check if there's already a laser at this position
+                    const existingLaser = boardDef.lasers?.find(
+                        laser => laser.position.x === x && laser.position.y === y
+                    );
+                    
+                    if (existingLaser && existingLaser.direction === hoveredTile.side) {
+                        // Show red indicator for removal
+                        return (
+                            <div className="absolute inset-0 opacity-60 pointer-events-none">
+                                <div className="absolute inset-0 bg-red-500 opacity-30" />
+                                <LaserEmitter 
+                                    direction={hoveredTile.side}
+                                    damage={existingLaser.damage || 1}
+                                    tileSize={calculatedTileSize}
+                                />
+                            </div>
+                        );
+                    } else {
+                        // Show laser preview
+                        return (
+                            <div className="absolute inset-0 opacity-60 pointer-events-none">
+                                <LaserEmitter 
+                                    direction={hoveredTile.side}
+                                    damage={selectedLaserStrength || 1}
+                                    tileSize={calculatedTileSize}
+                                />
+                            </div>
+                        );
+                    }
+                }
+                return null;
                 
             case 'start':
                 // Find next available starting position number
@@ -540,15 +623,15 @@ export default function BoardEditorWithGameRendering() {
                 showGrid={showGrid}
                 showCoordinates={showCoordinates}
                 hoveredTile={hoveredTile ? { x: hoveredTile.x, y: hoveredTile.y } : undefined}
-                selectedTool={selectedTool}
+                selectedTool={selectedItem.tool}
                 previewElement={getPreviewContent(hoveredTile?.x || 0, hoveredTile?.y || 0)}
                 onTileClick={handleTileClick}
-                onTileMouseDown={selectedTool === 'tile' ? handleMouseDown : undefined}
+                onTileMouseDown={selectedItem.tool === 'tile' ? handleMouseDown : undefined}
                 onTileMouseEnter={handleMouseEnter}
                 onTileMouseMove={(x, y, e) => {
                     handleMouseMove(x, y, e);
-                    if (selectedTool === 'wall') {
-                        // Determine which side of the tile the mouse is on
+                    if (selectedItem.tool === 'wall' || selectedItem.tool === 'laser') {
+                        // Determine direction based on mouse position
                         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
                         const relativeX = e.clientX - rect.left;
                         const relativeY = e.clientY - rect.top;
@@ -556,12 +639,27 @@ export default function BoardEditorWithGameRendering() {
                         const tileHeight = rect.height;
                         
                         let side: Direction | undefined;
-                        const edgeThreshold = 0.3;
                         
-                        if (relativeY < tileHeight * edgeThreshold) side = Direction.UP;
-                        else if (relativeY > tileHeight * (1 - edgeThreshold)) side = Direction.DOWN;
-                        else if (relativeX < tileWidth * edgeThreshold) side = Direction.LEFT;
-                        else if (relativeX > tileWidth * (1 - edgeThreshold)) side = Direction.RIGHT;
+                        if (selectedItem.tool === 'wall') {
+                            // For walls, use edge detection
+                            const edgeThreshold = 0.3;
+                            if (relativeY < tileHeight * edgeThreshold) side = Direction.UP;
+                            else if (relativeY > tileHeight * (1 - edgeThreshold)) side = Direction.DOWN;
+                            else if (relativeX < tileWidth * edgeThreshold) side = Direction.LEFT;
+                            else if (relativeX > tileWidth * (1 - edgeThreshold)) side = Direction.RIGHT;
+                        } else {
+                            // For lasers, determine direction from center
+                            const centerX = tileWidth / 2;
+                            const centerY = tileHeight / 2;
+                            const dx = relativeX - centerX;
+                            const dy = relativeY - centerY;
+                            
+                            if (Math.abs(dx) > Math.abs(dy)) {
+                                side = dx > 0 ? Direction.RIGHT : Direction.LEFT;
+                            } else {
+                                side = dy > 0 ? Direction.DOWN : Direction.UP;
+                            }
+                        }
                         
                         setHoveredTile({ x, y, side });
                     }
@@ -922,30 +1020,24 @@ export default function BoardEditorWithGameRendering() {
                             </div>
                         </div>
 
-                        {/* Tool Selection */}
+                        {/* Tool & Tile Palette */}
                         <div className="bg-gray-800 p-4 rounded-lg">
-                            <h3 className="text-lg font-semibold mb-3">Tools</h3>
-                            <div className="grid grid-cols-2 gap-2 mb-3">
-                                {[
-                                    { tool: 'tile' as const, name: 'Tiles', icon: '🟦' },
-                                    { tool: 'laser' as const, name: 'Lasers', icon: '🔴' },
-                                    { tool: 'wall' as const, name: 'Walls', icon: '🧱' },
-                                    { tool: 'start' as const, name: 'Start', icon: '🚀' },
-                                ].map(({ tool, name, icon }) => (
+                            <h3 className="text-lg font-semibold mb-3">Tools & Tiles</h3>
+                            <div className="space-y-1 mb-3 max-h-96 overflow-y-auto">
+                                {TOOL_PALETTE.map((item, index) => (
                                     <button
-                                        key={tool}
-                                        onClick={() => setSelectedTool(tool)}
-                                        className={`px-3 py-2 rounded text-sm flex items-center gap-2 ${selectedTool === tool ? 'bg-blue-600' : 'bg-gray-600 hover:bg-gray-500'}`}
+                                        key={index}
+                                        onClick={() => setSelectedItem(item)}
+                                        className={`w-full px-3 py-2 rounded text-sm text-left flex items-center gap-2 ${selectedItem === item ? 'bg-blue-600' : 'bg-gray-600 hover:bg-gray-500'}`}
                                     >
-                                        <span>{icon}</span>
-                                        {name}
+                                        <span className="text-base">{item.icon}</span>
+                                        {item.name}
                                     </button>
                                 ))}
                             </div>
 
                             {/* Direction Selection */}
-                            {(selectedTool === 'laser' || selectedTool === 'start' ||
-                                (selectedTool === 'tile' && (selectedTileType === TileType.CONVEYOR || selectedTileType === TileType.EXPRESS_CONVEYOR || selectedTileType === TileType.PUSHER))) && (
+                            {selectedItem.needsDirection && (
                                     <div className="mb-3">
                                         <label className="block text-sm font-medium mb-2">Direction</label>
                                         <div className="grid grid-cols-2 gap-1">
@@ -963,21 +1055,21 @@ export default function BoardEditorWithGameRendering() {
                                 )}
 
                             {/* Rotation Selection */}
-                            {(selectedTool === 'tile' && (selectedTileType === TileType.CONVEYOR || selectedTileType === TileType.EXPRESS_CONVEYOR || selectedTileType === TileType.GEAR_CW || selectedTileType === TileType.PUSHER)) && (
+                            {(selectedItem.tool === 'tile' && (selectedItem.type === TileType.CONVEYOR || selectedItem.type === TileType.EXPRESS_CONVEYOR || selectedItem.type === TileType.GEAR_CW || selectedItem.type === TileType.PUSHER)) && (
                                 <div className="mb-3">
                                     <label className="block text-sm font-medium mb-2">
-                                        {selectedTileType === TileType.GEAR_CW ? 'Rotation' : 
-                                         selectedTileType === TileType.PUSHER ? 'Registers' : 'Curve'}
+                                        {selectedItem.type === TileType.GEAR_CW ? 'Rotation' : 
+                                         selectedItem.type === TileType.PUSHER ? 'Registers' : 'Curve'}
                                     </label>
                                     <div className="grid grid-cols-1 gap-1">
-                                        {(selectedTileType === TileType.PUSHER ? 
+                                        {(selectedItem.type === TileType.PUSHER ? 
                                             [
                                                 { value: 'none', name: 'Odd (1,3,5)', icon: '1️⃣' },
                                                 { value: 'counterclockwise', name: 'Even (2,4)', icon: '2️⃣' }
                                             ] : ROTATION_OPTIONS
                                         ).map(({ value, name, icon }) => {
                                             // For gears, don't show 'none' option
-                                            if (selectedTileType === TileType.GEAR_CW && value === 'none') return null;
+                                            if (selectedItem.type === TileType.GEAR_CW && value === 'none') return null;
 
                                             return (
                                                 <button
@@ -993,32 +1085,31 @@ export default function BoardEditorWithGameRendering() {
                                     </div>
                                 </div>
                             )}
+                            
+                            {/* Laser Damage Selection */}
+                            {selectedItem.tool === 'laser' && (
+                                <div className="mb-3">
+                                    <label className="block text-sm font-medium mb-2">Laser Damage</label>
+                                    <div className="grid grid-cols-3 gap-1">
+                                        {[1, 2, 3].map((damage) => (
+                                            <button
+                                                key={damage}
+                                                onClick={() => setSelectedLaserStrength(damage)}
+                                                className={`px-2 py-1 rounded text-sm ${selectedLaserStrength === damage ? 'bg-red-600' : 'bg-gray-600 hover:bg-gray-500'}`}
+                                            >
+                                                {damage === 1 ? 'Single' : damage === 2 ? 'Double' : 'Triple'}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div className="mt-2 text-xs text-gray-400">
+                                        {selectedLaserStrength === 1 && "Single laser - 1 damage"}
+                                        {selectedLaserStrength === 2 && "Double laser - 2 damage"}
+                                        {selectedLaserStrength === 3 && "Triple laser - 3 damage (rare)"}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
-                        {/* Tile Palette */}
-                        {selectedTool === 'tile' && (
-                            <div className="bg-gray-800 p-4 rounded-lg">
-                                <h3 className="text-lg font-semibold mb-3">Tile Types</h3>
-
-                                <div className="space-y-1">
-                                    {TILE_PALETTE.map(({ type, name, icon }) => (
-                                        <button
-                                            key={type}
-                                            onClick={() => setSelectedTileType(type)}
-                                            className={`w-full px-3 py-2 rounded text-sm text-left flex items-center gap-2 ${selectedTileType === type ? 'bg-blue-600' : 'bg-gray-600 hover:bg-gray-500'}`}
-                                        >
-                                            <span className="text-lg">{icon}</span>
-                                            {name}
-                                        </button>
-                                    ))}
-                                </div>
-
-                                {/* Help text */}
-                                <div className="mt-3 p-2 bg-gray-700 rounded text-xs text-gray-300">
-                                    <p><strong>Conveyors & Gears:</strong> Use the Curve/Rotation selector below to make corner conveyors or set gear direction.</p>
-                                </div>
-                            </div>
-                        )}
 
                         {/* Export/Import */}
                         <div className="bg-gray-800 p-4 rounded-lg">
