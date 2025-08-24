@@ -1023,7 +1023,7 @@ export default function BoardEditorWithGameRendering() {
                         {/* Tool & Tile Palette */}
                         <div className="bg-gray-800 p-4 rounded-lg">
                             <h3 className="text-lg font-semibold mb-3">Tools & Tiles</h3>
-                            <div className="space-y-1 mb-3 max-h-96 overflow-y-auto">
+                            <div className="space-y-1 mb-3">
                                 {TOOL_PALETTE.map((item, index) => (
                                     <button
                                         key={index}
@@ -1110,73 +1110,60 @@ export default function BoardEditorWithGameRendering() {
                             )}
                         </div>
 
-
-                        {/* Export/Import */}
-                        <div className="bg-gray-800 p-4 rounded-lg">
-                            <h3 className="text-lg font-semibold mb-3">File Operations</h3>
-                            <div className="space-y-2">
-                                {/* JSON Operations */}
-                                <div className="border-b border-gray-600 pb-2 mb-2">
-                                    <h4 className="text-sm font-medium text-gray-300 mb-2">JSON Format</h4>
-                                    <div className="space-y-1">
-                                        <button
-                                            onClick={exportBoard}
-                                            className="w-full px-3 py-2 bg-green-600 hover:bg-green-700 rounded text-sm"
-                                        >
-                                            📁 Export JSON File
-                                        </button>
-                                        <button
-                                            onClick={copyToClipboard}
-                                            className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm"
-                                        >
-                                            📋 Copy JSON to Clipboard
-                                        </button>
-                                    </div>
+                        {/* File Operations */}
+                        <div className="bg-gray-800 p-3 rounded-lg">
+                                <h3 className="text-sm font-semibold mb-2">File Operations</h3>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        onClick={exportBoard}
+                                        className="px-2 py-1 bg-green-600 hover:bg-green-700 rounded text-xs"
+                                        title="Export JSON File"
+                                    >
+                                        📁 Export
+                                    </button>
+                                    <button
+                                        onClick={copyToClipboard}
+                                        className="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-xs"
+                                        title="Copy JSON to Clipboard"
+                                    >
+                                        📋 Copy
+                                    </button>
+                                    <button
+                                        onClick={pasteFromClipboard}
+                                        className="px-2 py-1 bg-orange-600 hover:bg-orange-700 rounded text-xs"
+                                        title="Paste from Clipboard"
+                                    >
+                                        📥 Paste
+                                    </button>
+                                    <label className="block">
+                                        <input
+                                            type="file"
+                                            accept=".json"
+                                            onChange={importBoard}
+                                            className="hidden"
+                                        />
+                                        <div className="px-2 py-1 bg-purple-600 hover:bg-purple-700 rounded text-xs text-center cursor-pointer"
+                                            title="Import from File">
+                                            📤 Import
+                                        </div>
+                                    </label>
                                 </div>
-
-                                {/* TypeScript Operations */}
-                                <div className="border-b border-gray-600 pb-2 mb-2">
-                                    <h4 className="text-sm font-medium text-gray-300 mb-2">TypeScript Format</h4>
-                                    <div className="space-y-1">
-                                        <button
-                                            onClick={exportTypeScript}
-                                            className="w-full px-3 py-2 bg-green-600 hover:bg-green-700 rounded text-sm"
-                                        >
-                                            📁 Export TypeScript File
-                                        </button>
-                                        <button
-                                            onClick={copyTypeScriptToClipboard}
-                                            className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm"
-                                        >
-                                            📋 Copy TypeScript to Clipboard
-                                        </button>
-                                    </div>
+                                <div className="grid grid-cols-2 gap-2 mt-2">
+                                    <button
+                                        onClick={exportTypeScript}
+                                        className="px-2 py-1 bg-green-700 hover:bg-green-800 rounded text-xs"
+                                        title="Export TypeScript File"
+                                    >
+                                        📄 Export TS
+                                    </button>
+                                    <button
+                                        onClick={copyTypeScriptToClipboard}
+                                        className="px-2 py-1 bg-blue-700 hover:bg-blue-800 rounded text-xs"
+                                        title="Copy TypeScript to Clipboard"
+                                    >
+                                        📋 Copy TS
+                                    </button>
                                 </div>
-
-                                {/* Import Operations */}
-                                <div>
-                                    <h4 className="text-sm font-medium text-gray-300 mb-2">Import</h4>
-                                    <div className="space-y-1">
-                                        <button
-                                            onClick={pasteFromClipboard}
-                                            className="w-full px-3 py-2 bg-orange-600 hover:bg-orange-700 rounded text-sm"
-                                        >
-                                            📥 Paste from Clipboard
-                                        </button>
-                                        <label className="block">
-                                            <input
-                                                type="file"
-                                                accept=".json"
-                                                onChange={importBoard}
-                                                className="hidden"
-                                            />
-                                            <div className="w-full px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded text-sm text-center cursor-pointer">
-                                                📤 Import from File
-                                            </div>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
