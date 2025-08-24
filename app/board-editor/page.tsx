@@ -12,7 +12,7 @@ import {
     exportToTypeScript
 } from '@/lib/game/board-editor-utils';
 import { BOARD_TEMPLATES, TEMPLATE_CATEGORIES, getTemplateById } from '@/lib/game/board-templates';
-import { ALL_BOARD_DEFINITIONS, getBoardDefinitionById } from '@/lib/game/board-utils';
+import { ALL_BOARD_DEFINITIONS, getBoardDefinitionById, BOARD_CATEGORIES } from '@/lib/game/board-utils';
 import { RepairSite, ConveyorBelt, Gear, Pit, Pusher, LaserEmitter, StartingPosition, Wall } from '@/components/game/board-elements';
 import BoardRenderer from '@/components/game/BoardRenderer';
 
@@ -952,19 +952,41 @@ export default function BoardEditorWithGameRendering() {
                     <div className="bg-gray-800 p-4 rounded-lg mb-6">
                         <h3 className="text-lg font-semibold mb-3">Load Game Boards</h3>
                         <p className="text-sm text-gray-400 mb-2">Raw board layouts from the game files</p>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                            {ALL_BOARD_DEFINITIONS.map(board => (
-                                <button
-                                    key={board.id}
-                                    onClick={() => loadGameBoard(board.id)}
-                                    className="p-2 bg-gray-700 hover:bg-gray-600 rounded text-sm text-left"
+                        <div className="flex gap-3 items-end">
+                            <div className="flex-1">
+                                <label className="block text-sm font-medium mb-1">Select Board</label>
+                                <select
+                                    onChange={(e) => {
+                                        if (e.target.value) {
+                                            loadGameBoard(e.target.value);
+                                        }
+                                    }}
+                                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-sm"
+                                    defaultValue=""
                                 >
-                                    <div className="font-medium text-xs">{board.name}</div>
-                                    <div className="text-xs text-gray-500 mt-1">
-                                        {board.width}×{board.height} • {board.startingPositions.length} starts
-                                    </div>
-                                </button>
-                            ))}
+                                    <option value="">Choose a board...</option>
+                                    {BOARD_CATEGORIES.map(category => (
+                                        <optgroup key={category.name} label={category.name}>
+                                            {category.boards.map(board => (
+                                                <option key={board.id} value={board.id}>
+                                                    {board.name} ({board.width}×{board.height})
+                                                </option>
+                                            ))}
+                                        </optgroup>
+                                    ))}
+                                </select>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    const select = document.querySelector('select') as HTMLSelectElement;
+                                    if (select && select.value) {
+                                        loadGameBoard(select.value);
+                                    }
+                                }}
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm"
+                            >
+                                Load Board
+                            </button>
                         </div>
                     </div>
                 )}

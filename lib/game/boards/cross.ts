@@ -89,9 +89,9 @@ export const CROSS_BOARD: BoardDefinition = {
 
     lasers: [
         { position: { x: 3, y: 8 }, direction: Direction.DOWN, damage: 2 },
-        { position: { x: 3, y: 3 }, direction: Direction.RIGHT, damage: 1 },
         { position: { x: 9, y: 3 }, direction: Direction.LEFT, damage: 1 },
         { position: { x: 7, y: 9 }, direction: Direction.DOWN, damage: 1 },
+        { position: { x: 4, y: 3 }, direction: Direction.LEFT, damage: 1 },
     ],
 
     walls: [

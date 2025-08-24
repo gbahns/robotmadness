@@ -3,7 +3,7 @@ import { Direction, TileType } from '../types';
 
 export const EXCHANGE_FACTORY_FLOOR: BoardDefinition = {
     id: 'exchange-factory-floor',
-    name: 'Exchange Factory Floor',
+    name: 'Exchange',
     width: 12,
     height: 12,
 

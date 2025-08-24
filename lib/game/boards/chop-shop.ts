@@ -78,11 +78,11 @@ export const CHOP_SHOP_BOARD: BoardDefinition = {
     ],
 
     lasers: [
-        { position: { x: 1, y: 10 }, direction: Direction.LEFT, damage: 3 },
         { position: { x: 6, y: 8 }, direction: Direction.LEFT, damage: 2 },
         { position: { x: 2, y: 7 }, direction: Direction.UP, damage: 1 },
         { position: { x: 5, y: 1 }, direction: Direction.LEFT, damage: 1 },
         { position: { x: 8, y: 6 }, direction: Direction.UP, damage: 1 },
+        { position: { x: 1, y: 10 }, direction: Direction.LEFT, damage: 3 },
     ],
 
     walls: [
@@ -114,6 +114,6 @@ export const CHOP_SHOP_BOARD: BoardDefinition = {
         { position: { x: 8, y: 4 }, sides: [Direction.UP] },
         { position: { x: 8, y: 6 }, sides: [Direction.DOWN] },
         { position: { x: 10, y: 6 }, sides: [Direction.DOWN] },
-        { position: { x: 1, y: 10 }, sides: [Direction.LEFT, Direction.RIGHT] },
+        { position: { x: 1, y: 10 }, sides: [Direction.RIGHT, Direction.LEFT] },
     ],
 };

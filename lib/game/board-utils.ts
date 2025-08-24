@@ -1,14 +1,15 @@
 import { Board, BoardDefinition, Tile, TileType, Direction, Laser } from './types';
 import { EXCHANGE_FACTORY_FLOOR } from './boards/exchange';
-import { EXCHANGE_FACTORY_FLOOR_TEST } from './boards/exchange-test';
 import { CROSS_BOARD } from './boards/cross';
 import { CHESS_BOARD } from './boards/chess';
 import { TEST_BOARD } from './boards/test';
-import { DIZZY_DASH_BOARD } from './boards/dizzy-dash';
-import { ISLAND_HOP_BOARD } from './boards/island-hop';
+import { ISLAND_BOARD } from './boards/island';
 import { DOCKING_BAY_1 } from './boards/docking-bay/docking-bay-1';
 import { DOCKING_BAY_2 } from './boards/docking-bay/docking-bay-2';
 import { CHOP_SHOP_BOARD } from './boards/chop-shop';
+import { MAELSTROM_BOARD } from './boards/maelstrom';
+import { SPIN_ZONE_BOARD } from './boards/spin-zone';
+import { VAULT_BOARD } from './boards/vault';
 
 /**
  * Builds a Board object from a BoardDefinition
@@ -107,33 +108,41 @@ export function applyDirection(position: { x: number; y: number }, direction: Di
     };
 }
 
-// Docking bay boards
+// Factory Floor boards
+export const FACTORY_FLOOR_BOARDS: BoardDefinition[] = [
+    EXCHANGE_FACTORY_FLOOR,
+    ISLAND_BOARD,
+    CHOP_SHOP_BOARD,
+    MAELSTROM_BOARD,
+    SPIN_ZONE_BOARD,
+    VAULT_BOARD,
+    CROSS_BOARD,
+    CHESS_BOARD,
+].sort((a, b) => a.name.localeCompare(b.name));
+
+// Docking Bay boards
 export const DOCKING_BAY_BOARDS: BoardDefinition[] = [
     DOCKING_BAY_1,
     DOCKING_BAY_2,
-];
+].sort((a, b) => a.name.localeCompare(b.name));
 
-// Official boards from exchange files
-const OFFICIAL_BOARD_DEFINITIONS: BoardDefinition[] = [
-    EXCHANGE_FACTORY_FLOOR,
-    EXCHANGE_FACTORY_FLOOR_TEST
-];
-
-// All board definitions from different sources
-const SINGLE_BOARD_DEFINITIONS: BoardDefinition[] = [
+// Test boards
+export const TEST_BOARDS: BoardDefinition[] = [
     TEST_BOARD,
-    DIZZY_DASH_BOARD,
-    ISLAND_HOP_BOARD,
-    CROSS_BOARD,
-    CHESS_BOARD,
-    CHOP_SHOP_BOARD
 ];
 
 // All board definitions combined
 export const ALL_BOARD_DEFINITIONS: BoardDefinition[] = [
-    ...SINGLE_BOARD_DEFINITIONS,
-    ...OFFICIAL_BOARD_DEFINITIONS,
+    ...FACTORY_FLOOR_BOARDS,
     ...DOCKING_BAY_BOARDS,
+    ...TEST_BOARDS,
+];
+
+// Board categories for UI grouping
+export const BOARD_CATEGORIES = [
+    { name: 'Factory Floor', boards: FACTORY_FLOOR_BOARDS },
+    { name: 'Docking Bay', boards: DOCKING_BAY_BOARDS },
+    { name: 'Test Boards', boards: TEST_BOARDS },
 ];
 
 // Get board definition by ID
