@@ -24,25 +24,98 @@ interface PaletteItem {
     tool: ToolType;
     type?: TileType;
     name: string;
-    icon: string;
     needsDirection?: boolean;
 }
 
 const TOOL_PALETTE: PaletteItem[] = [
     // Tiles
-    { tool: 'tile', type: TileType.EMPTY, name: 'Empty', icon: '□' },
-    { tool: 'tile', type: TileType.PIT, name: 'Pit', icon: '⚫' },
-    { tool: 'tile', type: TileType.REPAIR, name: 'Repair', icon: '🔧' },
-    { tool: 'tile', type: TileType.OPTION, name: 'Option', icon: '?' },
-    { tool: 'tile', type: TileType.CONVEYOR, name: 'Conveyor', icon: '→', needsDirection: true },
-    { tool: 'tile', type: TileType.EXPRESS_CONVEYOR, name: 'Express', icon: '⇒', needsDirection: true },
-    { tool: 'tile', type: TileType.GEAR_CW, name: 'Gear', icon: '⚙️' },
-    { tool: 'tile', type: TileType.PUSHER, name: 'Pusher', icon: '⤴', needsDirection: true },
+    { tool: 'tile', type: TileType.EMPTY, name: 'Empty' },
+    { tool: 'tile', type: TileType.PIT, name: 'Pit' },
+    { tool: 'tile', type: TileType.REPAIR, name: 'Repair' },
+    { tool: 'tile', type: TileType.OPTION, name: 'Option' },
+    { tool: 'tile', type: TileType.CONVEYOR, name: 'Conveyor', needsDirection: true },
+    { tool: 'tile', type: TileType.EXPRESS_CONVEYOR, name: 'Express', needsDirection: true },
+    { tool: 'tile', type: TileType.GEAR_CW, name: 'Gear' },
+    { tool: 'tile', type: TileType.PUSHER, name: 'Pusher', needsDirection: true },
     // Other tools
-    { tool: 'wall', name: 'Wall', icon: '🧱' },
-    { tool: 'laser', name: 'Laser', icon: '🔴' },
-    { tool: 'start', name: 'Start Position', icon: '🚀', needsDirection: true },
+    { tool: 'wall', name: 'Wall' },
+    { tool: 'laser', name: 'Laser' },
+    { tool: 'start', name: 'Start Position', needsDirection: true },
 ];
+
+// Component to render mini board elements
+const MiniElementRenderer: React.FC<{ item: PaletteItem; direction?: Direction; laserStrength?: number }> = ({ item, direction = Direction.UP, laserStrength = 1 }) => {
+    const miniTileSize = 24;
+    
+    switch (item.tool) {
+        case 'tile':
+            switch (item.type) {
+                case TileType.EMPTY:
+                    return (
+                        <div style={{ width: miniTileSize, height: miniTileSize, backgroundColor: '#e5e7eb', border: '1px solid #9ca3af' }} />
+                    );
+                case TileType.PIT:
+                    return (
+                        <div style={{ position: 'relative', width: miniTileSize, height: miniTileSize, backgroundColor: '#e5e7eb', overflow: 'hidden' }}>
+                            <Pit tileSize={miniTileSize} />
+                        </div>
+                    );
+                case TileType.REPAIR:
+                    return (
+                        <div style={{ position: 'relative', width: miniTileSize, height: miniTileSize, overflow: 'hidden' }}>
+                            <RepairSite type="repair" tileSize={miniTileSize} />
+                        </div>
+                    );
+                case TileType.OPTION:
+                    return (
+                        <div style={{ position: 'relative', width: miniTileSize, height: miniTileSize, overflow: 'hidden' }}>
+                            <RepairSite type="option" tileSize={miniTileSize} />
+                        </div>
+                    );
+                case TileType.CONVEYOR:
+                case TileType.EXPRESS_CONVEYOR:
+                    return (
+                        <div style={{ position: 'relative', width: miniTileSize, height: miniTileSize, overflow: 'hidden' }}>
+                            <ConveyorBelt type={item.type === TileType.EXPRESS_CONVEYOR ? 'express' : 'conveyor'} direction={direction} tileSize={miniTileSize} />
+                        </div>
+                    );
+                case TileType.GEAR_CW:
+                    return (
+                        <div style={{ position: 'relative', width: miniTileSize, height: miniTileSize, overflow: 'hidden' }}>
+                            <Gear type="gear_cw" tileSize={miniTileSize} />
+                        </div>
+                    );
+                case TileType.PUSHER:
+                    return (
+                        <div style={{ position: 'relative', width: miniTileSize, height: miniTileSize, overflow: 'hidden', backgroundColor: '#374151' }}>
+                            <Pusher direction={direction} registers={[1,3,5]} tileSize={miniTileSize} />
+                        </div>
+                    );
+                default:
+                    return null;
+            }
+        case 'wall':
+            return (
+                <div style={{ position: 'relative', width: miniTileSize, height: miniTileSize, overflow: 'hidden' }}>
+                    <Wall directions={[Direction.UP, Direction.LEFT]} tileSize={miniTileSize} />
+                </div>
+            );
+        case 'laser':
+            return (
+                <div style={{ position: 'relative', width: miniTileSize, height: miniTileSize, overflow: 'hidden' }}>
+                    <LaserEmitter direction={direction} damage={laserStrength} tileSize={miniTileSize} />
+                </div>
+            );
+        case 'start':
+            return (
+                <div style={{ position: 'relative', width: miniTileSize, height: miniTileSize, backgroundColor: '#e5e7eb', border: '1px solid #9ca3af', overflow: 'hidden' }}>
+                    <StartingPosition number={1} tileSize={miniTileSize} />
+                </div>
+            );
+        default:
+            return null;
+    }
+};
 
 const DIRECTION_OPTIONS = [
     { value: Direction.UP, name: 'Up', arrow: '↑' },
@@ -836,6 +909,12 @@ export default function BoardEditorWithGameRendering() {
                             Templates
                         </button>
                         <button
+                            onClick={() => setShowGameBoards(!showGameBoards)}
+                            className="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-sm"
+                        >
+                            Game Boards
+                        </button>
+                        <button
                             onClick={() => setShowValidation(!showValidation)}
                             className={`px-3 py-1 rounded text-sm ${validation.isValid ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
                         >
@@ -888,12 +967,7 @@ export default function BoardEditorWithGameRendering() {
                             ))}
                         </div>
                     </div>
-                )} <button
-                    onClick={() => setShowGameBoards(!showGameBoards)}
-                    className="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-sm"
-                >
-                    Game Boards
-                </button>
+                )}
 
                 {/* Validation Panel */}
                 {showValidation && (
@@ -1028,9 +1102,15 @@ export default function BoardEditorWithGameRendering() {
                                     <button
                                         key={index}
                                         onClick={() => setSelectedItem(item)}
-                                        className={`w-full px-3 py-2 rounded text-sm text-left flex items-center gap-2 ${selectedItem === item ? 'bg-blue-600' : 'bg-gray-600 hover:bg-gray-500'}`}
+                                        className={`w-full px-3 py-2 rounded text-sm text-left flex items-center gap-3 ${selectedItem === item ? 'bg-blue-600' : 'bg-gray-600 hover:bg-gray-500'}`}
                                     >
-                                        <span className="text-base">{item.icon}</span>
+                                        <div className="flex items-center justify-center" style={{ width: '24px', height: '24px' }}>
+                                            <MiniElementRenderer 
+                                                item={item} 
+                                                direction={selectedDirection}
+                                                laserStrength={selectedLaserStrength} 
+                                            />
+                                        </div>
                                         {item.name}
                                     </button>
                                 ))}
