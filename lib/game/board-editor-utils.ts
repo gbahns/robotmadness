@@ -395,7 +395,7 @@ export function exportToTypeScript(boardDef: BoardDefinition): string {
 
     lines.push(`import { BoardDefinition, TileType, Direction } from '../types';`);
     lines.push('');
-    lines.push(`export const ${boardDef.id.toUpperCase().replace(/-/g, '_')}: BoardDefinition = {`);
+    lines.push(`export const ${boardDef.id.toUpperCase().replace(/-/g, '_')}_BOARD: BoardDefinition = {`);
     lines.push(`  id: '${boardDef.id}',`);
     lines.push(`  name: '${boardDef.name}',`);
     lines.push(`  width: ${boardDef.width},`);
