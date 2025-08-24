@@ -8,6 +8,7 @@ import { DIZZY_DASH_BOARD } from './boards/dizzy-dash';
 import { ISLAND_HOP_BOARD } from './boards/island-hop';
 import { DOCKING_BAY_1 } from './boards/docking-bay/docking-bay-1';
 import { DOCKING_BAY_2 } from './boards/docking-bay/docking-bay-2';
+import { CHOP_SHOP_BOARD } from './boards/chop-shop';
 
 /**
  * Builds a Board object from a BoardDefinition
@@ -124,7 +125,8 @@ const SINGLE_BOARD_DEFINITIONS: BoardDefinition[] = [
     DIZZY_DASH_BOARD,
     ISLAND_HOP_BOARD,
     CROSS_BOARD,
-    CHESS_BOARD
+    CHESS_BOARD,
+    CHOP_SHOP_BOARD
 ];
 
 // All board definitions combined
