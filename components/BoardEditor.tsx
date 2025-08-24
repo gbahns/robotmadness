@@ -12,6 +12,7 @@ import {
     exportToTypeScript
 } from '@/lib/game/board-editor-utils';
 import { BOARD_TEMPLATES, TEMPLATE_CATEGORIES, getTemplateById } from '@/lib/game/board-templates';
+import LaserBeamRenderer from '@/components/game/LaserBeamRenderer';
 
 // Tile palette for placing elements
 const TILE_PALETTE = [
@@ -38,6 +39,7 @@ export default function EnhancedBoardEditor() {
     const [selectedTool, setSelectedTool] = useState<'tile' | 'laser' | 'wall' | 'start'>('tile');
     const [selectedTileType, setSelectedTileType] = useState<TileType>(TileType.EMPTY);
     const [selectedDirection, setSelectedDirection] = useState<Direction>(Direction.UP);
+    const [selectedLaserStrength, setSelectedLaserStrength] = useState<number>(1);
     const [showGrid, setShowGrid] = useState(true);
     const [showValidation, setShowValidation] = useState(false);
     const [showTemplates, setShowTemplates] = useState(false);
@@ -140,19 +142,21 @@ export default function EnhancedBoardEditor() {
     }, [selectedTileType, selectedDirection, updateBoard]);
 
     const placeLaser = useCallback((x: number, y: number) => {
+        console.log('Placing laser at', x, y, 'with direction', selectedDirection, 'and damage', selectedLaserStrength);
         updateBoard(prev => {
             const newLasers = prev.lasers?.filter(laser => !(laser.position.x === x && laser.position.y === y)) || [];
 
             const newLaser: LaserElement = {
                 position: { x, y },
                 direction: selectedDirection,
-                damage: 1
+                damage: selectedLaserStrength
             };
             newLasers.push(newLaser);
-
+            
+            console.log('Board now has', newLasers.length, 'lasers');
             return { ...prev, lasers: newLasers };
         });
-    }, [selectedDirection, updateBoard]);
+    }, [selectedDirection, selectedLaserStrength, updateBoard]);
 
     const toggleWall = useCallback((x: number, y: number, side: Direction) => {
         updateBoard(prev => {
@@ -367,7 +371,21 @@ export default function EnhancedBoardEditor() {
 
                 {/* Laser indicator */}
                 {laser && (
-                    <div className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></div>
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        {/* Laser emitter */}
+                        <div className="absolute w-4 h-4 bg-red-600 rounded-full border border-red-800"></div>
+                        {/* Direction indicator */}
+                        <div className={`absolute ${
+                            laser.direction === Direction.UP ? 'bottom-1/2 left-1/2 -translate-x-1/2 w-1 h-1/2 bg-gradient-to-t' :
+                            laser.direction === Direction.DOWN ? 'top-1/2 left-1/2 -translate-x-1/2 w-1 h-1/2 bg-gradient-to-b' :
+                            laser.direction === Direction.LEFT ? 'right-1/2 top-1/2 -translate-y-1/2 h-1 w-1/2 bg-gradient-to-l' :
+                            'left-1/2 top-1/2 -translate-y-1/2 h-1 w-1/2 bg-gradient-to-r'
+                        } from-red-500 to-transparent`}></div>
+                        {/* Damage indicator */}
+                        <div className="absolute -top-1 -right-1 bg-red-700 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                            {laser.damage}
+                        </div>
+                    </div>
                 )}
 
                 {/* Wall indicators */}
@@ -384,6 +402,11 @@ export default function EnhancedBoardEditor() {
                 )}
             </div>
         );
+    };
+
+    // Helper function for LaserBeamRenderer to get walls at a position
+    const getWallsAtForRenderer = (x: number, y: number): Direction[] => {
+        return getWallsAt(x, y);
     };
 
     const renderBoard = () => {
@@ -538,8 +561,22 @@ export default function EnhancedBoardEditor() {
                             </div>
 
                             <div className="overflow-auto border border-gray-600 p-2" style={{ maxHeight: '70vh' }}>
-                                <div className="inline-block" onMouseLeave={handleMouseUp}>
+                                <div className="inline-block relative" onMouseLeave={handleMouseUp}>
                                     {renderBoard()}
+                                    {/* Render laser beams on top of the board */}
+                                    {boardDef.lasers && boardDef.lasers.length > 0 && (
+                                        <LaserBeamRenderer 
+                                            lasers={boardDef.lasers.map(laser => ({
+                                                position: laser.position,
+                                                direction: laser.direction as Direction,
+                                                damage: laser.damage || 1
+                                            }))}
+                                            boardWidth={boardDef.width}
+                                            boardHeight={boardDef.height}
+                                            tileSize={tileSize}
+                                            getWallsAt={getWallsAtForRenderer}
+                                        />
+                                    )}
                                 </div>
                             </div>
 
@@ -643,6 +680,24 @@ export default function EnhancedBoardEditor() {
                                         </div>
                                     </div>
                                 )}
+
+                            {/* Laser Damage Selection */}
+                            {selectedTool === 'laser' && (
+                                <div className="mb-3">
+                                    <label className="block text-sm font-medium mb-2">Laser Damage</label>
+                                    <div className="flex gap-1">
+                                        {[1, 2, 3].map(damage => (
+                                            <button
+                                                key={damage}
+                                                onClick={() => setSelectedLaserStrength(damage)}
+                                                className={`px-3 py-1 rounded text-sm ${selectedLaserStrength === damage ? 'bg-red-600' : 'bg-gray-600 hover:bg-gray-500'}`}
+                                            >
+                                                {damage}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Tile Palette */}

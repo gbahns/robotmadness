@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { BoardDefinition, TileElement, LaserElement, WallElement, StartingPosition as StartingPosType, TileType, Direction, Board, Checkpoint } from '@/lib/game/types';
 import {
     validateBoardDefinition,
@@ -47,6 +47,7 @@ export default function BoardEditorWithGameRendering() {
     const [selectedTileType, setSelectedTileType] = useState<TileType>(TileType.EMPTY);
     const [selectedDirection, setSelectedDirection] = useState<Direction>(Direction.UP);
     const [selectedRotation, setSelectedRotation] = useState<'none' | 'clockwise' | 'counterclockwise'>('none');
+    const [selectedLaserStrength, setSelectedLaserStrength] = useState<number>(1);
     const [showGrid, setShowGrid] = useState(true);
     const [showCoordinates, setShowCoordinates] = useState(false);
     const [showValidation, setShowValidation] = useState(false);
@@ -89,25 +90,25 @@ export default function BoardEditorWithGameRendering() {
             });
         }
         
-        console.log(`Converting board with ${def.tiles?.length || 0} tile definitions into ${def.width}x${def.height} grid`);
+        // console.log(`Converting board with ${def.tiles?.length || 0} tile definitions into ${def.width}x${def.height} grid`);
 
         // Add walls to tiles
         if (def.walls && def.walls.length > 0) {
-            console.log('Processing walls:', def.walls);
+            // console.log('Processing walls:', def.walls);
             def.walls.forEach(wallElement => {
                 const x = wallElement.position.x;
                 const y = wallElement.position.y;
-                console.log(`Adding walls at (${x},${y}): sides`, wallElement.sides);
+                // console.log(`Adding walls at (${x},${y}): sides`, wallElement.sides);
                 if (y >= 0 && y < def.height && x >= 0 && x < def.width) {
                     if (!tiles[y][x]) {
                         tiles[y][x] = { type: 0 }; // Empty tile
                     }
                     tiles[y][x].walls = wallElement.sides;
-                    console.log(`Tile at (${x},${y}) now has walls:`, tiles[y][x].walls);
+                    // console.log(`Tile at (${x},${y}) now has walls:`, tiles[y][x].walls);
                 }
             });
         } else {
-            console.log('No walls in board definition');
+            // console.log('No walls in board definition');
         }
 
         return {
@@ -247,13 +248,13 @@ export default function BoardEditorWithGameRendering() {
             const newLaser: LaserElement = {
                 position: { x, y },
                 direction: selectedDirection,
-                damage: 1
+                damage: selectedLaserStrength || 1
             };
             newLasers.push(newLaser);
-
+            
             return { ...prev, lasers: newLasers };
         });
-    }, [selectedDirection, updateBoard]);
+    }, [selectedDirection, selectedLaserStrength, updateBoard]);
 
     const toggleWall = useCallback((x: number, y: number, side: Direction) => {
         updateBoard(prev => {
@@ -327,7 +328,6 @@ export default function BoardEditorWithGameRendering() {
     }, [selectedDirection, updateBoard]);
 
     const handleTileClick = useCallback((x: number, y: number, event?: React.MouseEvent) => {
-        console.log(`handleTileClick called at (${x}, ${y}) with tool: ${selectedTool}`);
         switch (selectedTool) {
             case 'tile':
                 placeTile(x, y);
@@ -524,9 +524,10 @@ export default function BoardEditorWithGameRendering() {
 
     // getTileContent and renderTile removed - now handled by BoardRenderer
 
+    // Memoize the board conversion to prevent re-running on every render
+    const board = useMemo(() => convertToBoard(boardDef), [boardDef]);
+    
     const renderBoard = () => {
-        const board = convertToBoard(boardDef);
-        
         // Create checkpoints array - BoardDefinition doesn't have checkpoints
         const checkpoints: Checkpoint[] = [];
         

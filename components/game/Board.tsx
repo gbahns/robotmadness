@@ -6,6 +6,7 @@ import { socketClient } from '@/lib/socket';
 import { getTileAt as getCanonicalTileAt } from '@/lib/game/tile-utils';
 import { Board as BoardType } from '@/lib/game/types';
 import { Pit, ConveyorBelt, Gear, RepairSite, Pusher } from './board-elements';
+import LaserBeamRenderer from './LaserBeamRenderer';
 
 
 interface BoardProps {
@@ -804,222 +805,28 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
     return elements;
   };
 
-  const renderLaserBeams = () => {
-    const beams = getAllLaserBeams();
-    const allElements: React.ReactElement[] = [];
-
-    // Only show explosions during execution phase
-    //const shouldShowExplosions = gameState?.phase === 'executing';
-    const shouldShowExplosions = true;
-
-    beams.forEach((beam, beamIndex) => {
-      // Skip robot lasers if handled by RobotLaserAnimation
-      if (beam.isRobotLaser) {
-        return;
-      }
-
-      // Determine if the laser actually hit something
-      let hitInfo: { type: 'robot' | 'wall'; position: Position } | null = null;
-
-      // Only check for hits if we're in execution phase
-      if (shouldShowExplosions && beam.path.length > 0) {
-        const lastPos = beam.path[beam.path.length - 1];
-
-        // Check if there's a robot at the last position
-        if (isBlockedByRobot(lastPos.x, lastPos.y)) {
-          hitInfo = { type: 'robot', position: lastPos };
-        } else {
-          // Check if the laser stopped due to a wall
-          // First, check if laser could have continued further
-          const laserDir = beam.laser.direction;
-          const dx = [0, 1, 0, -1][laserDir];
-          const dy = [-1, 0, 1, 0][laserDir];
-          const nextX = lastPos.x + dx;
-          const nextY = lastPos.y + dy;
-
-          // If next position would be on the board, check why we stopped
-          if (nextX >= 0 && nextX < board.width &&
-            nextY >= 0 && nextY < board.height) {
-            // We stopped before the edge - check for wall
-            const fromPos = lastPos;
-            const toPos = { x: nextX, y: nextY };
-
-            // Check if there's a wall blocking the path forward
-            const lastTile = getTileAt(lastPos.x, lastPos.y);
-            if (lastTile && lastTile.walls && lastTile.walls.includes(laserDir)) {
-              // Wall on current tile blocking exit
-              hitInfo = { type: 'wall', position: lastPos };
-            } else {
-              // Check if wall on next tile blocking entry
-              const nextTile = getTileAt(nextX, nextY);
-              const oppositeDir = (laserDir + 2) % 4;
-              if (nextTile && nextTile.walls && nextTile.walls.includes(oppositeDir)) {
-                hitInfo = { type: 'wall', position: lastPos };
-              }
-            }
-          }
-          // If we reached the board edge naturally, no explosion needed
-        }
-      } else if (shouldShowExplosions && beam.path.length === 0) {
-        // Laser has no path - it might be blocked immediately at source
-        // Check if there's a wall at the source blocking the laser
-        const sourceTile = getTileAt(beam.laser.position.x, beam.laser.position.y);
-        if (sourceTile && sourceTile.walls && sourceTile.walls.includes(beam.laser.direction)) {
-          hitInfo = { type: 'wall', position: beam.laser.position };
-        }
-      }
-
-      // Render the laser beam path
-      beam.path.forEach((pos, pathIndex) => {
-        const isHorizontal = beam.laser.direction === 1 || beam.laser.direction === 3;
-        const isDoubleLaser = beam.laser.damage > 1;
-        const beamWidth = isDoubleLaser ? 8 : 4;
-        const beamLength = tileSize;
-
-        // Position calculations
-        let left = pos.x * tileSize;
-        let top = pos.y * tileSize;
-
-        // Adjust starting position for source tile
-        if (pathIndex === 0) {
-          const indicatorSize = Math.floor(tileSize * 0.2);
-          const indicatorOffset = 2;
-
-          switch (beam.laser.direction) {
-            case 0: // North
-              top -= indicatorSize - indicatorOffset;
-              break;
-            case 1: // East
-              left += indicatorSize - indicatorOffset;
-              break;
-            case 2: // South
-              top += indicatorSize - indicatorOffset;
-              break;
-            case 3: // West
-              left -= indicatorSize - indicatorOffset;
-              break;
-          }
-        }
-
-        if (isHorizontal) {
-          top += (tileSize - beamWidth) / 2;
-        } else {
-          left += (tileSize - beamWidth) / 2;
-        }
-
-        // Render beam segment (single or double)
-        if (isDoubleLaser) {
-          const spacing = 6;
-          const singleBeamWidth = 3;
-
-          allElements.push(
-            <React.Fragment key={`laser-${beamIndex}-${pathIndex}`}>
-              <div
-                className="absolute animate-pulse"
-                style={{
-                  left: isHorizontal ? `${left}px` : `${left - spacing}px`,
-                  top: isHorizontal ? `${top - spacing}px` : `${top}px`,
-                  width: isHorizontal ? `${beamLength}px` : `${singleBeamWidth}px`,
-                  height: isHorizontal ? `${singleBeamWidth}px` : `${beamLength}px`,
-                  backgroundColor: 'rgba(220, 38, 38, 0.7)',
-                  boxShadow: '0 0 4px rgba(220, 38, 38, 0.8)',
-                  zIndex: 10
-                }}
-              />
-              <div
-                className="absolute animate-pulse"
-                style={{
-                  left: isHorizontal ? `${left}px` : `${left + spacing}px`,
-                  top: isHorizontal ? `${top + spacing}px` : `${top}px`,
-                  width: isHorizontal ? `${beamLength}px` : `${singleBeamWidth}px`,
-                  height: isHorizontal ? `${singleBeamWidth}px` : `${beamLength}px`,
-                  backgroundColor: 'rgba(220, 38, 38, 0.7)',
-                  boxShadow: '0 0 4px rgba(220, 38, 38, 0.8)',
-                  zIndex: 10
-                }}
-              />
-            </React.Fragment>
-          );
-        } else {
-          allElements.push(
-            <div
-              key={`laser-${beamIndex}-${pathIndex}`}
-              className="absolute animate-pulse"
-              style={{
-                left: `${left}px`,
-                top: `${top}px`,
-                width: isHorizontal ? `${beamLength}px` : `${beamWidth}px`,
-                height: isHorizontal ? `${beamWidth}px` : `${beamLength}px`,
-                backgroundColor: 'rgba(220, 38, 38, 0.7)',
-                boxShadow: '0 0 8px rgba(220, 38, 38, 0.8)',
-                zIndex: 10
-              }}
-            />
-          );
-        }
+  // Collect board lasers for rendering
+  const collectBoardLasers = (): Laser[] => {
+    const lasers: Laser[] = [];
+    
+    // Check for lasers array on board
+    if (board.lasers && Array.isArray(board.lasers)) {
+      board.lasers.forEach((laser: any) => {
+        lasers.push({
+          position: laser.position,
+          direction: laser.direction as Direction,
+          damage: laser.damage || 1
+        });
       });
-
-      // Only add explosion effect if we actually hit something
-      if (hitInfo) {
-        const explosionX = hitInfo.position.x * tileSize + tileSize / 2;
-        const explosionY = hitInfo.position.y * tileSize + tileSize / 2;
-        const isRobotHit = hitInfo.type === 'robot';
-
-        // Add a timestamp-based key to ensure explosions are unique per execution
-        const explosionKey = `explosion-${beamIndex}-${Date.now()}`;
-
-        allElements.push(
-          <div
-            key={explosionKey}
-            className="absolute pointer-events-none"
-            style={{
-              left: `${explosionX}px`,
-              top: `${explosionY}px`,
-              transform: 'translate(-50%, -50%)',
-              zIndex: 40
-            }}
-          >
-            {/* Explosion burst */}
-            <div
-              className="absolute"
-              style={{
-                width: isRobotHit ? '60px' : '40px',
-                height: isRobotHit ? '60px' : '40px',
-                left: '50%',
-                top: '50%',
-                transform: 'translate(-50%, -50%)',
-                backgroundColor: isRobotHit ? 'rgba(255, 0, 0, 0.4)' : 'rgba(255, 165, 0, 0.4)',
-                borderRadius: '50%',
-                animation: 'explosionPulse 0.5s ease-out forwards'
-              }}
-            />
-
-            {/* Impact core - Yellow explosion */}
-            <div
-              className="absolute"
-              style={{
-                width: isRobotHit ? '40px' : '20px',
-                height: isRobotHit ? '40px' : '20px',
-                left: '50%',
-                top: '50%',
-                transform: 'translate(-50%, -50%)',
-                background: isRobotHit
-                  ? 'radial-gradient(circle, rgba(255,255,0,1) 0%, rgba(255,200,0,0.8) 40%, rgba(255,150,0,0.4) 70%, transparent 100%)'
-                  : 'radial-gradient(circle, rgba(255,255,0,0.8) 0%, rgba(255,165,0,0.6) 50%, transparent 100%)',
-                borderRadius: '50%',
-                boxShadow: isRobotHit
-                  ? '0 0 30px rgba(255, 255, 0, 1), 0 0 50px rgba(255, 200, 0, 0.8)'
-                  : '0 0 15px rgba(255, 165, 0, 0.8)',
-                animation: 'explosionCore 0.5s ease-out forwards',
-                zIndex: 41  // Put yellow core above red burst
-              }}
-            />
-          </div>
-        );
-      }
-    });
-
-    return allElements;
+    }
+    
+    return lasers;
+  };
+  
+  // Get walls at a position (wrapper for LaserBeamRenderer compatibility)
+  const getWallsAtForRenderer = (x: number, y: number): Direction[] => {
+    const tile = getTileAt(x, y);
+    return tile?.walls || [];
   };
 
   return (
@@ -1060,7 +867,13 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
         ))}
 
         {/* Render laser beams on top of tiles but below robots */}
-        {renderLaserBeams()}
+        <LaserBeamRenderer 
+          lasers={collectBoardLasers()}
+          boardWidth={board.width}
+          boardHeight={board.height}
+          tileSize={tileSize}
+          getWallsAt={getWallsAtForRenderer}
+        />
 
         {/* Render robot laser animations */}
         <RobotLaserAnimation

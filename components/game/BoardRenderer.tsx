@@ -4,6 +4,7 @@ import { Tile, ConveyorBelt, Gear, Pit, RepairSite, Pusher, LaserEmitter, Wall }
 import Robot from './Robot';
 import RobotLaserAnimation, { RobotLaserShot } from './RobotLaserAnimation';
 import { getTileAt as getCanonicalTileAt } from '@/lib/game/tile-utils';
+import LaserBeamRenderer from './LaserBeamRenderer';
 
 interface BoardRendererProps {
   board: BoardType;
@@ -121,9 +122,9 @@ export default function BoardRenderer({
   const getWallsAt = (x: number, y: number): number[] => {
     const tile = getTileAt(x, y);
     const walls = tile?.walls || [];
-    if (walls.length > 0) {
-      console.log(`BoardRenderer: Walls at (${x},${y}):`, walls);
-    }
+    // if (walls.length > 0) {
+    //   console.log(`BoardRenderer: Walls at (${x},${y}):`, walls);
+    // }
     return walls;
   };
 
@@ -136,7 +137,22 @@ export default function BoardRenderer({
   };
 
   const getLaserAt = (x: number, y: number): Laser | undefined => {
-    return board.lasers?.find(l => l.position.x === x && l.position.y === y);
+    // First check if there's a laser in the board's laser array
+    const boardLaser = board.lasers?.find(l => l.position.x === x && l.position.y === y);
+    if (boardLaser) return boardLaser;
+    
+    // Then check if the tile itself has a laser property
+    const tile = getTileAt(x, y);
+    if (tile && typeof tile === 'object' && 'laser' in tile && tile.laser) {
+      const laserElement = tile.laser as { direction: number; damage?: number };
+      return {
+        position: { x, y },
+        direction: laserElement.direction as Direction,
+        damage: laserElement.damage || 1
+      };
+    }
+    
+    return undefined;
   };
 
   const getPlayersAt = (x: number, y: number): Player[] => {
@@ -224,13 +240,37 @@ export default function BoardRenderer({
     );
   };
 
-  // Render laser beams (for game mode)
-  const renderLaserBeams = () => {
-    if (editMode) return null;
+  // Collect all lasers for rendering
+  const collectLasers = (): Laser[] => {
+    const lasers: Laser[] = [];
     
-    // This would need the laser beam calculation logic from the original Board component
-    // For now, returning null to keep it simple
-    return null;
+    // Collect all laser emitters on the board
+    for (let y = 0; y < board.height; y++) {
+      for (let x = 0; x < board.width; x++) {
+        const tile = board.tiles[y]?.[x];
+        if (tile && typeof tile === 'object' && 'laser' in tile && tile.laser) {
+          const laserElement = tile.laser as { direction: number; damage?: number };
+          lasers.push({
+            position: { x, y },
+            direction: laserElement.direction as Direction,
+            damage: laserElement.damage || 1
+          });
+        }
+      }
+    }
+    
+    // Also check for separate laser array (if provided by BoardDefinition)
+    if ('lasers' in board && Array.isArray(board.lasers)) {
+      board.lasers.forEach((laser: any) => {
+        lasers.push({
+          position: laser.position,
+          direction: Number(laser.direction) as Direction,
+          damage: laser.damage || 1
+        });
+      });
+    }
+    
+    return lasers;
   };
 
   if (!board) {
@@ -251,10 +291,10 @@ export default function BoardRenderer({
       }}
     >
       <div 
-        className="relative bg-gray-800 p-2"
+        className="relative bg-gray-800"
         style={{
-          width: board.width * tileSize + 16,
-          height: board.height * tileSize + 16
+          width: board.width * tileSize,
+          height: board.height * tileSize
         }}
       >
         <div className="grid" style={{ 
@@ -266,7 +306,13 @@ export default function BoardRenderer({
           )}
         </div>
 
-        {renderLaserBeams()}
+        <LaserBeamRenderer 
+          lasers={collectLasers()}
+          boardWidth={board.width}
+          boardHeight={board.height}
+          tileSize={tileSize}
+          getWallsAt={getWallsAt}
+        />
 
         {/* Active laser animations - only in game mode */}
         {!editMode && activeLasers.length > 0 && (
