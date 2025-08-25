@@ -16,13 +16,50 @@ interface ExecutionLogProps {
 export default function ExecutionLog({ entries }: ExecutionLogProps) {
     let id = 0;
     const scrollRef = useRef<HTMLDivElement>(null);
+    const previousHeightRef = useRef<number>(0);
+
+    // Scroll to bottom helper function
+    const scrollToBottom = () => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    };
 
     useEffect(() => {
         // Auto-scroll to bottom when new entries are added
         if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+            // Use setTimeout to ensure DOM has updated with new content
+            setTimeout(() => {
+                scrollToBottom();
+            }, 0);
         }
     }, [entries]);
+
+    useEffect(() => {
+        // Watch for container resize and scroll to bottom when it gets smaller
+        if (!scrollRef.current) return;
+
+        const resizeObserver = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                const currentHeight = entry.contentRect.height;
+                
+                // If height decreased (container got smaller), scroll to bottom
+                if (previousHeightRef.current > 0 && currentHeight < previousHeightRef.current) {
+                    setTimeout(() => {
+                        scrollToBottom();
+                    }, 0);
+                }
+                
+                previousHeightRef.current = currentHeight;
+            }
+        });
+
+        resizeObserver.observe(scrollRef.current);
+
+        return () => {
+            resizeObserver.disconnect();
+        };
+    }, []);
 
     const getColorClass = (type: string) => {
         switch (type) {
@@ -73,7 +110,7 @@ export default function ExecutionLog({ entries }: ExecutionLogProps) {
     };
 
     return (
-        <div ref={scrollRef} className="bg-gray-800 rounded-lg p-4 h-full overflow-y-auto">
+        <div ref={scrollRef} className="bg-gray-800 rounded-lg p-4 h-full overflow-y-auto scroll-smooth">
             <div className="space-y-1">
                 {entries.length === 0 ? (
                     <p className="text-gray-500 italic">No actions yet...</p>
