@@ -37,10 +37,24 @@ export default function RobotLaserAnimation({ players, activeLasers, tileSize }:
 
     const renderLaserBeam = (laser: RobotLaserShot) => {
         const shooter = players[laser.shooterId];
-        if (!shooter || laser.path.length === 0) return null;
+        const isBoardLaser = laser.shooterId.startsWith('board-laser-');
+        
+        if (!isBoardLaser && !shooter) return null;
+        if (laser.path.length === 0) return null;
 
-        // Direction vectors to determine laser orientation
-        const isHorizontal = shooter.direction === 1 || shooter.direction === 3; // East or West
+        // For board lasers, determine orientation from path
+        // For robot lasers, use shooter direction
+        let isHorizontal: boolean;
+        if (isBoardLaser && laser.path.length >= 2) {
+            // Check if laser moves horizontally by comparing first two path positions
+            isHorizontal = laser.path[0].y === laser.path[1].y;
+        } else if (isBoardLaser && laser.path.length === 1) {
+            // Single tile hit at origin - default to horizontal
+            isHorizontal = true;
+        } else {
+            // Robot laser - use shooter direction
+            isHorizontal = shooter.direction === 1 || shooter.direction === 3; // East or West
+        }
 
         const elements = [];
 
