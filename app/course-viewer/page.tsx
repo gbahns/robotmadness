@@ -99,11 +99,41 @@ export default function CourseViewerPage() {  // Renamed from BoardViewerPage
                                 className="bg-gray-700 text-white px-2 py-1 rounded text-sm"
                             >
                                 <option value="">Select a course...</option>
-                                {courseIds.map(id => (
-                                    <option key={id} value={id}>
-                                        {ALL_COURSES.find(c => c.id === id)?.name || id}
-                                    </option>
-                                ))}
+                                <optgroup label="Beginner Courses">
+                                    {ALL_COURSES.filter(c => c.difficulty === 'beginner' && c.id !== 'test').map(course => (
+                                        <option key={course.id} value={course.id}>
+                                            {course.name}
+                                        </option>
+                                    ))}
+                                </optgroup>
+                                <optgroup label="Intermediate Courses">
+                                    {ALL_COURSES.filter(c => c.difficulty === 'intermediate' && c.id !== 'test').map(course => (
+                                        <option key={course.id} value={course.id}>
+                                            {course.name}
+                                        </option>
+                                    ))}
+                                </optgroup>
+                                <optgroup label="Hard Courses">
+                                    {ALL_COURSES.filter(c => c.difficulty === 'hard' && c.id !== 'test').map(course => (
+                                        <option key={course.id} value={course.id}>
+                                            {course.name}
+                                        </option>
+                                    ))}
+                                </optgroup>
+                                <optgroup label="Expert Courses">
+                                    {ALL_COURSES.filter(c => c.difficulty === 'expert' && c.id !== 'test').map(course => (
+                                        <option key={course.id} value={course.id}>
+                                            {course.name}
+                                        </option>
+                                    ))}
+                                </optgroup>
+                                <optgroup label="Test Courses">
+                                    {ALL_COURSES.filter(c => c.id === 'test').map(course => (
+                                        <option key={course.id} value={course.id}>
+                                            {course.name}
+                                        </option>
+                                    ))}
+                                </optgroup>
                             </select>
                         </div>
 

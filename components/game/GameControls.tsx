@@ -205,27 +205,36 @@ export default function GameControls({
           onChange={(e) => setSelectedCourse(e.target.value)}
           className="p-2 rounded bg-gray-700 text-white border border-gray-600"
         >
-          <option value="test">Test Course</option>
           <optgroup label="Beginner Courses">
-            {ALL_COURSES.filter(c => c.difficulty === 'beginner').map(course => (
+            {ALL_COURSES.filter(c => c.difficulty === 'beginner' && c.id !== 'test').map(course => (
               <option key={course.id} value={course.id}>
                 {course.name}
               </option>
             ))}
           </optgroup>
           <optgroup label="Intermediate Courses">
-            {ALL_COURSES.filter(c => c.difficulty === 'intermediate').map(course => (
+            {ALL_COURSES.filter(c => c.difficulty === 'intermediate' && c.id !== 'test').map(course => (
+              <option key={course.id} value={course.id}>
+                {course.name}
+              </option>
+            ))}
+          </optgroup>
+          <optgroup label="Hard Courses">
+            {ALL_COURSES.filter(c => c.difficulty === 'hard' && c.id !== 'test').map(course => (
               <option key={course.id} value={course.id}>
                 {course.name}
               </option>
             ))}
           </optgroup>
           <optgroup label="Expert Courses">
-            {ALL_COURSES.filter(c => c.difficulty === 'expert').map(course => (
+            {ALL_COURSES.filter(c => c.difficulty === 'expert' && c.id !== 'test').map(course => (
               <option key={course.id} value={course.id}>
                 {course.name}
               </option>
             ))}
+          </optgroup>
+          <optgroup label="Test Courses">
+            <option value="test">Test Course</option>
           </optgroup>
         </select>
 
