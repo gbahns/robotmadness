@@ -3,7 +3,14 @@
 ## Development Environment
 
 ### Development Server
-**IMPORTANT:** After running `npm run build`, the dev server needs to be restarted manually by the user, as the build process interrupts the running dev server. Do not automatically restart it.
+**IMPORTANT:** 
+- After running `npm run build`, restart the dev server with `npm run dev` in the background, as the build process interrupts the running dev server.
+- **CRITICAL - Dev Server Management:**
+  1. Only ONE dev server should be running at a time
+  2. Before starting a new dev server, check for existing ones (look for existing bash sessions)
+  3. Kill any existing dev server with `KillBash` before starting a new one
+  4. Always use `run_in_background: true` when starting the dev server
+  5. Keep track of the bash session ID to avoid duplicate servers
 
 ### Testing and Building
 - Use `npm run build` to check for TypeScript errors and build issues
