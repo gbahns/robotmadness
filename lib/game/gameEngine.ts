@@ -4,6 +4,7 @@ import { GAME_CONFIG } from './constants';
 import { buildCourse, getCourseById, RISKY_EXCHANGE } from './courses/courses';
 import { hasWallBetween } from './wall-utils';
 import { getTileAt as getCanonicalTileAt } from './tile-utils';
+import { createOptionCard, OptionCardType } from './optionCards';
 
 export interface ServerGameState extends GameState {
     host: string;
@@ -12,6 +13,12 @@ export interface ServerGameState extends GameState {
     waitingForPowerDownDecisions?: string[];
     waitingForRespawnDecisions?: string[];
     playersWhoMadeRespawnDecisions?: string[];
+    pendingDamage?: Map<string, {
+        amount: number;
+        source: string;
+        prevented: number;
+        completed?: boolean;
+    }>;
 }
 
 interface IoServer {
@@ -60,6 +67,13 @@ export class GameEngine {
     }
 
     createPlayer(playerId: string, playerName: string): Player {
+        // TODO: Remove this - just for testing damage prevention
+        const testOptionCards = [
+            createOptionCard(OptionCardType.SHIELD),
+            createOptionCard(OptionCardType.ABLATIVE_COAT),
+            createOptionCard(OptionCardType.EXTRA_MEMORY)
+        ];
+        
         return {
             id: playerId,
             userId: playerId,
@@ -74,6 +88,7 @@ export class GameEngine {
             dealtCards: [],
             selectedCards: Array(5).fill(null),
             lockedRegisters: 0,
+            optionCards: testOptionCards, // Testing with 3 option cards
             powerState: PowerState.ON,
             announcedPowerDown: false,
         };
@@ -96,6 +111,8 @@ export class GameEngine {
             course: course,
             roundNumber: 0,
             cardsDealt: false,
+            optionDeck: [],
+            discardedOptions: [],
             host: '',
         };
 
@@ -617,6 +634,185 @@ export class GameEngine {
         return Object.values(gameState.players).find(p => p.position.x === x && p.position.y === y && !p.isDead);
     }
 
+    async processDamageForMultiplePlayers(
+        gameState: ServerGameState,
+        playersWithDamage: Array<{
+            playerId: string;
+            damageInfo: any;
+            totalDamage: number;
+            damageSource: string;
+        }>
+    ): Promise<void> {
+        console.log(`[DamagePrevention] Processing damage for ${playersWithDamage.length} players in parallel`);
+        
+        // Initialize pending damage for all affected players
+        if (!gameState.pendingDamage) {
+            gameState.pendingDamage = new Map();
+        }
+        
+        // Track which players have option cards
+        const playersWithOptions: string[] = [];
+        
+        // Send damage prevention opportunities to all players simultaneously
+        for (const { playerId, totalDamage, damageSource } of playersWithDamage) {
+            const player = gameState.players[playerId];
+            if (!player || player.lives <= 0) continue;
+            
+            console.log(`[DamagePrevention] Player ${player.name} taking ${totalDamage} damage from ${damageSource}`);
+            
+            // If player has no option cards, apply damage immediately
+            if (!player.optionCards || player.optionCards.length === 0) {
+                console.log(`[DamagePrevention] No option cards for ${player.name}, applying damage immediately`);
+                player.damage += totalDamage;
+                continue;
+            }
+            
+            // Player has option cards - set up pending damage
+            playersWithOptions.push(playerId);
+            gameState.pendingDamage.set(playerId, {
+                amount: totalDamage,
+                source: damageSource,
+                prevented: 0,
+                completed: false
+            });
+            
+            console.log(`[DamagePrevention] Emitting damage-prevention-opportunity to ${player.name}`);
+            this.io.to(playerId).emit('damage-prevention-opportunity', {
+                damageAmount: totalDamage,
+                source: damageSource,
+                optionCards: player.optionCards
+            });
+        }
+        
+        // If no players have option cards, we're done
+        if (playersWithOptions.length === 0) {
+            console.log(`[DamagePrevention] No players with option cards, damage application complete`);
+            return;
+        }
+        
+        console.log(`[DamagePrevention] Waiting for ${playersWithOptions.length} players to complete damage prevention`);
+        
+        // Wait for all players with option cards to complete their choices (15 second timeout)
+        await new Promise(resolve => {
+            const startTime = Date.now();
+            const checkInterval = setInterval(() => {
+                // Check if all players have completed
+                let allCompleted = true;
+                for (const playerId of playersWithOptions) {
+                    const pending = gameState.pendingDamage?.get(playerId);
+                    if (pending && !pending.completed) {
+                        allCompleted = false;
+                        break;
+                    }
+                }
+                
+                // Check if timeout reached
+                const elapsed = Date.now() - startTime;
+                if (allCompleted || elapsed >= 15000) {
+                    clearInterval(checkInterval);
+                    console.log(`[DamagePrevention] All players completed or timeout reached after ${elapsed}ms`);
+                    resolve(true);
+                }
+            }, 50); // Check every 50ms
+        });
+        
+        // Apply final damage for all players with pending damage
+        for (const playerId of playersWithOptions) {
+            const player = gameState.players[playerId];
+            const pending = gameState.pendingDamage?.get(playerId);
+            if (!pending) continue;
+            
+            const finalDamage = Math.max(0, pending.amount - pending.prevented);
+            player.damage += finalDamage;
+            
+            console.log(`[DamagePrevention] Applied final damage to ${player.name}: ${finalDamage} (prevented ${pending.prevented} of ${pending.amount})`);
+            
+            // Clean up
+            gameState.pendingDamage.delete(playerId);
+        }
+        
+        // Emit updated game state
+        this.io.to(gameState.roomCode).emit('game-state', gameState);
+    }
+
+    async applyDamageWithOptions(
+        gameState: ServerGameState, 
+        playerId: string, 
+        damageAmount: number, 
+        source: string
+    ): Promise<number> {
+        const player = gameState.players[playerId];
+        if (!player || player.lives <= 0) return 0;
+        
+        console.log(`[DamagePrevention] Player ${player.name} taking ${damageAmount} damage from ${source}`);
+        console.log(`[DamagePrevention] Player has ${player.optionCards?.length || 0} option cards`);
+        
+        // If player has no option cards, apply damage immediately
+        if (!player.optionCards || player.optionCards.length === 0) {
+            console.log(`[DamagePrevention] No option cards, applying damage immediately`);
+            player.damage += damageAmount;
+            return damageAmount;
+        }
+        
+        // Store pending damage info
+        if (!gameState.pendingDamage) {
+            gameState.pendingDamage = new Map();
+            console.log(`[DamagePrevention] Created new pendingDamage Map`);
+        }
+        gameState.pendingDamage.set(playerId, {
+            amount: damageAmount,
+            source,
+            prevented: 0,
+            completed: false
+        });
+        console.log(`[DamagePrevention] Set pending damage for ${playerId}: ${damageAmount} from ${source}`);
+        
+        // Emit damage prevention opportunity
+        console.log(`[DamagePrevention] Emitting damage-prevention-opportunity to ${playerId}`);
+        this.io.to(playerId).emit('damage-prevention-opportunity', {
+            damageAmount,
+            source,
+            optionCards: player.optionCards
+        });
+        
+        // WAIT for player to make choices (15 second timeout)
+        await new Promise(resolve => {
+            const checkInterval = setInterval(() => {
+                const pending = gameState.pendingDamage?.get(playerId);
+                // Resolve if player completed the dialog or prevented all damage
+                if (!pending || pending.completed || pending.prevented >= damageAmount) {
+                    clearInterval(checkInterval);
+                    clearTimeout(timeout);
+                    console.log(`[DamagePrevention] Resolving early - completed: ${pending?.completed}, prevented: ${pending?.prevented}/${damageAmount}`);
+                    resolve(true);
+                }
+            }, 50); // Check every 50ms for faster response
+            
+            const timeout = setTimeout(() => {
+                clearInterval(checkInterval);
+                console.log(`[DamagePrevention] Timeout for ${player.name}`);
+                resolve(false);
+            }, 15000); // 15 second timeout
+        });
+        
+        // Apply final damage after prevention
+        const pending = gameState.pendingDamage?.get(playerId);
+        const finalDamage = Math.max(0, damageAmount - (pending?.prevented || 0));
+        player.damage += finalDamage;
+        
+        console.log(`[DamagePrevention] Applied final damage: ${finalDamage}, player now has ${player.damage} total damage`);
+        
+        // Clean up
+        if (gameState.pendingDamage?.has(playerId)) {
+            gameState.pendingDamage.delete(playerId);
+        }
+        
+        // Emit updated game state
+        this.io.to(gameState.roomCode).emit('game-state', gameState);
+        
+        return finalDamage;
+    }
+
     destroyRobot(gameState: ServerGameState, player: Player, reason: string): void {
         if (player.isDead) return;
 
@@ -871,13 +1067,72 @@ export class GameEngine {
             return damages.get(playerId);
         };
 
+        const boardLaserShots: {shooterId: string; targetId?: string; path: LaserPath[]; damage: number; timestamp?: number}[] = [];
+
         if (gameState.course.board.lasers) {
             gameState.course.board.lasers.forEach(laser => {
                 const hits = this.traceLaser(gameState, laser.position.x, laser.position.y, laser.direction, laser.damage || 1);
+                
+                // Build laser path for board laser animation
+                const vector = this.DIRECTION_VECTORS[laser.direction];
+                const path: LaserPath[] = [];
+                let x = laser.position.x;
+                let y = laser.position.y;
+
+                // Check if there's a robot at the origin
+                const robotAtOrigin = this.getPlayerAt(gameState, x, y);
+                if (robotAtOrigin) {
+                    // Robot is at the laser origin, add just the origin to path
+                    path.push({ x, y });
+                } else {
+                    // Build the visual path, starting from next tile
+                    x += vector.x;
+                    y += vector.y;
+
+                    while (x >= 0 && x < gameState.course.board.width &&
+                        y >= 0 && y < gameState.course.board.height) {
+
+                        // Check if we can enter this tile (wall blocking entry)
+                        const fromPos = { x: x - vector.x, y: y - vector.y };
+                        const toPos = { x, y };
+
+                        if (hasWallBetween(fromPos, toPos, gameState.course.board)) {
+                            // Wall blocks entry to this tile
+                            break;
+                        }
+
+                        path.push({ x, y });
+
+                        // Check if we hit a robot
+                        if (this.getPlayerAt(gameState, x, y)) break;
+
+                        // Move to next position
+                        x += vector.x;
+                        y += vector.y;
+                    }
+                }
+
+                // Create board laser shot animation data
+                if (path.length > 0 || robotAtOrigin) {
+                    boardLaserShots.push({
+                        shooterId: `board-laser-${laser.position.x}-${laser.position.y}`,
+                        path: path,
+                        damage: laser.damage || 1,
+                        targetId: hits.length > 0 ? hits[0].player.id : undefined,
+                        timestamp: Date.now()
+                    });
+                }
+
                 hits.forEach(hit => {
                     getDamageInfo(hit.player.id).boardDamage += hit.damage;
                 });
             });
+        }
+
+        // Emit board laser animations
+        if (boardLaserShots.length > 0) {
+            this.io.to(gameState.roomCode).emit('robot-lasers-fired', boardLaserShots);
+            await new Promise(resolve => setTimeout(resolve, 600)); // Wait for board laser animation to complete
         }
 
         const robotLaserShots: {shooterId: string; targetId?: string; path: LaserPath[]; damage: number; timestamp?: number}[] = [];
@@ -960,14 +1215,51 @@ export class GameEngine {
 
         if (robotLaserShots.length > 0) {
             this.io.to(gameState.roomCode).emit('robot-lasers-fired', robotLaserShots);
+            await new Promise(resolve => setTimeout(resolve, 600)); // Wait for robot laser animation to complete
         }
 
-        damages.forEach((damageInfo, playerId) => {
-            const victim = gameState.players[playerId];
+        // Collect all players who will take damage
+        const playersWithDamage: Array<{
+            playerId: string;
+            damageInfo: any;
+            totalDamage: number;
+            damageSource: string;
+        }> = [];
+        
+        for (const [playerId, damageInfo] of damages) {
             const totalDamage = damageInfo.boardDamage + damageInfo.robotHits.reduce((sum: number, hit: RobotHit) => sum + hit.damage, 0);
-            if (totalDamage === 0) return;
-            victim.damage += totalDamage;
-
+            if (totalDamage === 0) continue;
+            
+            // Build descriptive damage source
+            const sources: string[] = [];
+            if (damageInfo.boardDamage > 0) {
+                sources.push(`board laser (${damageInfo.boardDamage})`);
+            }
+            if (damageInfo.robotHits.length > 0) {
+                const robotSources = damageInfo.robotHits.map((hit: RobotHit) => 
+                    `${hit.shooterName} (${hit.damage})`
+                ).join(', ');
+                sources.push(robotSources);
+            }
+            const damageSource = sources.join(' and ') || 'laser';
+            
+            playersWithDamage.push({
+                playerId,
+                damageInfo,
+                totalDamage,
+                damageSource
+            });
+        }
+        
+        // Process all damage prevention in parallel
+        if (playersWithDamage.length > 0) {
+            await this.processDamageForMultiplePlayers(gameState, playersWithDamage);
+        }
+        
+        // After damage is resolved, handle destruction and notifications
+        for (const { playerId, damageInfo } of playersWithDamage) {
+            const victim = gameState.players[playerId];
+            
             // Handle register locking for powered down robots
             this.handleRegisterLockingDuringPowerDown(gameState, victim);
 
@@ -985,14 +1277,27 @@ export class GameEngine {
                 console.log(`${victim.name} is destroyed!`);
                 this.destroyRobot(gameState, victim, 'took too much damage');
             }
-        });
+        }
     }
 
     traceLaser(gameState: ServerGameState, startX: number, startY: number, direction: Direction, damage: number, shooterName?: string) {
         const hits: RobotHit[] = [];
         const vector = this.DIRECTION_VECTORS[direction];
-        let x = startX + vector.x;
-        let y = startY + vector.y;
+        let x = startX;
+        let y = startY;
+
+        // First check if there's a robot at the laser origin position (for board lasers)
+        if (!shooterName) {
+            const playerAtOrigin = this.getPlayerAt(gameState, x, y);
+            if (playerAtOrigin) {
+                hits.push({ player: playerAtOrigin, damage, shooterName: 'board laser' });
+                return hits; // Laser doesn't continue past robot at origin
+            }
+        }
+
+        // Move to first position in laser path
+        x += vector.x;
+        y += vector.y;
 
         while (x >= 0 && x < gameState.course.board.width &&
             y >= 0 && y < gameState.course.board.height) {

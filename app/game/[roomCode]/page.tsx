@@ -21,6 +21,9 @@ import { LoadingScreen, NameModal, ErrorScreen, GameOverModal } from '@/componen
 import { useGameSocket } from '@/hooks/useGameSocket';
 import { useCardManagement } from '@/hooks/useCardManagement';
 import Timer from '@/components/game/Timer';
+import DamagePreventionDialog from '@/components/game/DamagePreventionDialog';
+import OptionCards from '@/components/game/OptionCards';
+import { OptionCard } from '@/lib/game/optionCards';
 
 export default function GamePage() {
   const params = useParams();
@@ -31,7 +34,7 @@ export default function GamePage() {
   const [error, setError] = useState('');
   const [playerName, setPlayerName] = useState('');
   const [showNameModal, setShowNameModal] = useState(false);
-  const [logEntries, setLogEntries] = useState<{id: number; message: string; type: 'info' | 'action' | 'damage' | 'checkpoint'; timestamp: Date}[]>([]);
+  const [logEntries, setLogEntries] = useState<{id: number; message: string; type: 'info' | 'action' | 'damage' | 'checkpoint' | 'option'; timestamp: Date}[]>([]);
   const playerIdRef = useRef<string>('');
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [executionMessage, setExecutionMessage] = useState<string>('');
@@ -47,6 +50,12 @@ export default function GamePage() {
   const [isRespawnDecision, setIsRespawnDecision] = useState(false);
   const [timerTimeLeft, setTimerTimeLeft] = useState(0);
   const [isTimerActive, setIsTimerActive] = useState(false);
+  const [damagePreventionDialog, setDamagePreventionDialog] = useState<{
+    isOpen: boolean;
+    damageAmount: number;
+    source: string;
+    optionCards: OptionCard[];
+  } | null>(null);
 
   useEffect(() => {
     // Build preview board when course is selected
@@ -109,6 +118,24 @@ export default function GamePage() {
     onTimerExpired: () => {
       setIsTimerActive(false);
       setTimerTimeLeft(0);
+    },
+    onDamagePreventionOpportunity: (data: {
+      damageAmount: number;
+      source: string;
+      optionCards: OptionCard[];
+    }) => {
+      setDamagePreventionDialog({
+        isOpen: true,
+        ...data
+      });
+    },
+    onOptionCardUsedForDamage: (data: any) => {
+      setLogEntries(prev => [...prev, {
+        id: Date.now(),
+        message: `${data.playerName} used ${data.card.name} to prevent damage (${data.damagePreventedSoFar}/${data.damageRemaining + data.damagePreventedSoFar} prevented)`,
+        type: 'option',
+        timestamp: new Date(),
+      }]);
     }
   });
 
@@ -211,6 +238,17 @@ export default function GamePage() {
           />
         )}
 
+        {damagePreventionDialog && (
+          <DamagePreventionDialog
+            isOpen={damagePreventionDialog.isOpen}
+            damageAmount={damagePreventionDialog.damageAmount}
+            source={damagePreventionDialog.source}
+            optionCards={damagePreventionDialog.optionCards}
+            roomCode={roomCode}
+            onClose={() => setDamagePreventionDialog(null)}
+          />
+        )}
+
         <div className="container mx-auto max-w-7xl flex-1 flex flex-col">
           {/* Game Header */}
           <GameHeader roomCode={roomCode} onLeaveGame={handleLeaveGame} />
@@ -287,6 +325,16 @@ export default function GamePage() {
                       phase={gameState?.phase}
                       boardPhase={boardPhase}
                     />
+                    
+                    {/* Option Cards Display - moved below registers */}
+                    {currentPlayer.optionCards && currentPlayer.optionCards.length > 0 && (
+                      <div className="mt-4">
+                        <OptionCards 
+                          optionCards={currentPlayer.optionCards}
+                          playerName={currentPlayer.name}
+                        />
+                      </div>
+                    )}
                     
                     {/* All control buttons together */}
                     {gameState?.phase === 'programming' && (

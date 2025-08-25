@@ -24,6 +24,8 @@ interface UseGameSocketProps {
     onLoading: (loading: boolean) => void;
     onTimerUpdate?: (timeLeft: number) => void;
     onTimerExpired?: () => void;
+    onDamagePreventionOpportunity?: (data: any) => void;
+    onOptionCardUsedForDamage?: (data: any) => void;
 }
 
 export function useGameSocket({
@@ -46,7 +48,9 @@ export function useGameSocket({
     onError,
     onLoading,
     onTimerUpdate,
-    onTimerExpired
+    onTimerExpired,
+    onDamagePreventionOpportunity,
+    onOptionCardUsedForDamage
 }: UseGameSocketProps) {
     const logIdCounter = useRef(0);
 
@@ -369,6 +373,14 @@ export function useGameSocket({
         socketClient.on('power-down-option', (data) => handlePowerDownOption(data as { message: string }));
         socketClient.on('respawn-power-down-option', (data) => handleRespawnPowerDownOption(data as { message: string; isRespawn?: boolean }));
         socketClient.on('register-executed', (data) => handleRegisterExecuted(data as unknown));
+        
+        // Damage prevention events
+        if (onDamagePreventionOpportunity) {
+            socketClient.on('damage-prevention-opportunity', (data) => onDamagePreventionOpportunity(data));
+        }
+        if (onOptionCardUsedForDamage) {
+            socketClient.on('option-card-used-for-damage', (data) => onOptionCardUsedForDamage(data));
+        }
         
         // Handle register updates from other players
         socketClient.on('register-update', (data) => {

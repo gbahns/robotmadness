@@ -3,7 +3,7 @@ import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import next from 'next';
 import { GameState, ProgramCard, GamePhase, Course, Player, PowerState, Direction } from './lib/game/types';
-import { GameEngine, ServerGameState } from './lib/game/GameEngine';
+import { GameEngine, ServerGameState } from './lib/game/gameEngine';
 
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev, turbo: dev }); // Enable Turbopack in development
@@ -34,6 +34,18 @@ interface ServerToClientEvents {
     'player-power-state-changed': (data: { playerId: string, playerName: string, powerState: PowerState, announcedPowerDown?: boolean }) => void;
     'respawn-power-down-option': (data: { message: string; isRespawn?: boolean }) => void;
     'register-update': (data: { playerId: string; selectedCards: (ProgramCard | null)[] }) => void;
+    'damage-prevention-opportunity': (data: { 
+        damageAmount: number; 
+        source: string; 
+        optionCards: any[] 
+    }) => void;
+    'option-card-used-for-damage': (data: { 
+        playerId: string; 
+        playerName: string; 
+        card: any; 
+        damagePreventedSoFar: number; 
+        damageRemaining: number 
+    }) => void;
 }
 
 interface ClientToServerEvents {
@@ -57,6 +69,8 @@ interface ClientToServerEvents {
     'continue-power-down': (data: { roomCode: string; playerId: string; continueDown: boolean }) => void;
     'respawn-decision': (data: { roomCode: string; playerId: string; powerDown: boolean; direction: Direction }) => void;
     'respawn-preview': (data: { roomCode: string; playerId: string; direction: Direction }) => void;
+    'damage-prevention-complete': (data: { roomCode: string }) => void;
+    'use-option-for-damage': (data: { roomCode: string; cardId: string }) => void;
     'register-update': (data: { roomCode: string; playerId: string; selectedCards: (ProgramCard | null)[] }) => void;
 }
 
@@ -479,6 +493,138 @@ app.prepare().then(() => {
                 socket.emit('game-state', gameState);
             }
         });
+
+        socket.on('damage-prevention-complete', ({ roomCode }) => {
+            console.log(`[DamagePrevention] Received damage-prevention-complete from socket ${socket.id} for room ${roomCode}`);
+            const gameState = games.get(roomCode);
+            if (!gameState) {
+                console.log(`[DamagePrevention] No game state found for room ${roomCode}`);
+                return;
+            }
+            
+            // Find the player by socket ID
+            const player = Object.values(gameState.players).find(p => p.id === socket.id);
+            if (!player) {
+                console.log(`[DamagePrevention] No player found for socket ${socket.id}`);
+                // Try using socket data as fallback
+                const playerId = socket.data.playerId;
+                if (playerId && gameState.pendingDamage?.has(playerId)) {
+                    const pending = gameState.pendingDamage.get(playerId);
+                    console.log(`[DamagePrevention] Using socket.data.playerId: ${playerId}. Prevented ${pending?.prevented || 0} of ${pending?.amount || 0} damage`);
+                    if (pending) {
+                        pending.completed = true;
+                        console.log(`[DamagePrevention] Set completed flag to true for ${playerId}`);
+                    }
+                }
+                return;
+            }
+            
+            const playerId = player.id;
+            
+            // Mark damage prevention as complete
+            if (gameState.pendingDamage?.has(playerId)) {
+                const pending = gameState.pendingDamage.get(playerId);
+                console.log(`[DamagePrevention] Player ${player.name} completed damage prevention. Prevented ${pending?.prevented || 0} of ${pending?.amount || 0} damage`);
+                // Set completed flag to trigger immediate resolution
+                if (pending) {
+                    pending.completed = true;
+                    console.log(`[DamagePrevention] Set completed flag to true for ${playerId}`);
+                }
+            } else {
+                console.log(`[DamagePrevention] No pending damage found for ${playerId}`);
+            }
+        });
+
+        socket.on('use-option-for-damage', ({ roomCode, cardId }) => {
+            console.log(`[DamagePrevention] Received use-option-for-damage from socket ${socket.id}, cardId: ${cardId}`);
+            const gameState = games.get(roomCode);
+            if (!gameState) {
+                console.log(`[DamagePrevention] No game state found`);
+                return;
+            }
+            
+            // Use socket.data.playerId which should have the actual player ID
+            const playerId = socket.data.playerId || socket.id;
+            console.log(`[DamagePrevention] Looking for player with ID: ${playerId}`);
+            
+            const player = gameState.players[playerId];
+            if (!player) {
+                console.log(`[DamagePrevention] No player found for ${playerId}`);
+                // Try to find by socket id as fallback
+                const playerBySocket = Object.values(gameState.players).find(p => p.id === socket.id);
+                if (!playerBySocket) {
+                    console.log(`[DamagePrevention] Could not find player by socket ID either`);
+                    return;
+                }
+                // Use the found player
+                const actualPlayerId = playerBySocket.id;
+                const actualPlayer = playerBySocket;
+                console.log(`[DamagePrevention] Found player ${actualPlayer.name} by socket ID, actual ID: ${actualPlayerId}`);
+                
+                const pending = gameState.pendingDamage?.get(actualPlayerId);
+                if (!pending) {
+                    console.log(`[DamagePrevention] No pending damage for ${actualPlayerId}`);
+                    socket.emit('error', { message: 'No pending damage to prevent' });
+                    return;
+                }
+                
+                // Process with the found player
+                processOptionCardUsage(gameState, actualPlayer, actualPlayerId, pending, cardId, io, roomCode);
+                return;
+            }
+            
+            console.log(`[DamagePrevention] Player ${player.name} has ${player.optionCards?.length || 0} option cards`);
+            
+            const pending = gameState.pendingDamage?.get(playerId);
+            if (!pending) {
+                console.log(`[DamagePrevention] No pending damage for ${playerId}`);
+                socket.emit('error', { message: 'No pending damage to prevent' });
+                return;
+            }
+            
+            processOptionCardUsage(gameState, player, playerId, pending, cardId, io, roomCode);
+        });
+        
+        function processOptionCardUsage(gameState: any, player: any, playerId: string, pending: any, cardId: string, io: any, roomCode: string) {
+            console.log(`[DamagePrevention] Processing option card usage for ${player.name}`);
+            
+            // Find and remove the option card
+            const cardIndex = player.optionCards.findIndex((card: any) => card.id === cardId);
+            if (cardIndex === -1) {
+                console.log(`[DamagePrevention] Option card ${cardId} not found in player's hand`);
+                return;
+            }
+            
+            const card = player.optionCards.splice(cardIndex, 1)[0];
+            if (!gameState.discardedOptions) {
+                gameState.discardedOptions = [];
+            }
+            gameState.discardedOptions.push(card);
+            
+            // Track prevented damage (actual damage reduction happens after the wait)
+            const previousPrevented = pending.prevented;
+            pending.prevented = Math.min(pending.prevented + 1, pending.amount);
+            const actuallyPrevented = pending.prevented - previousPrevented;
+            
+            console.log(`[DamagePrevention] ${player.name} used ${card.name} to prevent ${actuallyPrevented} damage (${pending.prevented}/${pending.amount} total prevented)`);
+            
+            // If all damage prevented, immediately mark as complete
+            if (pending.prevented >= pending.amount) {
+                console.log(`[DamagePrevention] All damage prevented for ${player.name}, triggering immediate resolution`);
+                pending.completed = true;
+            }
+            
+            io.to(roomCode).emit('option-card-used-for-damage', {
+                playerId: playerId,
+                playerName: player.name,
+                card: card,
+                damagePreventedSoFar: pending.prevented,
+                damageRemaining: pending.amount - pending.prevented
+            });
+            
+            // Update game state so UI reflects the reduced damage
+            io.to(roomCode).emit('game-state', gameState);
+        }
 
         socket.on('leave-game', () => {
             const roomCode = socket.data.roomCode;

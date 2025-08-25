@@ -5,7 +5,7 @@ import React, { useEffect, useRef } from 'react';
 interface LogEntry {
     id: number;
     message: string;
-    type: 'info' | 'action' | 'damage' | 'checkpoint';
+    type: 'info' | 'action' | 'damage' | 'checkpoint' | 'option';
     timestamp: Date;
 }
 
@@ -35,7 +35,9 @@ export default function ExecutionLog({ entries }: ExecutionLogProps) {
             case 'board-element':
                 return 'text-yellow-400';
             case 'power-down':
-                return 'text-orange-400'
+                return 'text-orange-400';
+            case 'option':
+                return 'text-purple-400';
             default:
                 return 'text-gray-400';
         }
@@ -51,6 +53,8 @@ export default function ExecutionLog({ entries }: ExecutionLogProps) {
                 return '🚩'; //🚩🏁
             case 'board-element':
                 return '⚙️'; //🛠️🛠
+            case 'option':
+                return '🛡️';
             case 'geer':
                 return '⚙️';
             case 'conveyor':

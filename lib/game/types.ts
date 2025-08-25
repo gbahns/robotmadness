@@ -64,6 +64,7 @@ export interface Player {
   dealtCards: ProgramCard[];
   selectedCards: (ProgramCard | null)[];
   lockedRegisters: number;
+  optionCards: any[];  // Option cards held by player
 
   // Power Down fields
   powerState: PowerState;
@@ -87,6 +88,8 @@ export interface GameState {
   course: Course;
   roundNumber: number;
   cardsDealt: boolean;
+  optionDeck?: any[];  // Available option cards
+  discardedOptions?: any[];  // Discarded option cards
   timerStartTime?: number; // Unix timestamp when timer started
   timerDuration?: number; // Duration in seconds
   timerConfig?: {
