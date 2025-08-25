@@ -230,7 +230,7 @@ export default function GamePage() {
 
   return (
     <GameContent>
-      <div className="h-screen bg-gray-900 text-white p-4 flex flex-col overflow-hidden">
+      <div className="h-screen bg-gray-900 text-white flex flex-col overflow-hidden">
         {winner && (
           <GameOverModal
             winner={winner}
@@ -249,16 +249,18 @@ export default function GamePage() {
           />
         )}
 
-        <div className="container mx-auto max-w-7xl flex-1 flex flex-col min-h-0">
+        <div className="flex-1 flex flex-col min-h-0">
           {/* Game Header */}
-          <GameHeader roomCode={roomCode} onLeaveGame={handleLeaveGame} />
+          <div className="px-4 pt-4">
+            <GameHeader roomCode={roomCode} onLeaveGame={handleLeaveGame} />
+          </div>
 
           {/* Game Area - Main horizontal layout */}
-          <div className="flex-1 flex gap-6 min-h-0">
-            {/* Left Column - Game Board */}
-            <div className="flex-1 flex flex-col gap-6">
+          <div className="flex-1 flex min-h-0">
+            {/* Left Column - Game Board - no padding */}
+            <div className="flex-1 flex flex-col">
               {/* Game Board - takes most space */}
-              <div className="flex-1 flex items-center justify-center">
+              <div className="flex-1 flex">
                 <CourseComponent
                   courseId={selectedCourse || ""}
                   players={gameState?.players || {}}
@@ -271,7 +273,7 @@ export default function GamePage() {
             </div>
 
             {/* Right Column - Players, Cards and Controls */}
-            <div className="w-96 flex flex-col min-h-0">
+            <div className="w-96 flex flex-col min-h-0 pr-4 pb-4">
                 {/* Top content container - auto-sized based on content */}
                 <div className="space-y-4 flex-shrink-0">
                   {/* Players List Component */}

@@ -51,8 +51,7 @@ export default function Course({
     }
 
     return (
-        //the white border is for debugging the board positioning and sizing; remove it later
-        <div ref={containerRef} className="relative h-full w-full flex items-center justify-center" style={{ border: '2px solid white' }}>
+        <div ref={containerRef} className="relative h-full w-full flex">
             <div className="relative">
                 {/* Board component renders the base board and manages tile size */}
                 <BoardComponent

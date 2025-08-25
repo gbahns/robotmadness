@@ -643,7 +643,7 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
       //className="flex items-center justify-center h-full w-full"  // Back to simple flex centering
       //className="inset-0 flex items-center justify-center"
       //className="min-h-screen w-full flex items-center justify-center"  // Force minimum screen height
-      className="w-full h-full flex items-center justify-center"  // Use w-full h-full to fill parent
+      className="w-full h-full flex"  // Use w-full h-full to fill parent
     //absolute inset-0 flex items-center justify-center
     //style={{ border: '2px solid red' }}  // Keep for debugging
     >
