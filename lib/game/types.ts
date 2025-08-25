@@ -111,10 +111,11 @@ export interface CourseDefinition {
   id: string;
   name: string;
   description: string;
-  difficulty: 'beginner' | 'intermediate' | 'expert';
+  difficulty: 'beginner' | 'intermediate' | 'hard' | 'expert';
   minPlayers: number;
   maxPlayers: number;
   boards: string[]; // Array of board IDs, not embedded boards
+  boardRotations?: number[]; // Optional array of rotations for each board (0, 90, 180, 270 degrees)
   checkpoints: Checkpoint[];
 }
 
