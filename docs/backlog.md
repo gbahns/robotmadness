@@ -1,21 +1,18 @@
 ## Backlog
+* make the robot arrow black instead of white when the robot color is light
+* make the screen layout adapt correctly to different window sizes and zoom level
 * when two robots reenter on the same archive marker, the second on picks an adjacent tile on which to reenter
 * somehow make checkpoints and possibly other board elements visible when a robot is sitting on them
 * reset cards is executing the logic on both the client and the server; only need one
 * server got stuck resetting or dealing cards for next turn; one robot had 9 damage, might be related to that
 * hammers
 * handle endgame properly (pop up a modal with the game still visible, celebrate the winner, etc)
-* Prevent further changes after timer expires
-* When timer hits 0, randomly fill empty registers
-* show all players cards for the current register / incremental card reveal
 * reduce the padding around the board to make better use of the space
-* make the robot arrow black instead of white when the robot color is light
 * improve the card look
     * add an up arrow to the move cards - make it big and lay the number over it in a circle like it is
     * make the back up arrow the same as the move cards, just pointing down instead of up
     * make the move 2 card a slightly darker shade of blue, and the move 3 slightly darker than the move 3
     * make the turn left and turn right cards thicker and rounded arrows
-* make the screen layout adapt correctly to different window sizes and zoom level
 * display the list phases and sub-phases and highlight the active one
 * delete the code for the game start modal (unless we think of a reason to reinstate it; board selection needs to be either here or on the game screen)
 * add all standard game boards
@@ -27,6 +24,8 @@
 
 ## In Progress
 * register phases keep executing after a player has won
+* Prevent further changes after timer expires
+* show all players cards for the current register / incremental card reveal while executing
 
 ## Done
 * robots pushing each other
@@ -85,6 +84,7 @@
 * allow players to choose which direction they're facing when reentering
 * refine the look of pits
 * improve the game page layout
+* When timer hits 0, randomly fill empty registers
 
 
 ## Defect Fix History
