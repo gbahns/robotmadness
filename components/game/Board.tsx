@@ -259,13 +259,13 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
   };
 
   // Get the visual representation of a tile
-  const getTileContent = (x: number, y: number, tooltip?: string): React.ReactElement[] => {
+  const getTileContent = (x: number, y: number): React.ReactElement[] => {
     const tile = getTileAt(x, y);
     const elements: React.ReactElement[] = [];
 
-    // Base tile
+    // Base tile (no tooltip here anymore)
     elements.push(
-      <div key="base" className="absolute inset-0 border border-gray-600 bg-gray-400" title={tooltip} />
+      <div key="base" className="absolute inset-0 border border-gray-600 bg-gray-400" />
     );
 
     // Add tile-specific elements when tiles are implemented
@@ -667,20 +667,23 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
                 width: tileSize,
                 height: tileSize
               }}
+              title={getTileTooltip(x, y)}
             >
-              {getTileContent(x, y, getTileTooltip(x, y))}
+              {getTileContent(x, y)}
             </div>
           ))
         ))}
 
         {/* Render laser beams on top of tiles but below robots */}
-        <LaserBeamRenderer 
-          lasers={collectBoardLasers()}
-          boardWidth={board.width}
-          boardHeight={board.height}
-          tileSize={tileSize}
-          getWallsAt={getWallsAtForRenderer}
-        />
+        <div className="pointer-events-none">
+          <LaserBeamRenderer 
+            lasers={collectBoardLasers()}
+            boardWidth={board.width}
+            boardHeight={board.height}
+            tileSize={tileSize}
+            getWallsAt={getWallsAtForRenderer}
+          />
+        </div>
 
         {/* Render robots as separate animated layer */}
         {Object.values(players).map((player) => {
@@ -691,7 +694,7 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
           return (
             <div
               key={player.id}
-              className="absolute transition-all duration-500 ease-in-out"
+              className="absolute transition-all duration-500 ease-in-out pointer-events-none"
               style={{
                 left: player.position.x * tileSize,
                 top: player.position.y * tileSize,
@@ -713,11 +716,13 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
         })}
 
         {/* Render robot laser animations */}
-        <RobotLaserAnimation
-          players={players}
-          activeLasers={activeLasers}
-          tileSize={tileSize}
-        />
+        <div className="pointer-events-none">
+          <RobotLaserAnimation
+            players={players}
+            activeLasers={activeLasers}
+            tileSize={tileSize}
+          />
+        </div>
       </div>
     </div>
   );
