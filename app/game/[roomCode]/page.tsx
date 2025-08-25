@@ -230,7 +230,7 @@ export default function GamePage() {
 
   return (
     <GameContent>
-      <div className="min-h-screen bg-gray-900 text-white p-4 flex flex-col">
+      <div className="h-screen bg-gray-900 text-white p-4 flex flex-col overflow-hidden">
         {winner && (
           <GameOverModal
             winner={winner}
@@ -249,12 +249,12 @@ export default function GamePage() {
           />
         )}
 
-        <div className="container mx-auto max-w-7xl flex-1 flex flex-col">
+        <div className="container mx-auto max-w-7xl flex-1 flex flex-col min-h-0">
           {/* Game Header */}
           <GameHeader roomCode={roomCode} onLeaveGame={handleLeaveGame} />
 
           {/* Game Area - Main horizontal layout */}
-          <div className="flex-1 flex gap-6">
+          <div className="flex-1 flex gap-6 min-h-0">
             {/* Left Column - Game Board */}
             <div className="flex-1 flex flex-col gap-6">
               {/* Game Board - takes most space */}
@@ -271,25 +271,27 @@ export default function GamePage() {
             </div>
 
             {/* Right Column - Players, Cards and Controls */}
-            <div className="w-96 space-y-4">
-                {/* Players List Component */}
-                {gameState && (
-                  <PlayersList
-                    players={gameState.players}
-                    currentPlayerId={playerIdRef.current}
-                    isSubmitted={isSubmitted}
-                    isProgrammingPhase={gameState.phase === 'programming'}
-                    isExecutingPhase={gameState.phase === 'executing'}
-                  />
-                )}
+            <div className="w-96 flex flex-col min-h-0">
+                {/* Top content container - auto-sized based on content */}
+                <div className="space-y-4 flex-shrink-0">
+                  {/* Players List Component */}
+                  {gameState && (
+                    <PlayersList
+                      players={gameState.players}
+                      currentPlayerId={playerIdRef.current}
+                      isSubmitted={isSubmitted}
+                      isProgrammingPhase={gameState.phase === 'programming'}
+                      isExecutingPhase={gameState.phase === 'executing'}
+                    />
+                  )}
 
-                {/* Timer - show during programming phase */}
-                {gameState?.phase === 'programming' && (
-                  <Timer timeLeft={timerTimeLeft} isActive={isTimerActive} />
-                )}
+                  {/* Timer - show during programming phase */}
+                  {gameState?.phase === 'programming' && (
+                    <Timer timeLeft={timerTimeLeft} isActive={isTimerActive} />
+                  )}
 
-                {/* Hand - moved under players list (or show powered down status) */}
-                {gameState?.phase === 'programming' && currentPlayer && (
+                  {/* Hand - moved under players list (or show powered down status) */}
+                  {gameState?.phase === 'programming' && currentPlayer && (
                   currentPlayer.powerState === 'OFF' ? (
                     <div className="bg-yellow-900 border border-yellow-600 rounded-lg p-4">
                       <div className="flex items-center gap-2">
@@ -425,16 +427,20 @@ export default function GamePage() {
                   />
                 )}
 
-                {/* Show programming controls when not making respawn decision */}
-                {gameState?.phase === 'programming' && !showRespawnModal && (
-                  <ProgrammingControls
-                    gameState={gameState}
-                    currentPlayer={currentPlayer || {} as Player}
-                    isSubmitted={isSubmitted}
-                  />
-                )}
+                  {/* Show programming controls when not making respawn decision */}
+                  {gameState?.phase === 'programming' && !showRespawnModal && (
+                    <ProgrammingControls
+                      gameState={gameState}
+                      currentPlayer={currentPlayer || {} as Player}
+                      isSubmitted={isSubmitted}
+                    />
+                  )}
+                </div>
 
-                <ExecutionLog entries={logEntries} />
+                {/* ExecutionLog - fills remaining space */}
+                <div className="flex-1 min-h-0 mt-4 overflow-hidden">
+                  <ExecutionLog entries={logEntries} />
+                </div>
             </div>
           </div>
         </div>

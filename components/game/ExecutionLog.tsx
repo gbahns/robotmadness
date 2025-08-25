@@ -73,7 +73,7 @@ export default function ExecutionLog({ entries }: ExecutionLogProps) {
     };
 
     return (
-        <div ref={scrollRef} className="bg-gray-800 rounded-lg p-4 h-[396px] overflow-y-auto">
+        <div ref={scrollRef} className="bg-gray-800 rounded-lg p-4 h-full overflow-y-auto">
             <div className="space-y-1">
                 {entries.length === 0 ? (
                     <p className="text-gray-500 italic">No actions yet...</p>
