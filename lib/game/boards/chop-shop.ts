@@ -83,6 +83,7 @@ export const CHOP_SHOP_BOARD: BoardDefinition = {
         { position: { x: 5, y: 1 }, direction: Direction.LEFT, damage: 1 },
         { position: { x: 8, y: 6 }, direction: Direction.UP, damage: 1 },
         { position: { x: 1, y: 10 }, direction: Direction.LEFT, damage: 3 },
+        { position: { x: 7, y: 10 }, direction: Direction.RIGHT, damage: 1 },
     ],
 
     walls: [
