@@ -172,7 +172,7 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
   };
 
   // Calculate responsive sizes based on tile size
-  const robotSize = Math.floor(tileSize * 0.8);
+  // robotSize calculation removed - now using tileSize * 0.8 directly in robot rendering
 
   // Generate tooltip text for a tile
   const getTileTooltip = (x: number, y: number): string => {
@@ -259,13 +259,13 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
   };
 
   // Get the visual representation of a tile
-  const getTileContent = (x: number, y: number): React.ReactElement[] => {
+  const getTileContent = (x: number, y: number, tooltip?: string): React.ReactElement[] => {
     const tile = getTileAt(x, y);
     const elements: React.ReactElement[] = [];
 
     // Base tile
     elements.push(
-      <div key="base" className="absolute inset-0 border border-gray-600 bg-gray-400" />
+      <div key="base" className="absolute inset-0 border border-gray-600 bg-gray-400" title={tooltip} />
     );
 
     // Add tile-specific elements when tiles are implemented
@@ -608,22 +608,7 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
       }
     }
 
-    // Players
-    Object.values(players).forEach((player: Player) => {
-      if (player.position.x === x && player.position.y === y && player.lives > 0) {
-        const isCurrentPlayer = player.id === currentPlayerId;
-        elements.push(
-          <div key={player.id} className="absolute inset-1 z-30">
-            <Robot
-              player={player}
-              color={ROBOT_COLORS[getPlayerIndex(player.id) % ROBOT_COLORS.length]}
-              isCurrentPlayer={isCurrentPlayer}
-              size={robotSize}
-            />
-          </div>
-        );
-      }
-    });
+    // Players are now rendered as a separate layer for animation
 
     return elements;
   };
@@ -682,9 +667,8 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
                 width: tileSize,
                 height: tileSize
               }}
-              title={getTileTooltip(x, y)}
             >
-              {getTileContent(x, y)}
+              {getTileContent(x, y, getTileTooltip(x, y))}
             </div>
           ))
         ))}
@@ -697,6 +681,36 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
           tileSize={tileSize}
           getWallsAt={getWallsAtForRenderer}
         />
+
+        {/* Render robots as separate animated layer */}
+        {Object.values(players).map((player) => {
+          if (player.lives <= 0) return null;
+          
+          const playerIndex = getPlayerIndex(player.id);
+          
+          return (
+            <div
+              key={player.id}
+              className="absolute transition-all duration-500 ease-in-out"
+              style={{
+                left: player.position.x * tileSize,
+                top: player.position.y * tileSize,
+                width: tileSize,
+                height: tileSize,
+                zIndex: 30
+              }}
+            >
+              <div className="absolute inset-1">
+                <Robot
+                  player={player}
+                  color={ROBOT_COLORS[playerIndex % ROBOT_COLORS.length]}
+                  isCurrentPlayer={player.id === currentPlayerId}
+                  size={tileSize * 0.8}
+                />
+              </div>
+            </div>
+          );
+        })}
 
         {/* Render robot laser animations */}
         <RobotLaserAnimation

@@ -1,19 +1,14 @@
-import { BoardDefinition, CourseDefinition, Course, TileElement, LaserElement, WallElement } from '../types';
+import { BoardDefinition, CourseDefinition, Course, TileElement, LaserElement, WallElement, Direction } from '../types';
 import { getBoardDefinitionById, buildBoard } from '../board-utils';
 
 // =============================================================================
-// OFFICIAL MULTI-BOARD COURSES (from RoboRally manual)
+// Easy Courses
 // =============================================================================
 
-// =============================================================================
-// COURSE DEFINITIONS
-// =============================================================================
-
-// OFFICIAL RISKY EXCHANGE COURSE - References the individual boards
 export const RISKY_EXCHANGE: CourseDefinition = {
-    id: 'official_risky_exchange',
+    id: 'risky_exchange',
     name: 'Risky Exchange',
-    description: 'An easy course to start on, but don\'t fall off the edge! Based on the official RoboRally rulebook.',
+    description: 'An easy course to start on, but don\'t fall off the edge!',
     difficulty: 'beginner',
     minPlayers: 2,
     maxPlayers: 8,
@@ -25,72 +20,20 @@ export const RISKY_EXCHANGE: CourseDefinition = {
     ],
 };
 
-export const RISKY_EXCHANGE_COURSE: CourseDefinition = {
-    id: 'risky_exchange',
-    name: 'Risky Exchange',
-    description: 'The official Risky Exchange course with conveyor highway',
-    difficulty: 'beginner',
-    minPlayers: 2,
-    maxPlayers: 8,
-    boards: ['docking-bay-1', 'exchange-factory-floor'],
-    checkpoints: [],
-};
-
-export const BURNOUT_COURSE: CourseDefinition = {
-    id: 'burnout',
-    name: 'Burnout',
-    description: 'Fast-paced course with express conveyors and laser gauntlet',
-    difficulty: 'intermediate',
-    minPlayers: 2,
-    maxPlayers: 8,
-    boards: ['burnout-docking-bay', 'burnout-factory-floor'],
-    checkpoints: [],
-};
-
-export const HEAVY_TRAFFIC_COURSE: CourseDefinition = {
-    id: 'heavy_traffic',
-    name: 'Heavy Traffic',
-    description: 'Navigate through congested conveyor systems',
-    difficulty: 'intermediate',
-    minPlayers: 2,
-    maxPlayers: 8,
-    boards: ['heavy-traffic-docking-bay', 'heavy-traffic-factory-floor'],
-    checkpoints: [],
-};
-
 export const CHECKMATE: CourseDefinition = {
     id: 'checkmate',
     name: 'Checkmate',
     description: 'Navigate the checkerboard battlefield! Watch out for the express conveyor loops and deadly pits.',
-    difficulty: 'intermediate',
+    difficulty: 'beginner',
     minPlayers: 2,
     maxPlayers: 8,
     boards: ['docking-bay-2', 'chess'],
+    boardRotations: [0, 180], // Don't rotate docking bay, rotate chess board 180 degrees
     checkpoints: [
-        { position: { x: 11, y: 4 }, number: 1 },   // Top-right repair site (adjusted for docking bay height)
-        { position: { x: 5, y: 9 }, number: 2 },    // Center option tile (adjusted for docking bay height)
-        { position: { x: 0, y: 15 }, number: 3 }    // Bottom-left repair site (adjusted for docking bay height)
+        { position: { x: 7, y: 2 }, number: 1 },   // Flag positions are applied AFTER rotation
+        { position: { x: 3, y: 8 }, number: 2 }     // These are the final board positions
     ]
 };
-
-// Export array of official courses
-export const OFFICIAL_COURSE_DEFINITIONS_OLD: CourseDefinition[] = [
-    RISKY_EXCHANGE_COURSE,
-    BURNOUT_COURSE,
-    HEAVY_TRAFFIC_COURSE
-];
-
-// =============================================================================
-// COMBINED BOARD COURSES (using the combined board approach)
-// =============================================================================
-
-export const COMBINED_COURSES: CourseDefinition[] = [
-    CHECKMATE
-];
-
-// =============================================================================
-// SINGLE BOARD COURSES
-// =============================================================================
 
 export const DIZZY_DASH_COURSE: CourseDefinition = {
     id: 'dizzy_dash',
@@ -99,13 +42,41 @@ export const DIZZY_DASH_COURSE: CourseDefinition = {
     difficulty: 'beginner',
     minPlayers: 2,
     maxPlayers: 8,
-    boards: ['dizzy-dash-board'],
+    boards: ['docking-bay-1', 'spin-zone'],
     checkpoints: [
-        { position: { x: 3, y: 3 }, number: 1 },
-        { position: { x: 9, y: 9 }, number: 2 },
-        { position: { x: 6, y: 6 }, number: 3 }
+        { position: { x: 5, y: 4 }, number: 1 },
+        { position: { x: 10, y: 11 }, number: 2 },
+        { position: { x: 1, y: 6 }, number: 3 }
     ]
 };
+
+// Commented out until boards are created
+// export const BURNOUT_COURSE: CourseDefinition = {
+//     id: 'burnout',
+//     name: 'Burnout',
+//     description: 'Fast-paced course with express conveyors and laser gauntlet',
+//     difficulty: 'intermediate',
+//     minPlayers: 2,
+//     maxPlayers: 8,
+//     boards: ['burnout-docking-bay', 'burnout-factory-floor'],
+//     checkpoints: [],
+// };
+
+// export const HEAVY_TRAFFIC_COURSE: CourseDefinition = {
+//     id: 'heavy_traffic',
+//     name: 'Heavy Traffic',
+//     description: 'Navigate through congested conveyor systems',
+//     difficulty: 'intermediate',
+//     minPlayers: 2,
+//     maxPlayers: 8,
+//     boards: ['heavy-traffic-docking-bay', 'heavy-traffic-factory-floor'],
+//     checkpoints: [],
+// };
+
+
+// =============================================================================
+// SINGLE BOARD COURSES
+// =============================================================================
 
 export const ISLAND_HOP_COURSE: CourseDefinition = {
     id: 'island_hop',
@@ -114,17 +85,103 @@ export const ISLAND_HOP_COURSE: CourseDefinition = {
     difficulty: 'intermediate',
     minPlayers: 2,
     maxPlayers: 8,
-    boards: ['island-hop-board'],
+    boards: ['docking-bay-2', 'island'],
+    boardRotations: [0, 270], // Don't rotate docking bay, rotate island 270 degrees
     checkpoints: [
-        { position: { x: 6, y: 2 }, number: 1 },
-        { position: { x: 10, y: 6 }, number: 2 },
-        { position: { x: 6, y: 10 }, number: 3 }
+        { position: { x: 6, y: 1 }, number: 1 },
+        { position: { x: 1, y: 6 }, number: 2 },
+        { position: { x: 11, y: 4 }, number: 3 }
+    ]
+};
+
+export const CHOP_SHOP_CHALLENGE_COURSE: CourseDefinition = {
+    id: 'chop_shop_challenge',
+    name: 'Chop Shop Challenge',
+    description: 'Navigate through the industrial chop shop with its dangerous machinery!',
+    difficulty: 'intermediate',
+    minPlayers: 2,
+    maxPlayers: 8,
+    boards: ['docking-bay-2', 'chop-shop'],
+    boardRotations: [0, 90],
+    checkpoints: [
+        { position: { x: 4, y: 9 }, number: 1 },
+        { position: { x: 9, y: 11 }, number: 2 },
+        { position: { x: 1, y: 10 }, number: 3 },
+        { position: { x: 11, y: 7 }, number: 4 }
+    ]
+};
+
+export const TWISTER_COURSE: CourseDefinition = {
+    id: 'twister',
+    name: 'Twister',
+    description: 'Spin your way through this dizzying course of rotating gears and conveyor belts!',
+    difficulty: 'intermediate',
+    minPlayers: 2,
+    maxPlayers: 8,
+    boards: ['docking-bay-1', 'spin-zone'],
+    checkpoints: [
+        { position: { x: 2, y: 9 }, number: 1 },
+        { position: { x: 3, y: 2 }, number: 2 },
+        { position: { x: 9, y: 2 }, number: 3 },
+        { position: { x: 8, y: 9 }, number: 4 }
+    ]
+};
+
+export const BLOODBATH_CHESS_COURSE: CourseDefinition = {
+    id: 'bloodbath_chess',
+    name: 'Bloodbath Chess',
+    description: 'Take no prisoners!',
+    difficulty: 'intermediate',
+    minPlayers: 2,
+    maxPlayers: 4,
+    boards: ['docking-bay-2', 'chess'],
+    checkpoints: [
+        { position: { x: 6, y: 5 }, number: 1 },
+        { position: { x: 2, y: 9 }, number: 2 },
+        { position: { x: 8, y: 7 }, number: 3 },
+        { position: { x: 3, y: 4 }, number: 4 }
+    ]
+};
+
+export const AROUND_THE_WORLD_COURSE: CourseDefinition = {
+    id: 'around_the_world',
+    name: 'Around the World',
+    description: 'This is where the going gets really tough.',
+    difficulty: 'hard',
+    minPlayers: 5,
+    maxPlayers: 8,
+    boards: ['docking-bay-2', 'island', 'spin-zone'],
+    checkpoints: [
+        { position: { x: 9, y: 12 }, number: 1 },
+        { position: { x: 6, y: 1 }, number: 2 },
+        { position: { x: 5, y: 22 }, number: 3 }
+    ]
+};
+
+export const DEATH_TRAP_COURSE: CourseDefinition = {
+    id: 'death_trap',
+    name: 'Death Trap',
+    description: 'Where you need to be isn\'t necessarily where you want to be.',
+    difficulty: 'hard',
+    minPlayers: 2,
+    maxPlayers: 4,
+    boards: ['docking-bay-2', 'island'],
+    checkpoints: [
+        { position: { x: 7, y: 7 }, number: 1 },
+        { position: { x: 0, y: 4 }, number: 2 },
+        { position: { x: 6, y: 5 }, number: 3 }
     ]
 };
 
 export const SINGLE_BOARD_COURSE_DEFINITIONS: CourseDefinition[] = [
+    CHECKMATE,
     DIZZY_DASH_COURSE,
-    ISLAND_HOP_COURSE
+    ISLAND_HOP_COURSE,
+    CHOP_SHOP_CHALLENGE_COURSE,
+    TWISTER_COURSE,
+    BLOODBATH_CHESS_COURSE,
+    AROUND_THE_WORLD_COURSE,
+    DEATH_TRAP_COURSE
 ];
 
 // =============================================================================
@@ -162,13 +219,196 @@ export const OFFICIAL_COURSE_DEFINITIONS: CourseDefinition[] = [
 export const ALL_COURSE_DEFINITIONS: CourseDefinition[] = [
     ...OFFICIAL_COURSE_DEFINITIONS,  // Official courses first
     ...SINGLE_BOARD_COURSE_DEFINITIONS,
-    ...COMBINED_COURSES,
     ...LEGACY_COURSE_DEFINITIONS
 ];
 
 // =============================================================================
 // HELPER FUNCTIONS
 // =============================================================================
+
+/**
+ * Rotates a board definition by the specified degrees (0, 90, 180, 270)
+ */
+function rotateBoardDefinition(board: BoardDefinition, degrees: number): BoardDefinition {
+    if (degrees === 0) return board;
+
+    const rotatedBoard = { ...board };
+
+    // For 180 degree rotation, we need to:
+    // 1. Flip x and y coordinates
+    // 2. Adjust wall directions
+    // 3. Adjust conveyor/gear directions
+    // 4. Adjust laser directions
+
+    if (degrees === 180) {
+        const maxX = board.width - 1;
+        const maxY = board.height - 1;
+
+        // Rotate tiles
+        if (board.tiles) {
+            rotatedBoard.tiles = board.tiles.map(tile => ({
+                ...tile,
+                position: {
+                    x: maxX - tile.position.x,
+                    y: maxY - tile.position.y
+                },
+                // Rotate direction if present (0->2, 1->3, 2->0, 3->1)
+                direction: tile.direction !== undefined ? ((tile.direction + 2) % 4) as Direction : undefined
+            }));
+        }
+
+        // Rotate walls
+        if (board.walls) {
+            rotatedBoard.walls = board.walls.map(wall => ({
+                ...wall,
+                position: {
+                    x: maxX - wall.position.x,
+                    y: maxY - wall.position.y
+                },
+                // Rotate wall sides (0->2, 1->3, 2->0, 3->1)
+                sides: wall.sides.map(side => ((side + 2) % 4) as Direction)
+            }));
+        }
+
+        // Rotate lasers
+        if (board.lasers) {
+            rotatedBoard.lasers = board.lasers.map(laser => ({
+                ...laser,
+                position: {
+                    x: maxX - laser.position.x,
+                    y: maxY - laser.position.y
+                },
+                // Rotate laser direction
+                direction: ((laser.direction + 2) % 4) as Direction
+            }));
+        }
+
+        // Rotate starting positions
+        rotatedBoard.startingPositions = board.startingPositions.map(sp => ({
+            ...sp,
+            position: {
+                x: maxX - sp.position.x,
+                y: maxY - sp.position.y
+            }
+        }));
+    }
+
+    // 270 degree rotation (counterclockwise)
+    if (degrees === 270) {
+        const maxX = board.width - 1;
+
+        // For 270 degrees, we swap width and height
+        rotatedBoard.width = board.height;
+        rotatedBoard.height = board.width;
+
+        // Rotate tiles
+        if (board.tiles) {
+            rotatedBoard.tiles = board.tiles.map(tile => ({
+                ...tile,
+                position: {
+                    x: tile.position.y,  // y becomes x
+                    y: maxX - tile.position.x  // width - x becomes y
+                },
+                // Rotate direction counterclockwise (0->3, 1->0, 2->1, 3->2)
+                direction: tile.direction !== undefined ? ((tile.direction + 3) % 4) as Direction : undefined
+            }));
+        }
+
+        // Rotate walls
+        if (board.walls) {
+            rotatedBoard.walls = board.walls.map(wall => ({
+                ...wall,
+                position: {
+                    x: wall.position.y,
+                    y: maxX - wall.position.x
+                },
+                // Rotate wall sides counterclockwise
+                sides: wall.sides.map(side => ((side + 3) % 4) as Direction)
+            }));
+        }
+
+        // Rotate lasers
+        if (board.lasers) {
+            rotatedBoard.lasers = board.lasers.map(laser => ({
+                ...laser,
+                position: {
+                    x: laser.position.y,
+                    y: maxX - laser.position.x
+                },
+                // Rotate laser direction counterclockwise
+                direction: ((laser.direction + 3) % 4) as Direction
+            }));
+        }
+
+        // Rotate starting positions
+        rotatedBoard.startingPositions = board.startingPositions.map(sp => ({
+            ...sp,
+            position: {
+                x: sp.position.y,
+                y: maxX - sp.position.x
+            }
+        }));
+    }
+
+    // 90 degree rotation (clockwise)
+    if (degrees === 90) {
+        const maxY = board.height - 1;
+
+        // For 90 degrees, we swap width and height
+        rotatedBoard.width = board.height;
+        rotatedBoard.height = board.width;
+
+        // Rotate tiles
+        if (board.tiles) {
+            rotatedBoard.tiles = board.tiles.map(tile => ({
+                ...tile,
+                position: {
+                    x: maxY - tile.position.y,  // height - y becomes x
+                    y: tile.position.x  // x becomes y
+                },
+                // Rotate direction clockwise (0->1, 1->2, 2->3, 3->0)
+                direction: tile.direction !== undefined ? ((tile.direction + 1) % 4) as Direction : undefined
+            }));
+        }
+
+        // Rotate walls
+        if (board.walls) {
+            rotatedBoard.walls = board.walls.map(wall => ({
+                ...wall,
+                position: {
+                    x: maxY - wall.position.y,
+                    y: wall.position.x
+                },
+                // Rotate wall sides clockwise
+                sides: wall.sides.map(side => ((side + 1) % 4) as Direction)
+            }));
+        }
+
+        // Rotate lasers
+        if (board.lasers) {
+            rotatedBoard.lasers = board.lasers.map(laser => ({
+                ...laser,
+                position: {
+                    x: maxY - laser.position.y,
+                    y: laser.position.x
+                },
+                // Rotate laser direction clockwise
+                direction: ((laser.direction + 1) % 4) as Direction
+            }));
+        }
+
+        // Rotate starting positions
+        rotatedBoard.startingPositions = board.startingPositions.map(sp => ({
+            ...sp,
+            position: {
+                x: maxY - sp.position.y,
+                y: sp.position.x
+            }
+        }));
+    }
+
+    return rotatedBoard;
+}
 
 export function getCourseById(courseId: string): CourseDefinition {
     const course = ALL_COURSE_DEFINITIONS.find(course => course.id === courseId);
@@ -179,7 +419,7 @@ export function getCourseById(courseId: string): CourseDefinition {
     return course;
 }
 
-export function getCoursesByDifficulty(difficulty: 'beginner' | 'intermediate' | 'expert'): CourseDefinition[] {
+export function getCoursesByDifficulty(difficulty: 'beginner' | 'intermediate' | 'hard' | 'expert'): CourseDefinition[] {
     return ALL_COURSE_DEFINITIONS.filter(course => course.difficulty === difficulty);
 }
 
@@ -190,9 +430,16 @@ export function getCoursesForPlayerCount(playerCount: number): CourseDefinition[
 }
 
 export function buildCourse(courseDef: CourseDefinition): Course {
-    // Get all board definitions
+    // Get all board definitions and apply rotations
     const boardDefs = courseDef.boards
-        .map(id => getBoardDefinitionById(id))
+        .map((id, index) => {
+            const board = getBoardDefinitionById(id);
+            if (!board) return null;
+
+            // Apply rotation if specified
+            const rotation = courseDef.boardRotations?.[index] || 0;
+            return rotateBoardDefinition(board, rotation);
+        })
         .filter(Boolean) as BoardDefinition[];
 
     if (boardDefs.length === 0) {
@@ -228,36 +475,36 @@ export function buildCourse(courseDef: CourseDefinition): Course {
     return course;
 }
 
-/**
- * Creates a complete course with docking bay + factory floor combination
- * Returns both the combined board definition and course definition
- */
-export function createCombinedCourse(
-    courseId: string,
-    courseName: string,
-    description: string,
-    difficulty: 'beginner' | 'intermediate' | 'expert',
-    factoryFloorBoard: BoardDefinition,
-    dockingBayBoard: BoardDefinition
-): { board: BoardDefinition; course: CourseDefinition } {
-    const combinedBoard = combineBoardsVertically(dockingBayBoard, factoryFloorBoard);
-    // Ensure the combined board has a proper ID for referencing
-    combinedBoard.id = `${courseId}-board`;
-    combinedBoard.name = `${courseName} Board`;
+// /**
+//  * Creates a complete course with docking bay + factory floor combination
+//  * Returns both the combined board definition and course definition
+//  */
+// export function createCombinedCourse(
+//     courseId: string,
+//     courseName: string,
+//     description: string,
+//     difficulty: 'beginner' | 'intermediate' | 'hard' | 'expert',
+//     factoryFloorBoard: BoardDefinition,
+//     dockingBayBoard: BoardDefinition
+// ): { board: BoardDefinition; course: CourseDefinition } {
+//     const combinedBoard = combineBoardsVertically(factoryFloorBoard, dockingBayBoard);
+//     // Ensure the combined board has a proper ID for referencing
+//     combinedBoard.id = `${courseId}-board`;
+//     combinedBoard.name = `${courseName} Board`;
 
-    const course: CourseDefinition = {
-        id: courseId,
-        name: courseName,
-        description,
-        difficulty,
-        minPlayers: 2,
-        maxPlayers: Math.min(8, dockingBayBoard.startingPositions.length),
-        boards: [combinedBoard.id], // Reference the board ID, not the board itself
-        checkpoints: [],
-    };
+//     const course: CourseDefinition = {
+//         id: courseId,
+//         name: courseName,
+//         description,
+//         difficulty,
+//         minPlayers: 2,
+//         maxPlayers: Math.min(8, dockingBayBoard.startingPositions.length),
+//         boards: [combinedBoard.id], // Reference the board ID, not the board itself
+//         checkpoints: [],
+//     };
 
-    return { board: combinedBoard, course };
-}
+//     return { board: combinedBoard, course };
+// }
 
 // =============================================================================
 // HELPER FUNCTIONS
@@ -265,8 +512,9 @@ export function createCombinedCourse(
 
 /**
  * Combines two boards vertically: first board on top, second board on bottom.
- * @param topBoard - The board that will be placed on top (usually factory floor)
- * @param bottomBoard - The board that will be placed on bottom (usually docking bay)
+ * @param topBoard - The board that will be placed on top
+ * @param bottomBoard - The board that will be placed on bottom
+ * Note: In RoboRally, factory floors typically go on top, docking bays on bottom
  */
 export function combineBoardsVertically(topBoard: BoardDefinition, bottomBoard: BoardDefinition): BoardDefinition {
     const combinedHeight = topBoard.height + bottomBoard.height;
