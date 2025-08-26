@@ -15,7 +15,14 @@
       "Bash(npx tsc:*)",
       "Bash(cat:*)",
       "Bash(node:*)",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Bash(npm test)",
+      "Bash(npm test:*)",
+      "Bash(1)",
+      "Bash(findstr:*)",
+      "Bash(for file in tests/rear-firing-laser.test.ts tests/superior-archive.test.ts tests/ramming-gear.test.ts tests/mechanical-arm.test.ts tests/option-deck.test.ts)",
+      "Bash(do sed -i \"s/gameEngine = new GameEngine(mockIo);/\\/\\/ Use test mode with short damage prevention timeout\\n    gameEngine = new GameEngine(mockIo, {\\n      testMode: true,\\n      damagePreventionTimeout: 100\\n    });/g\" $file)",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []
