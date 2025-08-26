@@ -47,6 +47,22 @@ interface LaserPath {
     y: number;
 }
 
+interface LaserBeam {
+    startPosition: Position;
+    startFromBack: boolean; // true for board lasers (starts from back of tile), false for robot lasers (starts from front)
+    direction: Direction;
+    path: Position[]; // Tiles the laser passes through
+    hits: RobotHit[];
+    blockedBy: 'wall' | 'edge' | 'robot' | null;
+    endPosition: Position | null; // Final position where laser stops
+    endAtFront: boolean; // true if stopped at front of tile (hit robot), false if stopped at back (hit wall)
+    // Visual rendering notes:
+    // - If startFromBack is true: beam starts at back edge of startPosition tile, passes through it
+    // - If startFromBack is false: beam starts at front edge of startPosition tile, doesn't pass through it  
+    // - If endAtFront is true: beam stops at front edge of endPosition tile (before robot)
+    // - If endAtFront is false: beam stops at back edge of endPosition tile (at wall/edge)
+}
+
 interface DamageInfo {
     boardDamage: number;
     boardHits: Array<{  // Track board laser hits separately with positions
@@ -929,7 +945,8 @@ export class GameEngine {
                 
                 // Check if timeout reached
                 const elapsed = Date.now() - startTime;
-                if (allCompleted || elapsed >= this.config.damagePreventionTimeout) {
+                const timeout = this.config?.damagePreventionTimeout || 15000;
+                if (allCompleted || elapsed >= timeout) {
                     clearInterval(checkInterval);
                     console.log(`[DamagePrevention] All players completed or timeout reached after ${elapsed}ms`);
                     resolve(true);
@@ -1299,59 +1316,23 @@ export class GameEngine {
 
         if (gameState.course.board.lasers) {
             gameState.course.board.lasers.forEach(laser => {
-                const hits = this.traceLaser(gameState, laser.position.x, laser.position.y, laser.direction, laser.damage || 1, undefined, laser.position);
+                const beam = this.traceLaser(gameState, laser.position.x, laser.position.y, laser.direction, laser.damage || 1, undefined, laser.position);
                 
-                // Build laser path for board laser animation
-                const vector = this.DIRECTION_VECTORS[laser.direction];
-                const path: LaserPath[] = [];
-                let x = laser.position.x;
-                let y = laser.position.y;
-
-                // Check if there's a robot at the origin
-                const robotAtOrigin = this.getPlayerAt(gameState, x, y);
-                if (robotAtOrigin) {
-                    // Robot is at the laser origin, add just the origin to path
-                    path.push({ x, y });
-                } else {
-                    // Build the visual path, starting from next tile
-                    x += vector.x;
-                    y += vector.y;
-
-                    while (x >= 0 && x < gameState.course.board.width &&
-                        y >= 0 && y < gameState.course.board.height) {
-
-                        // Check if we can enter this tile (wall blocking entry)
-                        const fromPos = { x: x - vector.x, y: y - vector.y };
-                        const toPos = { x, y };
-
-                        if (hasWallBetween(fromPos, toPos, gameState.course.board)) {
-                            // Wall blocks entry to this tile
-                            break;
-                        }
-
-                        path.push({ x, y });
-
-                        // Check if we hit a robot
-                        if (this.getPlayerAt(gameState, x, y)) break;
-
-                        // Move to next position
-                        x += vector.x;
-                        y += vector.y;
-                    }
-                }
+                // Use the path from the beam object for animation
+                const path: LaserPath[] = beam.path.map(pos => ({ x: pos.x, y: pos.y }));
 
                 // Create board laser shot animation data
-                if (path.length > 0 || robotAtOrigin) {
+                if (path.length > 0) {
                     boardLaserShots.push({
                         shooterId: `board-laser-${laser.position.x}-${laser.position.y}`,
                         path: path,
                         damage: laser.damage || 1,
-                        targetId: hits.length > 0 ? hits[0].player.id : undefined,
+                        targetId: beam.hits.length > 0 ? beam.hits[0].player.id : undefined,
                         timestamp: Date.now()
                     });
                 }
 
-                hits.forEach(hit => {
+                beam.hits.forEach(hit => {
                     const info = getDamageInfo(hit.player.id);
                     info.boardDamage += hit.damage;
                     info.boardHits.push({
@@ -1400,14 +1381,20 @@ export class GameEngine {
             
             // Fire front laser (if not blocked)
             const canFireFront = hasHighPowerLaser || !hasWallBetween(shooter.position, { x: frontX, y: frontY }, gameState.course.board);
+            let frontBeam: LaserBeam | null = null;
             if (canFireFront) {
                 for (let shot = 0; shot < numberOfShots; shot++) {
                     // Trace the laser using the standard traceLaser function
                     // Start from the shooter's position, not one tile ahead
-                    const hits = this.traceLaser(gameState, shooter.position.x, shooter.position.y, shooter.direction, 1, shooter.name, shooter.position);
+                    const beam = this.traceLaser(gameState, shooter.position.x, shooter.position.y, shooter.direction, 1, shooter.name, shooter.position);
+                    
+                    // Save the first beam for animation (all shots follow same path)
+                    if (!frontBeam) {
+                        frontBeam = beam;
+                    }
                     
                     // Record hits for this shot
-                    hits.forEach(hit => {
+                    beam.hits.forEach(hit => {
                         allHits.push(hit);
                         if (hit.player.id !== shooter.id) { // Can't shoot yourself
                             getDamageInfo(hit.player.id).robotHits.push({
@@ -1421,6 +1408,7 @@ export class GameEngine {
             }
             
             // Fire rear laser if robot has Rear-Firing Laser
+            let rearBeam: LaserBeam | null = null;
             if (hasRearFiringLaser) {
                 // Calculate opposite direction for rear laser
                 const oppositeDirection = (shooter.direction + 2) % 4 as Direction;
@@ -1433,10 +1421,10 @@ export class GameEngine {
                 
                 if (canFireRear) {
                     // Rear laser always fires once (doesn't benefit from Double-Barreled or High-Power)
-                    const rearHits = this.traceLaser(gameState, shooter.position.x, shooter.position.y, oppositeDirection, 1, shooter.name, shooter.position, false);
+                    rearBeam = this.traceLaser(gameState, shooter.position.x, shooter.position.y, oppositeDirection, 1, shooter.name, shooter.position, false);
                     
                     // Record hits for rear laser
-                    rearHits.forEach(hit => {
+                    rearBeam.hits.forEach(hit => {
                         allHits.push(hit);
                         if (hit.player.id !== shooter.id) {
                             getDamageInfo(hit.player.id).robotHits.push({
@@ -1458,154 +1446,58 @@ export class GameEngine {
             }
 
             // Build laser path for front laser animation (if it can fire)
-            if (canFireFront) {
-                const path: LaserPath[] = [];
-                let x = shooter.position.x;
-                let y = shooter.position.y;
-                let obstaclesPassed = 0;
-
-                // Build the visual path, matching the traceLaser logic
-                while (true) {
-                    // Calculate next position
-                    const nextX = x + vector.x;
-                    const nextY = y + vector.y;
-
-                    // Check if next position is out of bounds
-                    if (nextX < 0 || nextX >= gameState.course.board.width ||
-                        nextY < 0 || nextY >= gameState.course.board.height) {
-                        break;
-                    }
-
-                    // Check for wall blocking the laser path (only check once per wall)
-                    const fromPos = { x, y };
-                    const toPos = { x: nextX, y: nextY };
-
-                    if (hasWallBetween(fromPos, toPos, gameState.course.board)) {
-                        if (hasHighPowerLaser && obstaclesPassed < 1) {
-                            // High-Power Laser can shoot through one wall
-                            obstaclesPassed++;
-                        } else {
-                            // Laser blocked by wall
-                            break;
-                        }
-                    }
-
-                    // Move to the next position
-                    x = nextX;
-                    y = nextY;
-                    
-                    // Add this position to the path
-                    path.push({ x, y });
-
-                    // Check if we hit a robot
-                    const robotAtPos = this.getPlayerAt(gameState, x, y);
-                    if (robotAtPos) {
-                        if (hasHighPowerLaser && obstaclesPassed < 1) {
-                            // High-Power Laser can shoot through one robot
-                            obstaclesPassed++;
-                            // Continue to potentially hit another robot
-                        } else {
-                            // Normal laser stops at robot
-                            break;
-                        }
-                    }
-                }
-
-                if (path.length > 0) {
-                    // Collect target IDs for robots hit by front laser
-                    const frontTargetIds = allHits
-                        .filter(hit => {
-                            // Check if this hit is from the front laser (same direction as shooter)
-                            const dx = hit.player.position.x - shooter.position.x;
-                            const dy = hit.player.position.y - shooter.position.y;
-                            return (vector.x !== 0 ? Math.sign(dx) === Math.sign(vector.x) : Math.sign(dy) === Math.sign(vector.y));
-                        })
-                        .map(hit => hit.player.id)
-                        .filter(id => id !== shooter.id);
-                    
-                    robotLaserShots.push({
-                        shooterId: shooter.id,
-                        path: path,
-                        damage: 1,
-                        targetId: frontTargetIds.length > 0 ? frontTargetIds[0] : undefined, // Legacy support
-                        targetIds: frontTargetIds.length > 0 ? frontTargetIds : undefined, // All targets for High-Power Laser
-                        timestamp: Date.now()
-                    });
-                }
+            if (frontBeam && frontBeam.path.length > 0) {
+                const path: LaserPath[] = frontBeam.path.map(pos => ({ x: pos.x, y: pos.y }));
+                
+                // Collect target IDs from all hits in the front direction
+                // For Double-Barreled Laser, this will include duplicates
+                const frontTargetIds = allHits
+                    .filter(hit => {
+                        // Check if this hit is from the front laser (same direction as shooter)
+                        const dx = hit.player.position.x - shooter.position.x;
+                        const dy = hit.player.position.y - shooter.position.y;
+                        return (vector.x !== 0 ? Math.sign(dx) === Math.sign(vector.x) : Math.sign(dy) === Math.sign(vector.y));
+                    })
+                    .map(hit => hit.player.id)
+                    .filter(id => id !== shooter.id);
+                
+                robotLaserShots.push({
+                    shooterId: shooter.id,
+                    path: path,
+                    damage: 1,
+                    targetId: frontTargetIds.length > 0 ? frontTargetIds[0] : undefined, // Legacy support
+                    targetIds: frontTargetIds.length > 0 ? frontTargetIds : undefined, // All targets for High-Power Laser and Double-Barreled
+                    timestamp: Date.now()
+                });
             }
             
             // Build laser path for rear laser animation (if robot has Rear-Firing Laser and can fire)
-            if (hasRearFiringLaser) {
+            if (rearBeam && rearBeam.path.length > 0) {
+                const rearPath: LaserPath[] = rearBeam.path.map(pos => ({ x: pos.x, y: pos.y }));
+                
+                // Calculate opposite direction for filtering rear hits
                 const oppositeDirection = (shooter.direction + 2) % 4 as Direction;
                 const rearVector = this.DIRECTION_VECTORS[oppositeDirection];
-                const rearX = shooter.position.x + rearVector.x;
-                const rearY = shooter.position.y + rearVector.y;
-                const canFireRear = !hasWallBetween(shooter.position, { x: rearX, y: rearY }, gameState.course.board);
                 
-                if (canFireRear) {
-                    const rearPath: LaserPath[] = [];
-                    let x = rearX;
-                    let y = rearY;
-
-                    // Build the visual path for rear laser (no High-Power benefit)
-                    while (x >= 0 && x < gameState.course.board.width &&
-                        y >= 0 && y < gameState.course.board.height) {
-
-                        // Check if we can enter this tile (wall blocking entry)
-                        const fromPos = { x: x - rearVector.x, y: y - rearVector.y };
-                        const toPos = { x, y };
-
-                        if (hasWallBetween(fromPos, toPos, gameState.course.board)) {
-                            // Rear laser blocked by wall
-                            break;
-                        }
-
-                        rearPath.push({ x, y });
-
-                        // Check if we hit a robot
-                        const robotAtPos = this.getPlayerAt(gameState, x, y);
-                        if (robotAtPos) {
-                            // Rear laser stops at robot
-                            break;
-                        }
-
-                        // Check if we can exit this tile (wall blocking exit)
-                        const nextX = x + rearVector.x;
-                        const nextY = y + rearVector.y;
-                        if (nextX >= 0 && nextX < gameState.course.board.width &&
-                            nextY >= 0 && nextY < gameState.course.board.height) {
-                            if (hasWallBetween({ x, y }, { x: nextX, y: nextY }, gameState.course.board)) {
-                                // Wall blocks exit from this tile
-                                break;
-                            }
-                        }
-
-                        x += rearVector.x;
-                        y += rearVector.y;
-                    }
-
-                    if (rearPath.length > 0) {
-                        // Collect target IDs for robots hit by rear laser
-                        const rearTargetIds = allHits
-                            .filter(hit => {
-                                // Check if this hit is from the rear laser (opposite direction from shooter)
-                                const dx = hit.player.position.x - shooter.position.x;
-                                const dy = hit.player.position.y - shooter.position.y;
-                                return (rearVector.x !== 0 ? Math.sign(dx) === Math.sign(rearVector.x) : Math.sign(dy) === Math.sign(rearVector.y));
-                            })
-                            .map(hit => hit.player.id)
-                            .filter(id => id !== shooter.id);
-                        
-                        robotLaserShots.push({
-                            shooterId: shooter.id,
-                            path: rearPath,
-                            damage: 1,
-                            targetId: rearTargetIds.length > 0 ? rearTargetIds[0] : undefined,
-                            targetIds: rearTargetIds.length > 0 ? rearTargetIds : undefined,
-                            timestamp: Date.now() + 100 // Slight delay for rear laser animation
-                        });
-                    }
-                }
+                // Collect target IDs from all hits in the rear direction
+                const rearTargetIds = allHits
+                    .filter(hit => {
+                        // Check if this hit is from the rear laser (opposite direction from shooter)
+                        const dx = hit.player.position.x - shooter.position.x;
+                        const dy = hit.player.position.y - shooter.position.y;
+                        return (rearVector.x !== 0 ? Math.sign(dx) === Math.sign(rearVector.x) : Math.sign(dy) === Math.sign(rearVector.y));
+                    })
+                    .map(hit => hit.player.id)
+                    .filter(id => id !== shooter.id);
+                
+                robotLaserShots.push({
+                    shooterId: shooter.id,
+                    path: rearPath,
+                    damage: 1,
+                    targetId: rearTargetIds.length > 0 ? rearTargetIds[0] : undefined,
+                    targetIds: rearTargetIds.length > 0 ? rearTargetIds : undefined,
+                    timestamp: Date.now() + 100 // Slight delay for rear laser animation
+                });
             }
 
         });
@@ -1677,11 +1569,18 @@ export class GameEngine {
         }
     }
 
-    traceLaser(gameState: ServerGameState, startX: number, startY: number, direction: Direction, damage: number, shooterName?: string, shooterPosition?: Position, allowHighPower: boolean = true) {
+    traceLaser(gameState: ServerGameState, startX: number, startY: number, direction: Direction, damage: number, shooterName?: string, shooterPosition?: Position, allowHighPower: boolean = true): LaserBeam {
         const hits: RobotHit[] = [];
+        const path: Position[] = [];
         const vector = this.DIRECTION_VECTORS[direction];
         let x = startX;
         let y = startY;
+        let blockedBy: 'wall' | 'edge' | 'robot' | null = null;
+        let endPosition: Position | null = null;
+        let endAtFront = false;
+        
+        // Determine if this is a board laser (starts from back of tile) or robot laser (starts from front)
+        const startFromBack = !shooterName;
 
         // Check if shooter has High-Power Laser (only if allowed)
         let hasHighPowerLaser = false;
@@ -1699,7 +1598,20 @@ export class GameEngine {
             const playerAtOrigin = this.getPlayerAt(gameState, x, y);
             if (playerAtOrigin) {
                 hits.push({ player: playerAtOrigin, damage, shooterName: 'board laser', shooterPosition });
-                return hits; // Laser doesn't continue past robot at origin
+                path.push({ x, y });
+                blockedBy = 'robot';
+                endPosition = { x, y };
+                endAtFront = true; // Stopped at front of tile by robot
+                return {
+                    startPosition: { x: startX, y: startY },
+                    startFromBack,
+                    direction,
+                    path,
+                    hits,
+                    blockedBy,
+                    endPosition,
+                    endAtFront
+                };
             }
         }
 
@@ -1712,6 +1624,9 @@ export class GameEngine {
             // Check if next position is out of bounds
             if (nextX < 0 || nextX >= gameState.course.board.width ||
                 nextY < 0 || nextY >= gameState.course.board.height) {
+                blockedBy = 'edge';
+                endPosition = { x, y }; // Last valid position
+                endAtFront = false; // Edge is at the back of the tile
                 break;
             }
 
@@ -1726,6 +1641,9 @@ export class GameEngine {
                     console.log(`High-Power Laser shooting through wall`);
                 } else {
                     // Laser blocked by wall
+                    blockedBy = 'wall';
+                    endPosition = { x, y }; // Stopped at current position
+                    endAtFront = false; // Wall is at the back/edge of the tile
                     break;
                 }
             }
@@ -1733,6 +1651,7 @@ export class GameEngine {
             // Move to the next position
             x = nextX;
             y = nextY;
+            path.push({ x, y });
 
             // Check for robot at this position
             const player = this.getPlayerAt(gameState, x, y);
@@ -1746,12 +1665,29 @@ export class GameEngine {
                     // Continue to check for another robot behind this one
                 } else {
                     // Normal laser stops at robot
+                    blockedBy = 'robot';
+                    endPosition = { x, y };
+                    endAtFront = true; // Stopped at front of tile by robot
                     break;
                 }
             }
         }
 
-        return hits;
+        // If we haven't set endPosition yet (path continues to edge normally)
+        if (!endPosition && path.length > 0) {
+            endPosition = path[path.length - 1];
+        }
+        
+        return {
+            startPosition: { x: startX, y: startY },
+            startFromBack,
+            direction,
+            path,
+            hits,
+            blockedBy,
+            endPosition,
+            endAtFront
+        };
     }
 
     // Check if damage is coming from the front of the player
