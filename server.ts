@@ -4,6 +4,7 @@ import { Server, Socket } from 'socket.io';
 import next from 'next';
 import { GameState, ProgramCard, GamePhase, Course, Player, PowerState, Direction } from './lib/game/types';
 import { GameEngine, ServerGameState } from './lib/game/gameEngine';
+import { prisma } from './lib/prisma';
 
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev, turbo: dev }); // Enable Turbopack in development
@@ -171,25 +172,91 @@ app.prepare().then(() => {
         //     console.log('create-game event exit');
         // });
 
-        socket.on('join-game', ({ roomCode, playerName, playerId }) => {
+        socket.on('join-game', async ({ roomCode, playerName, playerId }) => {
             try {
                 console.log(`join-game event received: roomCode=${roomCode}, playerName=${playerName}, playerId=${playerId}`);
                 let gameState = games.get(roomCode);
+                let isNewGame = false;
 
                 if (!gameState) {
                     console.log(`Game ${roomCode} not found, creating it`);
                     gameState = gameEngine.createGame(roomCode, `${playerName}'s Game`); // Create if not found
                     games.set(roomCode, gameState);
+                    isNewGame = true;
                 }
 
+                // Ensure user exists in database
+                let user = await prisma.user.findUnique({
+                    where: { id: playerId }
+                });
+
+                if (!user) {
+                    // Create user if doesn't exist
+                    user = await prisma.user.create({
+                        data: {
+                            id: playerId,
+                            username: playerName.toLowerCase().replace(/\s+/g, '.'),
+                            email: `${playerName.toLowerCase().replace(/\s+/g, '.')}@placeholder.com`,
+                            name: playerName
+                        }
+                    });
+                    console.log(`Created new user: ${user.username}`);
+                }
+
+                // Create or get game in database
+                if (isNewGame) {
+                    const game = await prisma.game.create({
+                        data: {
+                            roomCode: roomCode,
+                            name: `${playerName}'s Game`,
+                            hostId: user.id,
+                            maxPlayers: 8,
+                            isPrivate: false
+                        }
+                    });
+                    console.log(`Created game in database: ${game.id}`);
+                }
+
+                // Add player to game
                 gameEngine.addPlayerToGame(gameState, playerId, playerName);
+
+                // Get player's starting position (dock number)
+                const newPlayer = gameState.players[playerId];
+                const playerIndex = Object.keys(gameState.players).indexOf(playerId);
+                const ROBOT_COLORS = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan'];
+                const robotColor = ROBOT_COLORS[playerIndex % ROBOT_COLORS.length];
+                const startingDock = newPlayer.startingPosition?.number || (playerIndex + 1);
+
+                // Add player to database game
+                const existingGamePlayer = await prisma.gamePlayer.findUnique({
+                    where: {
+                        gameId_userId: {
+                            gameId: (await prisma.game.findUnique({ where: { roomCode } }))?.id || '',
+                            userId: user.id
+                        }
+                    }
+                });
+
+                if (!existingGamePlayer) {
+                    const game = await prisma.game.findUnique({ where: { roomCode } });
+                    if (game) {
+                        await prisma.gamePlayer.create({
+                            data: {
+                                gameId: game.id,
+                                userId: user.id,
+                                robotColor: robotColor,
+                                startingDock: startingDock
+                            }
+                        });
+                        console.log(`Added player ${user.username} to game ${roomCode} in database`);
+                    }
+                }
 
                 socket.join(roomCode);
                 socket.join(playerId);
                 socket.data.roomCode = roomCode;
                 socket.data.playerId = playerId;
 
-                const newPlayer = gameState.players[playerId];
                 io.to(roomCode).emit('player-joined', { player: newPlayer });
                 io.to(roomCode).emit('game-state', gameState);
                 console.log(`${playerName} joined game ${roomCode}`);
@@ -202,7 +269,7 @@ app.prepare().then(() => {
             }
         });
 
-        socket.on('start-game', ({ roomCode, selectedCourse = 'test', timerConfig }) => {
+        socket.on('start-game', async ({ roomCode, selectedCourse = 'test', timerConfig }) => {
             const gameState = games.get(roomCode);
             if (!gameState) return;
 
@@ -224,6 +291,20 @@ app.prepare().then(() => {
             gameEngine.selectCourse(gameState, selectedCourse);
 
             gameEngine.startGame(gameState, selectedCourse);
+
+            // Update database when game starts
+            const game = await prisma.game.findUnique({ where: { roomCode } });
+            if (game) {
+                await prisma.game.update({
+                    where: { id: game.id },
+                    data: {
+                        startedAt: new Date(),
+                        boardName: gameState.course?.definition?.boards?.[0] || null, // Use first board ID from course
+                        courseName: selectedCourse
+                    }
+                });
+                console.log(`Updated game ${roomCode} in database: started at ${new Date().toISOString()}`);
+            }
 
             io.to(roomCode).emit('game-state', gameState);
 

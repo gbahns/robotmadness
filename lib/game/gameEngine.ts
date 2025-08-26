@@ -5,6 +5,7 @@ import { buildCourse, getCourseById, RISKY_EXCHANGE } from './courses/courses';
 import { hasWallBetween } from './wall-utils';
 import { getTileAt as getCanonicalTileAt } from './tile-utils';
 import { createOptionCard, OptionCardType } from './optionCards';
+import { prisma } from '../prisma';
 
 export interface ServerGameState extends GameState {
     host: string;
@@ -1804,6 +1805,7 @@ export class GameEngine {
                     gameState.phase = GamePhase.ENDED;
                     console.log(`${player.name} wins the game!`);
                     this.io.to(gameState.roomCode).emit('game-over', { winner: player.name });
+                    this.saveGameResults(gameState);
                 }
             } else if (checkpoint) {
                 // Still update archive position even if checkpoint is out of order
@@ -1838,6 +1840,7 @@ export class GameEngine {
                             gameState.phase = GamePhase.ENDED;
                             console.log(`${player.name} wins the game!`);
                             this.io.to(gameState.roomCode).emit('game-over', { winner: player.name });
+                            this.saveGameResults(gameState);
                         }
                         
                         break; // Only touch one checkpoint
@@ -1870,6 +1873,7 @@ export class GameEngine {
             gameState.phase = GamePhase.ENDED;
             console.log(`${winner.name} wins by being the last robot standing!`);
             this.io.to(gameState.roomCode).emit('game-over', { winner: winner.name });
+            this.saveGameResults(gameState);
         }
     }
 
@@ -2275,6 +2279,102 @@ export class GameEngine {
         } else if (anyChanges) {
             // Emit updated game state if we made changes
             this.io.to(gameState.roomCode).emit('game-state', gameState);
+        }
+    }
+
+    async saveGameResults(gameState: ServerGameState) {
+        try {
+            console.log(`Saving game results for room ${gameState.roomCode}`);
+            
+            // Find the game in database
+            const game = await prisma.game.findUnique({
+                where: { roomCode: gameState.roomCode }
+            });
+            
+            if (!game) {
+                console.error(`Game ${gameState.roomCode} not found in database`);
+                return;
+            }
+
+            // Calculate game duration
+            const startTime = game.startedAt || game.createdAt;
+            const endTime = new Date();
+            const durationSeconds = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
+
+            // Find winner's user ID
+            let winnerId: string | null = null;
+            if (gameState.winner) {
+                const winnerPlayer = Object.values(gameState.players).find(p => p.name === gameState.winner);
+                if (winnerPlayer) {
+                    winnerId = winnerPlayer.id;
+                }
+            }
+
+            // Prepare final results
+            const finalResults = Object.values(gameState.players).map((player, index) => ({
+                playerId: player.id,
+                playerName: player.name,
+                position: index + 1, // Will be updated based on actual ranking
+                flags: player.checkpointsVisited || 0,
+                finalDamage: player.damage || 0,
+                livesRemaining: player.lives || 0
+            }));
+
+            // Sort players to determine final positions
+            finalResults.sort((a, b) => {
+                // Winner is first
+                if (a.playerName === gameState.winner) return -1;
+                if (b.playerName === gameState.winner) return 1;
+                
+                // Then by flags reached
+                if (b.flags !== a.flags) return b.flags - a.flags;
+                
+                // Then by lives remaining
+                if (b.livesRemaining !== a.livesRemaining) return b.livesRemaining - a.livesRemaining;
+                
+                // Then by least damage
+                return a.finalDamage - b.finalDamage;
+            });
+
+            // Update positions
+            finalResults.forEach((result, index) => {
+                result.position = index + 1;
+            });
+
+            // Update game in database
+            await prisma.game.update({
+                where: { id: game.id },
+                data: {
+                    endedAt: endTime,
+                    winnerId: winnerId,
+                    finalResults: finalResults,
+                    totalDuration: durationSeconds
+                }
+            });
+
+            // Update game players with final stats
+            for (const player of Object.values(gameState.players)) {
+                const finalResult = finalResults.find(r => r.playerId === player.id);
+                if (!finalResult) continue;
+
+                await prisma.gamePlayer.updateMany({
+                    where: {
+                        gameId: game.id,
+                        userId: player.id
+                    },
+                    data: {
+                        finalPosition: finalResult.position,
+                        flagsReached: player.checkpointsVisited || 0,
+                        livesRemaining: player.lives || 0,
+                        finalDamage: player.damage || 0,
+                        robotsDestroyed: 0 // TODO: Track robot destructions in future
+                    }
+                });
+            }
+
+            console.log(`Game results saved for ${gameState.roomCode}. Winner: ${gameState.winner || 'None'}, Duration: ${durationSeconds}s`);
+        } catch (error) {
+            console.error('Error saving game results:', error);
         }
     }
 }

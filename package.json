@@ -12,10 +12,13 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "db:generate": "prisma generate",
+    "db:generate:sqlite": "prisma generate --schema=./prisma/schema.sqlite.prisma",
     "db:deploy": "prisma migrate deploy",
     "db:migrate": "prisma migrate dev",
+    "db:migrate:sqlite": "prisma migrate dev --schema=./prisma/schema.sqlite.prisma",
     "db:studio": "prisma studio",
     "db:push": "prisma db push",
+    "db:push:sqlite": "prisma db push --schema=./prisma/schema.sqlite.prisma",
     "db:reset": "prisma migrate reset",
     "postinstall": "npm run db:generate"
   },
