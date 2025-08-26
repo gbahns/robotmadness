@@ -31,7 +31,8 @@
       "Bash(npm run:*)",
       "Bash(npx prisma db pull:*)",
       "Bash(npx prisma:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(test:*)"
     ],
     "deny": [],
     "ask": []

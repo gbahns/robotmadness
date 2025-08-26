@@ -1,0 +1,52 @@
+# Railway deployment ignore file
+
+# Scripts directory - not needed in production
+scripts/
+
+# Development files
+*.md
+!README.md
+.env.local
+.env.development
+.env.production
+.env.production.local
+
+# Prisma files not needed in production
+prisma/migrations/
+prisma/seed.ts
+prisma/schema.production.prisma
+
+# Test files
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+__tests__/
+coverage/
+
+# Development dependencies
+.vscode/
+.idea/
+*.log
+.DS_Store
+
+# Documentation
+docs/
+
+# Claude configuration
+.claude/
+CLAUDE.md
+
+# Git files
+.git/
+.gitignore
+
+# Build artifacts that Railway will generate
+.next/
+out/
+
+# Database files
+*.db
+*.sqlite
+dev.db*
+prod.db*

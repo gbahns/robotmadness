@@ -1,8 +1,11 @@
-import { PrismaClient as SqliteClient } from '@prisma/client';
-import { PrismaClient as PostgresClient } from '@prisma/client-production';
+import { PrismaClient } from '@prisma/client';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import * as fs from 'fs';
+
+// Use same client for both since they're configured via DATABASE_URL
+const SqliteClient = PrismaClient;
+const PostgresClient = PrismaClient;
 
 // Load production environment variables
 const envPath = path.resolve(process.cwd(), '.env.production');
@@ -31,7 +34,7 @@ if (!dbUrl || typeof dbUrl !== 'string' || !dbUrl.includes('postgresql')) {
 }
 
 // Source: SQLite (local dev database)
-const sqliteDb = new SqliteClient({
+const sqliteDb = new PrismaClient({
   datasources: { 
     db: { 
       url: 'file:./dev.db' 
@@ -40,7 +43,7 @@ const sqliteDb = new SqliteClient({
 });
 
 // Target: PostgreSQL (Railway production)
-const postgresDb = new PostgresClient({
+const postgresDb = new PrismaClient({
   datasources: { 
     db: { 
       url: dbUrl 
