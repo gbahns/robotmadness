@@ -1715,8 +1715,8 @@ export class GameEngine {
     }
     
     // Get tiles adjacent to a position that can be touched with Mechanical Arm
-    getAccessibleAdjacentTiles(gameState: ServerGameState, position: Position): { tile: any, x: number, y: number }[] {
-        const adjacentTiles: { tile: any, x: number, y: number }[] = [];
+    getAccessibleAdjacentTiles(gameState: ServerGameState, position: Position): { tile: Tile, x: number, y: number }[] {
+        const adjacentTiles: { tile: Tile, x: number, y: number }[] = [];
         
         // Check all 8 adjacent positions (orthogonal and diagonal)
         const offsets = [
@@ -1887,7 +1887,6 @@ export class GameEngine {
             );
 
             // Handle standing on a tile
-            let handledStanding = false;
             if (tile && tile.type === TileType.REPAIR) {
                 if (player.damage > 0) {
                     player.damage--;
@@ -1895,7 +1894,6 @@ export class GameEngine {
                 }
                 // Update archive position at repair site
                 this.updateArchivePosition(gameState, player);
-                handledStanding = true;
             } else if (tile && tile.type === TileType.OPTION) {
                 if (player.damage > 0) {
                     player.damage--;
@@ -1904,7 +1902,6 @@ export class GameEngine {
                 this.drawOptionCard(gameState, player);
                 // Update archive position at upgrade site
                 this.updateArchivePosition(gameState, player);
-                handledStanding = true;
             } else if (checkpoint) {
                 // Flags/checkpoints also act as repair sites
                 if (player.damage > 0) {
@@ -1913,7 +1910,6 @@ export class GameEngine {
                 }
                 // Update archive position at checkpoint (already handled in updateArchivePosition)
                 this.updateArchivePosition(gameState, player);
-                handledStanding = true;
             }
 
             // Handle Mechanical Arm - can touch adjacent sites
@@ -1923,7 +1919,7 @@ export class GameEngine {
                 // Priority: next flag > option > repair (includes non-next flags)
                 // But we already handled flags in checkCheckpoints, so here we only handle option and repair
                 
-                let selectedTile: { tile: any, x: number, y: number } | null = null;
+                let selectedTile: { tile: Tile, x: number, y: number } | null = null;
                 let isOption = false;
                 
                 // First look for option sites

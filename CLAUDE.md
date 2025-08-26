@@ -37,6 +37,13 @@
 
 ## Code Style Guidelines
 
+### TypeScript Best Practices
+- **NEVER use `any` type** - Always specify proper types
+- Use union types (e.g., `string | number`) when values can be multiple types
+- Define interfaces or type aliases for complex objects
+- Properly type function parameters and return values
+- If you absolutely need to bypass typing temporarily, use `unknown` instead of `any`
+
 ### Comments
 - DO NOT add comments unless explicitly requested by the user
 - Keep code self-documenting through clear naming

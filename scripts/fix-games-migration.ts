@@ -102,9 +102,9 @@ async function fixGamesMigration() {
         
         // Create game in SQLite
         const gameData = {
-          id: mongoGame._id,
-          roomCode: mongoGame._id, // Use game ID as room code
-          name: mongoGame.name || `Game ${mongoGame._id.substring(0, 8)}`,
+          id: mongoGame._id.toString(),
+          roomCode: mongoGame._id.toString(), // Use game ID as room code
+          name: mongoGame.name || `Game ${mongoGame._id.toString().substring(0, 8)}`,
           hostId: hostId, // Now properly set from games collection
           boardName: BOARD_NAMES[mongoGame.boardId] || `Board ${mongoGame.boardId}`,
           courseName: null, // Courses weren't tracked in old system

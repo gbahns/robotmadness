@@ -1,5 +1,5 @@
 import { MongoClient } from 'mongodb';
-import { PrismaClient, GameStatus } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -29,18 +29,6 @@ const ROBOT_COLORS = [
   'orange', 'purple', 'pink', 'cyan'
 ];
 
-function mapGameStatus(gamePhase: string | undefined): GameStatus {
-  if (!gamePhase) return 'WAITING';
-  
-  const phase = gamePhase.toLowerCase();
-  if (phase.includes('ended') || phase.includes('stopped')) return 'COMPLETED';
-  if (phase.includes('playing') || phase.includes('started')) return 'IN_PROGRESS';
-  if (phase.includes('waiting')) return 'WAITING';
-  if (phase.includes('abandoned')) return 'ABANDONED';
-  
-  return 'COMPLETED'; // default for unknown states
-}
-
 async function migrateGames() {
   const mongoClient = new MongoClient(MONGO_URI);
   
@@ -68,7 +56,7 @@ async function migrateGames() {
     
     for (const user of mongoUsers) {
       // Map MongoDB user ID to SQLite user ID (we preserved the IDs during user migration)
-      userIdMap.set(user._id, user._id);
+      userIdMap.set(user._id.toString(), user._id.toString());
     }
     
     let migratedGames = 0;
@@ -119,19 +107,18 @@ async function migrateGames() {
         
         // Create game in SQLite
         const gameData = {
-          id: mongoGame._id,
-          roomCode: mongoGame._id, // Use game ID as room code since it wasn't stored separately
-          name: mongoGame.name || `Game ${mongoGame._id.substring(0, 8)}`,
-          hostId: hostId,
+          id: mongoGame._id.toString(),
+          roomCode: mongoGame._id.toString(), // Use game ID as room code since it wasn't stored separately
+          name: (mongoGame.name || `Game ${mongoGame._id.toString().substring(0, 8)}`) as string,
+          hostId: hostId as string | null,
           boardName: BOARD_NAMES[mongoGame.boardId] || `Board ${mongoGame.boardId}`,
           courseName: null, // Courses weren't tracked in old system
-          maxPlayers: mongoGame.max_player || 8,
+          maxPlayers: (mongoGame.max_player || 8) as number,
           isPrivate: false, // Privacy wasn't tracked in old system
-          status: mapGameStatus(mongoGame.gamePhase),
           startedAt: mongoGame.submitted ? new Date(mongoGame.submitted) : null,
           endedAt: mongoGame.stopped ? new Date(mongoGame.stopped) : null,
           winnerId: winnerId,
-          finalResults: finalResults,
+          finalResults: finalResults || undefined,
           totalDuration: totalDuration,
           createdAt: mongoGame.submitted ? new Date(mongoGame.submitted) : new Date(),
           updatedAt: mongoGame.stopped ? new Date(mongoGame.stopped) : new Date()

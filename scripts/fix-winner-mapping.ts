@@ -72,7 +72,7 @@ async function fixWinnerMapping() {
       if (winnerId !== undefined) {
         try {
           await prisma.game.update({
-            where: { id: mongoGame._id },
+            where: { id: mongoGame._id.toString() },
             data: { winnerId: winnerId }
           });
           updatedCount++;
@@ -83,8 +83,8 @@ async function fixWinnerMapping() {
           } else {
             console.log(`✓ Updated game "${mongoGame.name}": winner="${mongoGame.winner}" → null (Nobody/tie)`);
           }
-        } catch (error: any) {
-          console.log(`✗ Failed to update game ${mongoGame._id}: ${error.message}`);
+        } catch (error) {
+          console.log(`✗ Failed to update game ${mongoGame._id.toString()}: ${(error as Error).message}`);
         }
       }
     }

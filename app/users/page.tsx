@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 type User = {
   id: string;
@@ -51,7 +52,8 @@ export default function UsersPage() {
   };
 
   const sortedUsers = [...users].sort((a, b) => {
-    let aValue: any, bValue: any;
+    let aValue: string | number;
+    let bValue: string | number;
     
     switch (sortField) {
       case 'username':
@@ -108,12 +110,12 @@ export default function UsersPage() {
     <div className="min-h-screen p-4 bg-gradient-to-b from-gray-900 to-gray-800">
       <div className="max-w-7xl mx-auto">
         <div className="mb-4 flex justify-between items-center">
-          <a 
+          <Link 
             href="/" 
             className="text-blue-400 hover:text-blue-300 transition-colors text-sm"
           >
             ← Back to Home
-          </a>
+          </Link>
           <h1 className="text-2xl font-bold text-white">Players</h1>
           <div className="text-sm text-gray-400">
             Total: {users.length}

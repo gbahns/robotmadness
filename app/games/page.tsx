@@ -14,6 +14,13 @@ type GamePlayer = {
   finalDamage: number;
 };
 
+type FinalResult = {
+  playerId: string;
+  position: number;
+  flags: number;
+  finalDamage: number;
+};
+
 type Game = {
   id: string;
   roomCode: string;
@@ -23,7 +30,7 @@ type Game = {
   endedAt: string | null;
   totalDuration: number | null;
   createdAt: string;
-  finalResults: any;
+  finalResults: FinalResult[] | null;
   host: {
     username: string;
   } | null;
@@ -103,7 +110,7 @@ export default function GamesPage() {
 
   const getMaxFlags = (game: Game): number => {
     if (!game.finalResults || !Array.isArray(game.finalResults)) return 0;
-    return Math.max(...game.finalResults.map((r: any) => r.flags || 0), 0);
+    return Math.max(...game.finalResults.map((r) => r.flags || 0), 0);
   };
 
   const filteredGames = games.filter(game => {
@@ -116,7 +123,8 @@ export default function GamesPage() {
   });
 
   const sortedGames = [...filteredGames].sort((a, b) => {
-    let aValue: any, bValue: any;
+    let aValue: string | number;
+    let bValue: string | number;
     
     switch (sortField) {
       case 'date':

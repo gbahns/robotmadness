@@ -15,16 +15,9 @@ async function verifyGames() {
     console.log(`Total Game Players: ${playerCount}`);
     console.log(`Average players per game: ${(playerCount / gameCount).toFixed(2)}\n`);
     
-    // Get games by status
-    const gamesByStatus = await prisma.game.groupBy({
-      by: ['status'],
-      _count: true
-    });
-    
-    console.log('=== GAMES BY STATUS ===');
-    for (const status of gamesByStatus) {
-      console.log(`${status.status}: ${status._count} games`);
-    }
+    // Status field has been removed from schema
+    console.log('=== GAME STATES ===');
+    console.log('Status tracking removed - all games stored with start/end times')
     
     // Get recent games
     console.log('\n=== RECENT GAMES (Last 10) ===');

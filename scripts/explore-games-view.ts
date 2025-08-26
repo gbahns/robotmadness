@@ -15,9 +15,14 @@ async function exploreGamesView() {
     const gamesViewInfo = collections.find(c => c.name === 'games_view');
     console.log('=== GAMES_VIEW INFO ===');
     console.log('Type:', gamesViewInfo?.type);
-    if (gamesViewInfo?.options?.viewOn) {
-      console.log('View on collection:', gamesViewInfo.options.viewOn);
-      console.log('Pipeline:', JSON.stringify(gamesViewInfo.options.pipeline, null, 2));
+    // MongoDB views have options, but TypeScript doesn't know about them
+    type ViewInfo = { name: string; type: string; options?: { viewOn: string; pipeline: unknown[] } };
+    if (gamesViewInfo && 'options' in gamesViewInfo) {
+      const viewWithOptions = gamesViewInfo as ViewInfo;
+      if (viewWithOptions.options?.viewOn) {
+        console.log('View on collection:', viewWithOptions.options.viewOn);
+        console.log('Pipeline:', JSON.stringify(viewWithOptions.options.pipeline, null, 2));
+      }
     }
     
     // Get a sample document

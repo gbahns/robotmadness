@@ -4,9 +4,6 @@ import * as dotenv from 'dotenv';
 import * as path from 'path';
 import * as fs from 'fs';
 
-// Clear any existing DATABASE_URL from .env file
-delete process.env.DATABASE_URL;
-
 // Load production environment variables
 const envPath = path.resolve(process.cwd(), '.env.production');
 if (!fs.existsSync(envPath)) {
@@ -14,17 +11,21 @@ if (!fs.existsSync(envPath)) {
   process.exit(1);
 }
 
+// Clear any existing DATABASE_URL from .env file and load production
+delete process.env.DATABASE_URL;
 const result = dotenv.config({ path: envPath });
 if (result.error) {
   console.error('Error loading .env.production:', result.error);
   process.exit(1);
 }
-console.log('Loaded environment from:', envPath);
-console.log('DATABASE_URL starts with:', process.env.DATABASE_URL?.substring(0, 40));
 
-if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.includes('postgresql')) {
+console.log('Loaded environment from:', envPath);
+const dbUrl = process.env.DATABASE_URL as string | undefined;
+console.log('DATABASE_URL starts with:', dbUrl ? (dbUrl as string).substring(0, 40) : 'Not set');
+
+if (!dbUrl || typeof dbUrl !== 'string' || !dbUrl.includes('postgresql')) {
   console.error('\n❌ DATABASE_URL not found or not PostgreSQL!');
-  console.error('Current DATABASE_URL:', process.env.DATABASE_URL || 'Not set');
+  console.error('Current DATABASE_URL:', dbUrl || 'Not set');
   console.error('\nPlease set DATABASE_URL in .env.production with your Railway PostgreSQL connection string');
   process.exit(1);
 }
@@ -42,7 +43,7 @@ const sqliteDb = new SqliteClient({
 const postgresDb = new PostgresClient({
   datasources: { 
     db: { 
-      url: process.env.DATABASE_URL 
+      url: dbUrl 
     } 
   }
 });
@@ -85,7 +86,10 @@ async function migrate() {
     
     for (const game of games) {
       await postgresDb.game.create({
-        data: game
+        data: {
+          ...game,
+          finalResults: game.finalResults || undefined
+        }
       });
     }
     console.log('✅ Games migrated successfully\n');

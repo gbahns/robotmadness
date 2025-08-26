@@ -90,7 +90,8 @@ export default function StandingsPage() {
       return b.weightedWinPct - a.weightedWinPct;
     }
     
-    let aValue: any, bValue: any;
+    let aValue: string | number;
+    let bValue: string | number;
     
     switch (sortField) {
       case 'username':

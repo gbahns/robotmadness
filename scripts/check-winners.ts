@@ -81,14 +81,11 @@ async function checkWinners() {
         const exactMatch = await prisma.user.findFirst({
           where: { username: game.winner }
         });
-        const caseInsensitiveMatch = await prisma.user.findFirst({
-          where: { 
-            username: {
-              equals: game.winner,
-              mode: 'insensitive'
-            }
-          }
-        });
+        // SQLite doesn't support case-insensitive mode, use manual comparison
+        const allUsers = await prisma.user.findMany();
+        const caseInsensitiveMatch = allUsers.find(u => 
+          u.username.toLowerCase() === game.winner.toLowerCase()
+        );
         
         if (!exactMatch && caseInsensitiveMatch) {
           console.log(`Case mismatch: MongoDB="${game.winner}" SQLite="${caseInsensitiveMatch.username}"`);
