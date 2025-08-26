@@ -26,7 +26,11 @@
       "Bash(/bashes)",
       "WebFetch(domain:localhost)",
       "Bash(npx kill-port:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(psql:*)",
+      "Bash(npm run:*)",
+      "Bash(npx prisma db pull:*)",
+      "Bash(npx prisma:*)"
     ],
     "deny": [],
     "ask": []
