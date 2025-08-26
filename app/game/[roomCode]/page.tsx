@@ -260,7 +260,7 @@ export default function GamePage() {
             {/* Left Column - Game Board - no padding */}
             <div className="flex-1 flex flex-col">
               {/* Game Board - takes most space */}
-              <div className="flex-1 flex">
+              <div className="flex-1 flex justify-center items-center">
                 <CourseComponent
                   courseId={selectedCourse || ""}
                   players={gameState?.players || {}}

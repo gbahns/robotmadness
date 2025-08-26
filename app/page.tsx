@@ -96,6 +96,24 @@ export default function Home() {
       {/* Top Navigation */}
       <nav className="absolute top-4 left-1/2 transform -translate-x-1/2 flex gap-4">
         <Link 
+          href="/users" 
+          className="text-gray-300 hover:text-yellow-400 font-medium transition-colors"
+        >
+          Players
+        </Link>
+        <Link 
+          href="/standings" 
+          className="text-gray-300 hover:text-yellow-400 font-medium transition-colors"
+        >
+          Standings
+        </Link>
+        <Link 
+          href="/games" 
+          className="text-gray-300 hover:text-yellow-400 font-medium transition-colors"
+        >
+          Games
+        </Link>
+        <Link 
           href="/course-viewer" 
           className="text-gray-300 hover:text-yellow-400 font-medium transition-colors"
         >

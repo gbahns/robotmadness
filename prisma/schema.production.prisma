@@ -1,9 +1,10 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/@prisma/client-production"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -24,6 +25,8 @@ model User {
   hostedGames   Game[]       @relation("HostedGames")
   gamesPlayed   GamePlayer[]
   wonGames      Game[]       @relation("WonGames")
+
+  @@map("users")
 }
 
 model Game {
@@ -61,6 +64,7 @@ model Game {
   
   @@index([roomCode])
   @@index([hostId])
+  @@map("games")
 }
 
 model GamePlayer {
@@ -89,4 +93,5 @@ model GamePlayer {
   @@unique([gameId, startingDock])
   @@index([gameId])
   @@index([userId])
+  @@map("game_players")
 }

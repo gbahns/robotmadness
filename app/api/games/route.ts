@@ -1,7 +1,7 @@
 // app/api/games/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
-// import { prisma } from '@/lib/prisma'; // DATABASE DISABLED - TODO: Re-enable when adding full database support
+import { prisma } from '@/lib/prisma';
 
 // Generate a random 6-character room code
 function generateRoomCode(): string {
@@ -63,5 +63,53 @@ export async function POST(request: NextRequest) {
       { error: 'Failed to create game' },
       { status: 500 }
     );
+  }
+}
+
+export async function GET() {
+  try {
+    const games = await prisma.game.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        roomCode: true,
+        name: true,
+        boardName: true,
+        startedAt: true,
+        endedAt: true,
+        totalDuration: true,
+        createdAt: true,
+        finalResults: true,
+        host: {
+          select: {
+            username: true,
+          }
+        },
+        winner: {
+          select: {
+            username: true,
+          }
+        },
+        players: {
+          include: {
+            user: {
+              select: {
+                username: true,
+              }
+            }
+          }
+        },
+        _count: {
+          select: {
+            players: true,
+          }
+        }
+      }
+    });
+    
+    return NextResponse.json(games);
+  } catch (error) {
+    console.error('Failed to fetch games:', error);
+    return NextResponse.json({ error: 'Failed to fetch games' }, { status: 500 });
   }
 }
