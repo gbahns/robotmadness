@@ -22,7 +22,11 @@
       "Bash(findstr:*)",
       "Bash(for file in tests/rear-firing-laser.test.ts tests/superior-archive.test.ts tests/ramming-gear.test.ts tests/mechanical-arm.test.ts tests/option-deck.test.ts)",
       "Bash(do sed -i \"s/gameEngine = new GameEngine(mockIo);/\\/\\/ Use test mode with short damage prevention timeout\\n    gameEngine = new GameEngine(mockIo, {\\n      testMode: true,\\n      damagePreventionTimeout: 100\\n    });/g\" $file)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(/bashes)",
+      "WebFetch(domain:localhost)",
+      "Bash(npx kill-port:*)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []
