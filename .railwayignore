@@ -14,9 +14,9 @@ scripts/
 # Prisma files not needed in production
 prisma/migrations/
 prisma/seed.ts
-prisma/schema.production.prisma
 prisma/schema.sqlite.prisma
-# Keep schema.prisma and schema.postgresql.prisma for production
+prisma/schema.postgresql.prisma
+prisma/schema.production.prisma
 
 # Test files
 **/*.test.ts

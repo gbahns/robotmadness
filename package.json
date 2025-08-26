@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "tsx watch server.ts",
+    "dev": "npm run db:generate:local && tsx watch server.ts",
     "dev:clean": "scripts\\dev.bat",
     "build": "next build",
     "start": "NODE_ENV=production tsx server.ts",
@@ -12,7 +12,7 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "db:generate": "prisma generate",
-    "db:generate:sqlite": "prisma generate --schema=./prisma/schema.sqlite.prisma",
+    "db:generate:local": "prisma generate --schema=./prisma/schema.sqlite.prisma",
     "db:deploy": "prisma migrate deploy",
     "db:migrate": "prisma migrate dev",
     "db:migrate:sqlite": "prisma migrate dev --schema=./prisma/schema.sqlite.prisma",
