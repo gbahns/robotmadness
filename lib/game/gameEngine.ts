@@ -39,11 +39,30 @@ interface RobotHit {
     player: Player;
     shooterName: string;
     damage: number;
+    shooterPosition?: Position; // Position of the shooter for directional damage
 }
 
 interface LaserPath {
     x: number;
     y: number;
+}
+
+interface DamageInfo {
+    boardDamage: number;
+    boardHits: Array<{  // Track board laser hits separately with positions
+        damage: number;
+        laserPosition: Position;
+    }>;
+    robotHits: Array<{
+        shooterName: string;
+        damage: number;
+        shooterPosition?: Position;
+    }>;
+}
+
+export interface GameEngineConfig {
+    testMode?: boolean;
+    damagePreventionTimeout?: number;
 }
 
 export class GameEngine {
@@ -53,9 +72,15 @@ export class GameEngine {
     private boardElementDelay: number;
     private timers: Map<string, NodeJS.Timeout> = new Map(); // Track timers per room
     private timerIntervals: Map<string, NodeJS.Timeout> = new Map(); // Track countdown intervals
+    private config: GameEngineConfig;
 
-    constructor(io: IoServer) {
+    constructor(io: IoServer, config: GameEngineConfig = {}) {
         this.io = io;
+        this.config = {
+            testMode: false,
+            damagePreventionTimeout: 15000, // Default 15 seconds
+            ...config
+        };
         this.DIRECTION_VECTORS = {
             [Direction.UP]: { x: 0, y: -1 },
             [Direction.RIGHT]: { x: 1, y: 0 },
@@ -67,13 +92,6 @@ export class GameEngine {
     }
 
     createPlayer(playerId: string, playerName: string): Player {
-        // TODO: Remove this - just for testing damage prevention
-        const testOptionCards = [
-            createOptionCard(OptionCardType.SHIELD),
-            createOptionCard(OptionCardType.ABLATIVE_COAT),
-            createOptionCard(OptionCardType.EXTRA_MEMORY)
-        ];
-        
         return {
             id: playerId,
             userId: playerId,
@@ -88,7 +106,7 @@ export class GameEngine {
             dealtCards: [],
             selectedCards: Array(5).fill(null),
             lockedRegisters: 0,
-            optionCards: testOptionCards, // Testing with 3 option cards
+            optionCards: [], // Start with empty option cards
             powerState: PowerState.ON,
             announcedPowerDown: false,
         };
@@ -148,6 +166,18 @@ export class GameEngine {
     startGame(gameState: ServerGameState, selectedCourse: string): void {
         gameState.phase = GamePhase.STARTING;
 
+        // Initialize option deck with one of each card (excluding Shield which is custom)
+        const allOptionTypes = Object.values(OptionCardType).filter(type => type !== OptionCardType.SHIELD);
+        gameState.optionDeck = allOptionTypes.map(type => createOptionCard(type));
+        
+        // Shuffle the option deck
+        for (let i = gameState.optionDeck.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [gameState.optionDeck[i], gameState.optionDeck[j]] = [gameState.optionDeck[j], gameState.optionDeck[i]];
+        }
+        gameState.discardedOptions = [];
+        console.log(`Initialized option deck with ${gameState.optionDeck.length} unique cards`);
+
         // Get available starting positions (in order 1, 2, 3, etc.)
         const startingPositions = [...gameState.course.board.startingPositions];
         console.log(`Starting game with course: ${selectedCourse} ${gameState.course.definition.name}, available positions:`, startingPositions.length);
@@ -174,6 +204,9 @@ export class GameEngine {
 
                 // Store which dock number they started at
                 player.startingPosition = startPos;
+
+                // Initialize empty option card array
+                player.optionCards = [];
 
                 console.log(`${player.name} assigned to Starting Position ${startPos.number} at (${startPos.position.x}, ${startPos.position.y})`);
             } else {
@@ -203,7 +236,15 @@ export class GameEngine {
             });
         } else {
             // Normal card dealing
-            player.dealtCards = deck.splice(0, 9 - player.damage);
+            let cardsToDealt = 9 - player.damage;
+            
+            // Check for Extra Memory option card
+            if (player.optionCards?.some(card => card.type === OptionCardType.EXTRA_MEMORY)) {
+                cardsToDealt += 1;
+                console.log(`${player.name} has Extra Memory - dealing ${cardsToDealt} cards instead of ${cardsToDealt - 1}`);
+            }
+            
+            player.dealtCards = deck.splice(0, cardsToDealt);
             player.submitted = false;
         }
     }
@@ -397,6 +438,20 @@ export class GameEngine {
     async executeRegisters(gameState: ServerGameState, roomCode: string) {
         for (let i = 0; i < 5; i++) {
             gameState.currentRegister = i;
+            
+            // Reset Shield and Power-Down Shield usage for all players at the start of each register
+            Object.values(gameState.players).forEach(player => {
+                if (player.optionCards) {
+                    player.optionCards.forEach(card => {
+                        if (card.type === OptionCardType.SHIELD || card.type === OptionCardType.POWER_DOWN_SHIELD) {
+                            card.usedThisRegister = false;
+                            // For Power-Down Shield, track which directions have blocked damage this register
+                            card.directionsUsed = [];
+                        }
+                    });
+                }
+            });
+            
             this.io.to(roomCode).emit('register-start', { register: i });
 
             this.io.to(roomCode).emit('register-started', {
@@ -528,9 +583,16 @@ export class GameEngine {
                 await this.moveRobot(gameState, player, 2);
                 break;
             case CardType.MOVE_3:
-                await this.moveRobot(gameState, player, 3);
+                // Check for Fourth Gear option card
+                let moveDistance = 3;
+                if (player.optionCards?.some(card => card.type === OptionCardType.FOURTH_GEAR)) {
+                    moveDistance = 4;
+                    console.log(`${player.name} has Fourth Gear - moving 4 spaces instead of 3`);
+                }
+                await this.moveRobot(gameState, player, moveDistance);
                 break;
             case CardType.BACK_UP:
+                // TODO: Implement Reverse Gear option (requires player choice)
                 await this.moveRobot(gameState, player, -1);
                 break;
             case CardType.ROTATE_LEFT:
@@ -575,8 +637,8 @@ export class GameEngine {
             // Check for other robots
             const occupant = this.getPlayerAt(gameState, newX, newY);
             if (occupant) {
-                // Try to push the other robot
-                const pushed = await this.pushRobot(gameState, occupant, direction);
+                // Try to push the other robot (pass the pusher, this is active movement)
+                const pushed = await this.pushRobot(gameState, occupant, direction, player, true);
                 if (!pushed) {
                     // Can't push (blocked by wall or another robot), movement stops
                     break;
@@ -593,7 +655,7 @@ export class GameEngine {
     }
 
 
-    async pushRobot(gameState: ServerGameState, playerToPush: Player, direction: Direction): Promise<boolean> {
+    async pushRobot(gameState: ServerGameState, playerToPush: Player, direction: Direction, pusher?: Player, isActiveMovement: boolean = false): Promise<boolean> {
         const vector = this.DIRECTION_VECTORS[direction];
         const currentPos = { x: playerToPush.position.x, y: playerToPush.position.y };
         const newX = playerToPush.position.x + vector.x;
@@ -618,7 +680,9 @@ export class GameEngine {
         const occupant = this.getPlayerAt(gameState, newX, newY);
         if (occupant) {
             // Try to push the next robot in the chain
-            const pushed = await this.pushRobot(gameState, occupant, direction);
+            // For chain pushing, the robot being pushed becomes the pusher for the next robot
+            // Chain pushes are NOT active movement (false)
+            const pushed = await this.pushRobot(gameState, occupant, direction, playerToPush, false);
             if (!pushed) {
                 return false; // Chain pushing failed
             }
@@ -627,18 +691,51 @@ export class GameEngine {
         // Push is valid, update position
         playerToPush.position.x = newX;
         playerToPush.position.y = newY;
+        
+        // Check for Ramming Gear and apply damage
+        // Only applies when the robot with Ramming Gear is actively moving (not being pushed or moved by conveyors)
+        if (pusher && isActiveMovement) {
+            const pusherHasRammingGear = pusher.optionCards?.some(card => card.type === OptionCardType.RAMMING_GEAR);
+            
+            if (pusherHasRammingGear) {
+                // Target takes damage from being pushed by robot with Ramming Gear during active movement
+                playerToPush.damage = (playerToPush.damage || 0) + 1;
+                this.executionLog(gameState, `${playerToPush.name} damaged by ${pusher.name}'s Ramming Gear`, 'option');
+                
+                // Check if robot is destroyed
+                if (playerToPush.damage >= 10) {
+                    this.destroyRobot(gameState, playerToPush, 'took too much damage');
+                }
+            }
+        }
+        
         return true;
     }
 
     getPlayerAt(gameState: ServerGameState, x: number, y: number): Player | undefined {
         return Object.values(gameState.players).find(p => p.position.x === x && p.position.y === y && !p.isDead);
     }
+    
+    // Helper function to determine what direction damage is coming from
+    getIncomingDamageDirection(targetPos: Position, shooterPos: Position): Direction | null {
+        const dx = shooterPos.x - targetPos.x;
+        const dy = shooterPos.y - targetPos.y;
+        
+        // Determine the primary direction
+        if (Math.abs(dx) > Math.abs(dy)) {
+            return dx > 0 ? Direction.RIGHT : Direction.LEFT;
+        } else if (dy !== 0) {
+            return dy > 0 ? Direction.DOWN : Direction.UP;
+        }
+        
+        return null; // Same position
+    }
 
     async processDamageForMultiplePlayers(
         gameState: ServerGameState,
         playersWithDamage: Array<{
             playerId: string;
-            damageInfo: any;
+            damageInfo: DamageInfo;
             totalDamage: number;
             damageSource: string;
         }>
@@ -650,55 +747,179 @@ export class GameEngine {
             gameState.pendingDamage = new Map();
         }
         
-        // Track which players have option cards
-        const playersWithOptions: string[] = [];
+        // Track which players need manual damage prevention dialog
+        const playersNeedingDialog: string[] = [];
         
-        // Send damage prevention opportunities to all players simultaneously
-        for (const { playerId, totalDamage, damageSource } of playersWithDamage) {
+        // Process automatic damage prevention and determine who needs dialog
+        for (const { playerId, totalDamage, damageSource, damageInfo } of playersWithDamage) {
             const player = gameState.players[playerId];
             if (!player || player.lives <= 0) continue;
             
+            let remainingDamage = totalDamage;
             console.log(`[DamagePrevention] Player ${player.name} taking ${totalDamage} damage from ${damageSource}`);
             
-            // If player has no option cards, apply damage immediately
-            if (!player.optionCards || player.optionCards.length === 0) {
-                console.log(`[DamagePrevention] No option cards for ${player.name}, applying damage immediately`);
-                player.damage += totalDamage;
-                continue;
+            // Apply automatic damage prevention cards
+            if (player.optionCards && player.optionCards.length > 0) {
+                // Check for Shield (blocks first robot laser from the front this register)
+                const shieldCard = player.optionCards.find(card => card.type === OptionCardType.SHIELD);
+                if (shieldCard && !damageSource.includes('board laser') && damageInfo.robotHits.length > 0) {
+                    // Check if any robot damage is from the front
+                    const frontHit = damageInfo.robotHits.find(hit => {
+                        if (!hit.shooterPosition) return false;
+                        // Determine if shooter is in front of this player
+                        const isFromFront = this.isDamageFromFront(player, hit.shooterPosition);
+                        return isFromFront;
+                    });
+                    
+                    if (frontHit && !shieldCard.usedThisRegister) {
+                        console.log(`[DamagePrevention] Shield automatically blocks robot laser damage from front for ${player.name}`);
+                        this.executionLog(gameState, `${player.name}'s Shield blocks laser damage from the front`, 'option');
+                        // Shield blocks one source of damage from the front
+                        remainingDamage = Math.max(0, remainingDamage - frontHit.damage);
+                        shieldCard.usedThisRegister = true;
+                    }
+                }
+                
+                // Check for Power-Down Shield (only works when powered down)
+                const powerDownShield = player.optionCards.find(card => card.type === OptionCardType.POWER_DOWN_SHIELD);
+                if (powerDownShield && player.powerState === PowerState.OFF) {
+                    // Power-Down Shield blocks 1 damage from each direction per register
+                    if (!powerDownShield.directionsUsed) {
+                        powerDownShield.directionsUsed = [];
+                    }
+                    
+                    // Process each damage source individually
+                    let damageBlocked = 0;
+                    // Find the damage info for this player
+                    const playerDamageData = playersWithDamage.find(pd => pd.playerId === playerId);
+                    if (playerDamageData) {
+                        // Process robot laser hits
+                        if (playerDamageData.damageInfo.robotHits) {
+                            for (const hit of playerDamageData.damageInfo.robotHits) {
+                                if (hit.shooterPosition && damageBlocked < remainingDamage) {
+                                    const incomingDirection = this.getIncomingDamageDirection(player.position, hit.shooterPosition);
+                                    if (incomingDirection !== null && !powerDownShield.directionsUsed.includes(incomingDirection)) {
+                                        // Block 1 damage from this direction
+                                        const blocked = Math.min(hit.damage, 1);
+                                        damageBlocked += blocked;
+                                        powerDownShield.directionsUsed.push(incomingDirection);
+                                        
+                                        const directionName = ['UP', 'RIGHT', 'DOWN', 'LEFT'][incomingDirection];
+                                        console.log(`[DamagePrevention] Power-Down Shield blocks ${blocked} damage from ${directionName} (robot laser) for powered-down ${player.name}`);
+                                        this.executionLog(gameState, `${player.name}'s Power-Down Shield blocks robot laser from ${directionName}`, 'option');
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Process board laser hits
+                        if (playerDamageData.damageInfo.boardHits) {
+                            for (const hit of playerDamageData.damageInfo.boardHits) {
+                                if (hit.laserPosition && damageBlocked < remainingDamage) {
+                                    const incomingDirection = this.getIncomingDamageDirection(player.position, hit.laserPosition);
+                                    if (incomingDirection !== null && !powerDownShield.directionsUsed.includes(incomingDirection)) {
+                                        // Block 1 damage from this direction
+                                        const blocked = Math.min(hit.damage, 1);
+                                        damageBlocked += blocked;
+                                        powerDownShield.directionsUsed.push(incomingDirection);
+                                        
+                                        const directionName = ['UP', 'RIGHT', 'DOWN', 'LEFT'][incomingDirection];
+                                        console.log(`[DamagePrevention] Power-Down Shield blocks ${blocked} damage from ${directionName} (board laser) for powered-down ${player.name}`);
+                                        this.executionLog(gameState, `${player.name}'s Power-Down Shield blocks board laser from ${directionName}`, 'option');
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    remainingDamage = Math.max(0, remainingDamage - damageBlocked);
+                    if (damageBlocked > 0) {
+                        powerDownShield.usedThisRegister = true;
+                    }
+                }
+                
+                // Check for Ablative Coat
+                if (remainingDamage > 0) {
+                    const ablativeCard = player.optionCards.find(card => card.type === OptionCardType.ABLATIVE_COAT);
+                    if (ablativeCard) {
+                        const absorbed = ablativeCard.damageAbsorbed || 0;
+                        const canAbsorb = Math.min(remainingDamage, 3 - absorbed);
+                        if (canAbsorb > 0) {
+                            ablativeCard.damageAbsorbed = absorbed + canAbsorb;
+                            remainingDamage -= canAbsorb;
+                            console.log(`[DamagePrevention] Ablative Coat automatically absorbs ${canAbsorb} damage for ${player.name}`);
+                            this.executionLog(gameState, `${player.name}'s Ablative Coat absorbs ${canAbsorb} damage (${ablativeCard.damageAbsorbed}/3)`, 'option');
+                            
+                            // Remove card if fully used
+                            if (ablativeCard.damageAbsorbed >= 3) {
+                                player.optionCards = player.optionCards.filter(c => c.id !== ablativeCard.id);
+                                this.executionLog(gameState, `${player.name}'s Ablative Coat is fully used and discarded`, 'option');
+                                // Add to discard pile
+                                if (!gameState.discardedOptions) gameState.discardedOptions = [];
+                                gameState.discardedOptions.push(ablativeCard);
+                            }
+                        }
+                    }
+                }
+                
+                // Check if player has any cards they can discard for damage prevention
+                // In RoboRally, ANY option card can be discarded to prevent 1 damage
+                // Only exclude Ablative Coat (always automatic)
+                // Shield and Power-Down Shield can be manually discarded when their automatic effects don't apply
+                const hasManualCards = player.optionCards.some(card => 
+                    card.type !== OptionCardType.ABLATIVE_COAT
+                );
+                
+                if (remainingDamage > 0 && hasManualCards) {
+                    // Player needs dialog for manual damage prevention choices
+                    playersNeedingDialog.push(playerId);
+                    gameState.pendingDamage.set(playerId, {
+                        amount: remainingDamage,
+                        source: damageSource,
+                        prevented: 0,
+                        completed: false
+                    });
+                    
+                    // Send all cards except Ablative Coat (which is always automatic)
+                    // Shield and Power-Down Shield can be manually discarded when their automatic effects don't apply
+                    // Any option card can be discarded to prevent 1 damage
+                    const manualCards = player.optionCards.filter(card => 
+                        card.type !== OptionCardType.ABLATIVE_COAT
+                    );
+                    
+                    console.log(`[DamagePrevention] Emitting damage-prevention-opportunity to ${player.name} for ${remainingDamage} damage`);
+                    this.io.to(playerId).emit('damage-prevention-opportunity', {
+                        damageAmount: remainingDamage,
+                        source: damageSource,
+                        optionCards: manualCards
+                    });
+                } else if (remainingDamage > 0) {
+                    // Apply remaining damage immediately
+                    player.damage += remainingDamage;
+                    console.log(`[DamagePrevention] Applied ${remainingDamage} damage to ${player.name}`);
+                }
+            } else {
+                // No option cards, apply damage immediately
+                player.damage += remainingDamage;
+                console.log(`[DamagePrevention] No option cards for ${player.name}, applied ${remainingDamage} damage`);
             }
-            
-            // Player has option cards - set up pending damage
-            playersWithOptions.push(playerId);
-            gameState.pendingDamage.set(playerId, {
-                amount: totalDamage,
-                source: damageSource,
-                prevented: 0,
-                completed: false
-            });
-            
-            console.log(`[DamagePrevention] Emitting damage-prevention-opportunity to ${player.name}`);
-            this.io.to(playerId).emit('damage-prevention-opportunity', {
-                damageAmount: totalDamage,
-                source: damageSource,
-                optionCards: player.optionCards
-            });
         }
         
-        // If no players have option cards, we're done
-        if (playersWithOptions.length === 0) {
-            console.log(`[DamagePrevention] No players with option cards, damage application complete`);
+        // If no players need dialog, we're done
+        if (playersNeedingDialog.length === 0) {
+            console.log(`[DamagePrevention] No players need manual damage prevention, damage application complete`);
             return;
         }
         
-        console.log(`[DamagePrevention] Waiting for ${playersWithOptions.length} players to complete damage prevention`);
+        console.log(`[DamagePrevention] Waiting for ${playersNeedingDialog.length} players to complete damage prevention`);
         
-        // Wait for all players with option cards to complete their choices (15 second timeout)
+        // Wait for all players needing dialog to complete their choices (15 second timeout)
         await new Promise(resolve => {
             const startTime = Date.now();
             const checkInterval = setInterval(() => {
                 // Check if all players have completed
                 let allCompleted = true;
-                for (const playerId of playersWithOptions) {
+                for (const playerId of playersNeedingDialog) {
                     const pending = gameState.pendingDamage?.get(playerId);
                     if (pending && !pending.completed) {
                         allCompleted = false;
@@ -708,7 +929,7 @@ export class GameEngine {
                 
                 // Check if timeout reached
                 const elapsed = Date.now() - startTime;
-                if (allCompleted || elapsed >= 15000) {
+                if (allCompleted || elapsed >= this.config.damagePreventionTimeout) {
                     clearInterval(checkInterval);
                     console.log(`[DamagePrevention] All players completed or timeout reached after ${elapsed}ms`);
                     resolve(true);
@@ -717,7 +938,7 @@ export class GameEngine {
         });
         
         // Apply final damage for all players with pending damage
-        for (const playerId of playersWithOptions) {
+        for (const playerId of playersNeedingDialog) {
             const player = gameState.players[playerId];
             const pending = gameState.pendingDamage?.get(playerId);
             if (!pending) continue;
@@ -792,7 +1013,7 @@ export class GameEngine {
                 clearInterval(checkInterval);
                 console.log(`[DamagePrevention] Timeout for ${player.name}`);
                 resolve(false);
-            }, 15000); // 15 second timeout
+            }, this.config.damagePreventionTimeout); // Use configured timeout
         });
         
         // Apply final damage after prevention
@@ -871,10 +1092,17 @@ export class GameEngine {
         player.isDead = false;
         player.awaitingRespawn = false;
 
-        // Robots reenter with 2 damage tokens (per rules)
-        player.damage = 2;
-
-        console.log(`${player.name} respawned at (${player.archiveMarker.x}, ${player.archiveMarker.y}) facing ${Direction[direction]}`);
+        // Check if player has Superior Archive option card
+        const hasSuperiorArchive = player.optionCards?.some(card => card.type === OptionCardType.SUPERIOR_ARCHIVE);
+        
+        if (hasSuperiorArchive) {
+            // Superior Archive prevents the normal 2 damage tokens when respawning
+            player.damage = 0;
+            this.executionLog(gameState, `${player.name} respawns with Superior Archive - no damage!`, 'option');
+        } else {
+            // Robots reenter with 2 damage tokens (per rules)
+            player.damage = 2;
+        }
 
         this.io.to(gameState.roomCode).emit('robot-respawned', {
             playerName: player.name,
@@ -1062,7 +1290,7 @@ export class GameEngine {
         const damages = new Map();
         const getDamageInfo = (playerId: string) => {
             if (!damages.has(playerId)) {
-                damages.set(playerId, { boardDamage: 0, robotHits: [] });
+                damages.set(playerId, { boardDamage: 0, boardHits: [], robotHits: [] });
             }
             return damages.get(playerId);
         };
@@ -1071,7 +1299,7 @@ export class GameEngine {
 
         if (gameState.course.board.lasers) {
             gameState.course.board.lasers.forEach(laser => {
-                const hits = this.traceLaser(gameState, laser.position.x, laser.position.y, laser.direction, laser.damage || 1);
+                const hits = this.traceLaser(gameState, laser.position.x, laser.position.y, laser.direction, laser.damage || 1, undefined, laser.position);
                 
                 // Build laser path for board laser animation
                 const vector = this.DIRECTION_VECTORS[laser.direction];
@@ -1124,7 +1352,12 @@ export class GameEngine {
                 }
 
                 hits.forEach(hit => {
-                    getDamageInfo(hit.player.id).boardDamage += hit.damage;
+                    const info = getDamageInfo(hit.player.id);
+                    info.boardDamage += hit.damage;
+                    info.boardHits.push({
+                        damage: hit.damage,
+                        laserPosition: laser.position
+                    });
                 });
             });
         }
@@ -1135,7 +1368,7 @@ export class GameEngine {
             await new Promise(resolve => setTimeout(resolve, 600)); // Wait for board laser animation to complete
         }
 
-        const robotLaserShots: {shooterId: string; targetId?: string; path: LaserPath[]; damage: number; timestamp?: number}[] = [];
+        const robotLaserShots: {shooterId: string; targetId?: string; targetIds?: string[]; path: LaserPath[]; damage: number; timestamp?: number}[] = [];
         Object.values(gameState.players).forEach(shooter => {
             if (shooter.lives <= 0 || shooter.powerState === PowerState.OFF) return;
 
@@ -1145,72 +1378,236 @@ export class GameEngine {
             const frontX = shooter.position.x + vector.x;
             const frontY = shooter.position.y + vector.y;
 
-            // Check if robot has a wall in front blocking its laser
-            if (hasWallBetween(shooter.position, { x: frontX, y: frontY }, gameState.course.board)) {
-                // Robot's laser is blocked by wall immediately - can't fire
-                return;
+            // Check if robot has option cards that modify laser behavior
+            const hasHighPowerLaser = shooter.optionCards?.some(card => card.type === OptionCardType.HIGH_POWER_LASER);
+            const hasDoubleBarreledLaser = shooter.optionCards?.some(card => card.type === OptionCardType.DOUBLE_BARRELED_LASER);
+            const hasRearFiringLaser = shooter.optionCards?.some(card => card.type === OptionCardType.REAR_FIRING_LASER);
+
+            // Check if robot has a wall in front blocking its laser (unless they have High-Power Laser)
+            if (!hasHighPowerLaser && hasWallBetween(shooter.position, { x: frontX, y: frontY }, gameState.course.board)) {
+                // Robot's laser is blocked by wall immediately - can't fire front laser
+                // But might still be able to fire rear laser
+                if (!hasRearFiringLaser) {
+                    return;
+                }
             }
 
-            // Trace the laser using the standard traceLaser function
-            // Start from the shooter's position, not one tile ahead
-            const hits = this.traceLaser(gameState, shooter.position.x, shooter.position.y, shooter.direction, 1, shooter.name);
-
-            // Build laser path for animation
-            const path: LaserPath[] = [];
-            let x = frontX;
-            let y = frontY;
-
-            // Build the visual path, checking for walls and robots
-            while (x >= 0 && x < gameState.course.board.width &&
-                y >= 0 && y < gameState.course.board.height) {
-
-                // Check if we can enter this tile (wall blocking entry)
-                const fromPos = { x: x - vector.x, y: y - vector.y };
-                const toPos = { x, y };
-
-                if (hasWallBetween(fromPos, toPos, gameState.course.board)) {
-                    // Wall blocks entry to this tile
-                    break;
+            // Determine number of shots (Double-Barreled Laser fires 2 shots)
+            const numberOfShots = hasDoubleBarreledLaser ? 2 : 1;
+            
+            // Collect all hits for animation purposes
+            const allHits: RobotHit[] = [];
+            
+            // Fire front laser (if not blocked)
+            const canFireFront = hasHighPowerLaser || !hasWallBetween(shooter.position, { x: frontX, y: frontY }, gameState.course.board);
+            if (canFireFront) {
+                for (let shot = 0; shot < numberOfShots; shot++) {
+                    // Trace the laser using the standard traceLaser function
+                    // Start from the shooter's position, not one tile ahead
+                    const hits = this.traceLaser(gameState, shooter.position.x, shooter.position.y, shooter.direction, 1, shooter.name, shooter.position);
+                    
+                    // Record hits for this shot
+                    hits.forEach(hit => {
+                        allHits.push(hit);
+                        if (hit.player.id !== shooter.id) { // Can't shoot yourself
+                            getDamageInfo(hit.player.id).robotHits.push({
+                                shooterName: shooter.name,
+                                damage: hit.damage,
+                                shooterPosition: hit.shooterPosition
+                            });
+                        }
+                    });
                 }
+            }
+            
+            // Fire rear laser if robot has Rear-Firing Laser
+            if (hasRearFiringLaser) {
+                // Calculate opposite direction for rear laser
+                const oppositeDirection = (shooter.direction + 2) % 4 as Direction;
+                const rearVector = this.DIRECTION_VECTORS[oppositeDirection];
+                const rearX = shooter.position.x + rearVector.x;
+                const rearY = shooter.position.y + rearVector.y;
+                
+                // Check if rear laser is blocked (rear laser doesn't benefit from High-Power)
+                const canFireRear = !hasWallBetween(shooter.position, { x: rearX, y: rearY }, gameState.course.board);
+                
+                if (canFireRear) {
+                    // Rear laser always fires once (doesn't benefit from Double-Barreled or High-Power)
+                    const rearHits = this.traceLaser(gameState, shooter.position.x, shooter.position.y, oppositeDirection, 1, shooter.name, shooter.position, false);
+                    
+                    // Record hits for rear laser
+                    rearHits.forEach(hit => {
+                        allHits.push(hit);
+                        if (hit.player.id !== shooter.id) {
+                            getDamageInfo(hit.player.id).robotHits.push({
+                                shooterName: shooter.name,
+                                damage: hit.damage,
+                                shooterPosition: hit.shooterPosition
+                            });
+                        }
+                    });
+                }
+                
+                console.log(`${shooter.name} fires Rear-Firing Laser`);
+                this.executionLog(gameState, `${shooter.name} fires Rear-Firing Laser`, 'option');
+            }
+            
+            if (hasDoubleBarreledLaser) {
+                console.log(`${shooter.name} fires Double-Barreled Laser (2 shots)`);
+                this.executionLog(gameState, `${shooter.name} fires Double-Barreled Laser`, 'option');
+            }
 
-                path.push({ x, y });
+            // Build laser path for front laser animation (if it can fire)
+            if (canFireFront) {
+                const path: LaserPath[] = [];
+                let x = shooter.position.x;
+                let y = shooter.position.y;
+                let obstaclesPassed = 0;
 
-                // Check if we hit a robot
-                if (this.getPlayerAt(gameState, x, y)) break;
+                // Build the visual path, matching the traceLaser logic
+                while (true) {
+                    // Calculate next position
+                    const nextX = x + vector.x;
+                    const nextY = y + vector.y;
 
-                // Check if we can exit this tile (wall blocking exit)
-                const nextX = x + vector.x;
-                const nextY = y + vector.y;
-                if (nextX >= 0 && nextX < gameState.course.board.width &&
-                    nextY >= 0 && nextY < gameState.course.board.height) {
-                    if (hasWallBetween({ x, y }, { x: nextX, y: nextY }, gameState.course.board)) {
-                        // Wall blocks exit from this tile
+                    // Check if next position is out of bounds
+                    if (nextX < 0 || nextX >= gameState.course.board.width ||
+                        nextY < 0 || nextY >= gameState.course.board.height) {
                         break;
+                    }
+
+                    // Check for wall blocking the laser path (only check once per wall)
+                    const fromPos = { x, y };
+                    const toPos = { x: nextX, y: nextY };
+
+                    if (hasWallBetween(fromPos, toPos, gameState.course.board)) {
+                        if (hasHighPowerLaser && obstaclesPassed < 1) {
+                            // High-Power Laser can shoot through one wall
+                            obstaclesPassed++;
+                        } else {
+                            // Laser blocked by wall
+                            break;
+                        }
+                    }
+
+                    // Move to the next position
+                    x = nextX;
+                    y = nextY;
+                    
+                    // Add this position to the path
+                    path.push({ x, y });
+
+                    // Check if we hit a robot
+                    const robotAtPos = this.getPlayerAt(gameState, x, y);
+                    if (robotAtPos) {
+                        if (hasHighPowerLaser && obstaclesPassed < 1) {
+                            // High-Power Laser can shoot through one robot
+                            obstaclesPassed++;
+                            // Continue to potentially hit another robot
+                        } else {
+                            // Normal laser stops at robot
+                            break;
+                        }
                     }
                 }
 
-                x += vector.x;
-                y += vector.y;
-            }
-
-            if (path.length > 0) {
-                robotLaserShots.push({
-                    shooterId: shooter.id,
-                    path: path,
-                    damage: 1,
-                    targetId: hits.length > 0 ? hits[0].player.id : undefined,
-                    timestamp: Date.now()
-                });
-            }
-
-            hits.forEach(hit => {
-                if (hit.player.id !== shooter.id) { // Can't shoot yourself
-                    getDamageInfo(hit.player.id).robotHits.push({
-                        shooterName: shooter.name,
-                        damage: hit.damage
+                if (path.length > 0) {
+                    // Collect target IDs for robots hit by front laser
+                    const frontTargetIds = allHits
+                        .filter(hit => {
+                            // Check if this hit is from the front laser (same direction as shooter)
+                            const dx = hit.player.position.x - shooter.position.x;
+                            const dy = hit.player.position.y - shooter.position.y;
+                            return (vector.x !== 0 ? Math.sign(dx) === Math.sign(vector.x) : Math.sign(dy) === Math.sign(vector.y));
+                        })
+                        .map(hit => hit.player.id)
+                        .filter(id => id !== shooter.id);
+                    
+                    robotLaserShots.push({
+                        shooterId: shooter.id,
+                        path: path,
+                        damage: 1,
+                        targetId: frontTargetIds.length > 0 ? frontTargetIds[0] : undefined, // Legacy support
+                        targetIds: frontTargetIds.length > 0 ? frontTargetIds : undefined, // All targets for High-Power Laser
+                        timestamp: Date.now()
                     });
                 }
-            });
+            }
+            
+            // Build laser path for rear laser animation (if robot has Rear-Firing Laser and can fire)
+            if (hasRearFiringLaser) {
+                const oppositeDirection = (shooter.direction + 2) % 4 as Direction;
+                const rearVector = this.DIRECTION_VECTORS[oppositeDirection];
+                const rearX = shooter.position.x + rearVector.x;
+                const rearY = shooter.position.y + rearVector.y;
+                const canFireRear = !hasWallBetween(shooter.position, { x: rearX, y: rearY }, gameState.course.board);
+                
+                if (canFireRear) {
+                    const rearPath: LaserPath[] = [];
+                    let x = rearX;
+                    let y = rearY;
+
+                    // Build the visual path for rear laser (no High-Power benefit)
+                    while (x >= 0 && x < gameState.course.board.width &&
+                        y >= 0 && y < gameState.course.board.height) {
+
+                        // Check if we can enter this tile (wall blocking entry)
+                        const fromPos = { x: x - rearVector.x, y: y - rearVector.y };
+                        const toPos = { x, y };
+
+                        if (hasWallBetween(fromPos, toPos, gameState.course.board)) {
+                            // Rear laser blocked by wall
+                            break;
+                        }
+
+                        rearPath.push({ x, y });
+
+                        // Check if we hit a robot
+                        const robotAtPos = this.getPlayerAt(gameState, x, y);
+                        if (robotAtPos) {
+                            // Rear laser stops at robot
+                            break;
+                        }
+
+                        // Check if we can exit this tile (wall blocking exit)
+                        const nextX = x + rearVector.x;
+                        const nextY = y + rearVector.y;
+                        if (nextX >= 0 && nextX < gameState.course.board.width &&
+                            nextY >= 0 && nextY < gameState.course.board.height) {
+                            if (hasWallBetween({ x, y }, { x: nextX, y: nextY }, gameState.course.board)) {
+                                // Wall blocks exit from this tile
+                                break;
+                            }
+                        }
+
+                        x += rearVector.x;
+                        y += rearVector.y;
+                    }
+
+                    if (rearPath.length > 0) {
+                        // Collect target IDs for robots hit by rear laser
+                        const rearTargetIds = allHits
+                            .filter(hit => {
+                                // Check if this hit is from the rear laser (opposite direction from shooter)
+                                const dx = hit.player.position.x - shooter.position.x;
+                                const dy = hit.player.position.y - shooter.position.y;
+                                return (rearVector.x !== 0 ? Math.sign(dx) === Math.sign(rearVector.x) : Math.sign(dy) === Math.sign(rearVector.y));
+                            })
+                            .map(hit => hit.player.id)
+                            .filter(id => id !== shooter.id);
+                        
+                        robotLaserShots.push({
+                            shooterId: shooter.id,
+                            path: rearPath,
+                            damage: 1,
+                            targetId: rearTargetIds.length > 0 ? rearTargetIds[0] : undefined,
+                            targetIds: rearTargetIds.length > 0 ? rearTargetIds : undefined,
+                            timestamp: Date.now() + 100 // Slight delay for rear laser animation
+                        });
+                    }
+                }
+            }
+
         });
 
         if (robotLaserShots.length > 0) {
@@ -1221,13 +1618,13 @@ export class GameEngine {
         // Collect all players who will take damage
         const playersWithDamage: Array<{
             playerId: string;
-            damageInfo: any;
+            damageInfo: DamageInfo;
             totalDamage: number;
             damageSource: string;
         }> = [];
         
         for (const [playerId, damageInfo] of damages) {
-            const totalDamage = damageInfo.boardDamage + damageInfo.robotHits.reduce((sum: number, hit: RobotHit) => sum + hit.damage, 0);
+            const totalDamage = damageInfo.boardDamage + damageInfo.robotHits.reduce((sum: number, hit: { shooterName: string; damage: number }) => sum + hit.damage, 0);
             if (totalDamage === 0) continue;
             
             // Build descriptive damage source
@@ -1236,7 +1633,7 @@ export class GameEngine {
                 sources.push(`board laser (${damageInfo.boardDamage})`);
             }
             if (damageInfo.robotHits.length > 0) {
-                const robotSources = damageInfo.robotHits.map((hit: RobotHit) => 
+                const robotSources = damageInfo.robotHits.map((hit: { shooterName: string; damage: number }) => 
                     `${hit.shooterName} (${hit.damage})`
                 ).join(', ');
                 sources.push(robotSources);
@@ -1268,7 +1665,7 @@ export class GameEngine {
                 console.log(message);
                 this.io.to(gameState.roomCode).emit('robot-damaged', { playerName: victim.name, damage: damageInfo.boardDamage, reason: 'laser' });
             }
-            damageInfo.robotHits.forEach((hit: RobotHit) => {
+            damageInfo.robotHits.forEach((hit) => {
                 const message = `${victim.name} shot by ${hit.shooterName}`;
                 console.log(message);
                 this.io.to(gameState.roomCode).emit('robot-damaged', { playerName: victim.name, damage: hit.damage, reason: hit.shooterName, shooterName: hit.shooterName, message });
@@ -1280,50 +1677,166 @@ export class GameEngine {
         }
     }
 
-    traceLaser(gameState: ServerGameState, startX: number, startY: number, direction: Direction, damage: number, shooterName?: string) {
+    traceLaser(gameState: ServerGameState, startX: number, startY: number, direction: Direction, damage: number, shooterName?: string, shooterPosition?: Position, allowHighPower: boolean = true) {
         const hits: RobotHit[] = [];
         const vector = this.DIRECTION_VECTORS[direction];
         let x = startX;
         let y = startY;
 
+        // Check if shooter has High-Power Laser (only if allowed)
+        let hasHighPowerLaser = false;
+        let obstaclesPassed = 0;
+        if (shooterName && allowHighPower) {
+            const shooter = Object.values(gameState.players).find(p => p.name === shooterName);
+            if (shooter?.optionCards?.some(card => card.type === OptionCardType.HIGH_POWER_LASER)) {
+                hasHighPowerLaser = true;
+                console.log(`${shooterName} has High-Power Laser - can shoot through one obstacle`);
+            }
+        }
+
         // First check if there's a robot at the laser origin position (for board lasers)
         if (!shooterName) {
             const playerAtOrigin = this.getPlayerAt(gameState, x, y);
             if (playerAtOrigin) {
-                hits.push({ player: playerAtOrigin, damage, shooterName: 'board laser' });
+                hits.push({ player: playerAtOrigin, damage, shooterName: 'board laser', shooterPosition });
                 return hits; // Laser doesn't continue past robot at origin
             }
         }
 
-        // Move to first position in laser path
-        x += vector.x;
-        y += vector.y;
+        // Move through the laser path
+        while (true) {
+            // Calculate next position
+            const nextX = x + vector.x;
+            const nextY = y + vector.y;
 
-        while (x >= 0 && x < gameState.course.board.width &&
-            y >= 0 && y < gameState.course.board.height) {
-
-            // Check for wall blocking the laser path
-            const fromPos = { x: x - vector.x, y: y - vector.y };
-            const toPos = { x, y };
-
-            if (hasWallBetween(fromPos, toPos, gameState.course.board)) {
-                // Laser blocked by wall
+            // Check if next position is out of bounds
+            if (nextX < 0 || nextX >= gameState.course.board.width ||
+                nextY < 0 || nextY >= gameState.course.board.height) {
                 break;
             }
 
-            // Check for robot
-            const player = this.getPlayerAt(gameState, x, y);
-            if (player) {
-                hits.push({ player, damage, shooterName: shooterName || 'board laser' });
-                break; // Laser stops at first robot
+            // Check for wall blocking the laser path
+            const fromPos = { x, y };
+            const toPos = { x: nextX, y: nextY };
+
+            if (hasWallBetween(fromPos, toPos, gameState.course.board)) {
+                if (hasHighPowerLaser && obstaclesPassed < 1) {
+                    // High-Power Laser can shoot through one wall
+                    obstaclesPassed++;
+                    console.log(`High-Power Laser shooting through wall`);
+                } else {
+                    // Laser blocked by wall
+                    break;
+                }
             }
 
-            // Move to next position
-            x += vector.x;
-            y += vector.y;
+            // Move to the next position
+            x = nextX;
+            y = nextY;
+
+            // Check for robot at this position
+            const player = this.getPlayerAt(gameState, x, y);
+            if (player) {
+                hits.push({ player, damage, shooterName: shooterName || 'board laser', shooterPosition });
+                
+                if (hasHighPowerLaser && obstaclesPassed < 1) {
+                    // High-Power Laser can shoot through one robot
+                    obstaclesPassed++;
+                    console.log(`High-Power Laser shooting through ${player.name}`);
+                    // Continue to check for another robot behind this one
+                } else {
+                    // Normal laser stops at robot
+                    break;
+                }
+            }
         }
 
         return hits;
+    }
+
+    // Check if damage is coming from the front of the player
+    isDamageFromFront(player: Player, shooterPosition: Position): boolean {
+        const dx = shooterPosition.x - player.position.x;
+        const dy = shooterPosition.y - player.position.y;
+        
+        // Determine relative direction based on player's facing
+        switch (player.direction) {
+            case Direction.UP:
+                // Front is negative Y (up on screen)
+                return dy < 0 && Math.abs(dx) <= Math.abs(dy);
+            case Direction.RIGHT:
+                // Front is positive X
+                return dx > 0 && Math.abs(dy) <= Math.abs(dx);
+            case Direction.DOWN:
+                // Front is positive Y (down on screen)
+                return dy > 0 && Math.abs(dx) <= Math.abs(dy);
+            case Direction.LEFT:
+                // Front is negative X
+                return dx < 0 && Math.abs(dy) <= Math.abs(dx);
+            default:
+                return false;
+        }
+    }
+    
+    // Get tiles adjacent to a position that can be touched with Mechanical Arm
+    getAccessibleAdjacentTiles(gameState: ServerGameState, position: Position): { tile: any, x: number, y: number }[] {
+        const adjacentTiles: { tile: any, x: number, y: number }[] = [];
+        
+        // Check all 8 adjacent positions (orthogonal and diagonal)
+        const offsets = [
+            { x: 0, y: -1, dir: Direction.UP },      // Up
+            { x: 1, y: -1, dir: null },              // Up-Right (diagonal)
+            { x: 1, y: 0, dir: Direction.RIGHT },    // Right
+            { x: 1, y: 1, dir: null },               // Down-Right (diagonal)
+            { x: 0, y: 1, dir: Direction.DOWN },     // Down
+            { x: -1, y: 1, dir: null },              // Down-Left (diagonal)
+            { x: -1, y: 0, dir: Direction.LEFT },    // Left
+            { x: -1, y: -1, dir: null }              // Up-Left (diagonal)
+        ];
+        
+        for (const offset of offsets) {
+            const adjX = position.x + offset.x;
+            const adjY = position.y + offset.y;
+            
+            // Check if position is on the board
+            if (adjX < 0 || adjX >= gameState.course.board.width ||
+                adjY < 0 || adjY >= gameState.course.board.height) {
+                continue;
+            }
+            
+            // For orthogonal moves, check if wall blocks the path
+            if (offset.dir !== null) {
+                const fromPos = { x: position.x, y: position.y };
+                const toPos = { x: adjX, y: adjY };
+                if (hasWallBetween(fromPos, toPos, gameState.course.board)) {
+                    continue; // Wall blocks access
+                }
+            } else {
+                // For diagonal moves, check if either orthogonal path is blocked
+                // We need at least one clear orthogonal path to reach diagonal
+                const canReachHorizontally = !hasWallBetween(
+                    position,
+                    { x: adjX, y: position.y },
+                    gameState.course.board
+                );
+                const canReachVertically = !hasWallBetween(
+                    position,
+                    { x: position.x, y: adjY },
+                    gameState.course.board
+                );
+                
+                if (!canReachHorizontally && !canReachVertically) {
+                    continue; // Both paths blocked, can't reach diagonal
+                }
+            }
+            
+            const tile = this.getTileAt(gameState, adjX, adjY);
+            if (tile) {
+                adjacentTiles.push({ tile, x: adjX, y: adjY });
+            }
+        }
+        
+        return adjacentTiles;
     }
 
     async checkCheckpoints(gameState: ServerGameState) {
@@ -1332,9 +1845,12 @@ export class GameEngine {
 
             console.log(`${player.name} checking for checkpoints at position (${player.position.x}, ${player.position.y})`);
 
+            // Check if player is standing on a checkpoint
             const checkpoint = gameState.course.definition.checkpoints.find(
                 cp => cp.position.x === player.position.x && cp.position.y === player.position.y
             );
+
+            let touchedCheckpoint = false;
 
             if (checkpoint && checkpoint.number === player.checkpointsVisited + 1) {
                 player.checkpointsVisited++;
@@ -1344,6 +1860,7 @@ export class GameEngine {
                 this.updateArchivePosition(gameState, player);
 
                 this.executionLog(gameState, `${player.name} reached checkpoint ${checkpoint.number}!`);
+                touchedCheckpoint = true;
 
                 // Check if player has won
                 if (player.checkpointsVisited === gameState.course.definition.checkpoints.length) {
@@ -1355,6 +1872,41 @@ export class GameEngine {
             } else if (checkpoint) {
                 // Still update archive position even if checkpoint is out of order
                 this.updateArchivePosition(gameState, player);
+                touchedCheckpoint = true;
+            }
+
+            // Check for Mechanical Arm - allows touching adjacent checkpoints
+            if (!touchedCheckpoint && player.optionCards?.some(card => card.type === OptionCardType.MECHANICAL_ARM)) {
+                const adjacentTiles = this.getAccessibleAdjacentTiles(gameState, player.position);
+                
+                // Look for the next checkpoint the player needs
+                const nextCheckpointNumber = player.checkpointsVisited + 1;
+                
+                for (const adj of adjacentTiles) {
+                    const adjCheckpoint = gameState.course.definition.checkpoints.find(
+                        cp => cp.position.x === adj.x && cp.position.y === adj.y
+                    );
+                    
+                    if (adjCheckpoint && adjCheckpoint.number === nextCheckpointNumber) {
+                        player.checkpointsVisited++;
+                        console.log(`${player.name} reached checkpoint ${adjCheckpoint.number} with Mechanical Arm!`);
+                        
+                        // Update archive position when touching a checkpoint
+                        this.updateArchivePosition(gameState, player);
+                        
+                        this.executionLog(gameState, `${player.name} reached checkpoint ${adjCheckpoint.number} with Mechanical Arm!`, 'option');
+                        
+                        // Check if player has won
+                        if (player.checkpointsVisited === gameState.course.definition.checkpoints.length) {
+                            gameState.winner = player.name;
+                            gameState.phase = GamePhase.ENDED;
+                            console.log(`${player.name} wins the game!`);
+                            this.io.to(gameState.roomCode).emit('game-over', { winner: player.name });
+                        }
+                        
+                        break; // Only touch one checkpoint
+                    }
+                }
             }
 
             // Also check for repair sites to update archive position
@@ -1391,12 +1943,15 @@ export class GameEngine {
             if (player.lives <= 0 || player.powerState === PowerState.OFF) return;
 
             const tile = this.getTileAt(gameState, player.position.x, player.position.y);
+            const hasMechanicalArm = player.optionCards?.some(card => card.type === OptionCardType.MECHANICAL_ARM);
 
             // Check if robot is on a checkpoint/flag
             const checkpoint = gameState.course.definition.checkpoints.find(
                 cp => cp.position.x === player.position.x && cp.position.y === player.position.y
             );
 
+            // Handle standing on a tile
+            let handledStanding = false;
             if (tile && tile.type === TileType.REPAIR) {
                 if (player.damage > 0) {
                     player.damage--;
@@ -1404,13 +1959,16 @@ export class GameEngine {
                 }
                 // Update archive position at repair site
                 this.updateArchivePosition(gameState, player);
+                handledStanding = true;
             } else if (tile && tile.type === TileType.OPTION) {
                 if (player.damage > 0) {
                     player.damage--;
-                    this.executionLog(gameState, `${player.name} repaired 1 damage and drew option card`, 'board-element');
                 }
+                // Draw an option card
+                this.drawOptionCard(gameState, player);
                 // Update archive position at upgrade site
                 this.updateArchivePosition(gameState, player);
+                handledStanding = true;
             } else if (checkpoint) {
                 // Flags/checkpoints also act as repair sites
                 if (player.damage > 0) {
@@ -1419,10 +1977,96 @@ export class GameEngine {
                 }
                 // Update archive position at checkpoint (already handled in updateArchivePosition)
                 this.updateArchivePosition(gameState, player);
+                handledStanding = true;
+            }
+
+            // Handle Mechanical Arm - can touch adjacent sites
+            if (hasMechanicalArm) {
+                const adjacentTiles = this.getAccessibleAdjacentTiles(gameState, player.position);
+                
+                // Priority: next flag > option > repair (includes non-next flags)
+                // But we already handled flags in checkCheckpoints, so here we only handle option and repair
+                
+                let selectedTile: { tile: any, x: number, y: number } | null = null;
+                let isOption = false;
+                
+                // First look for option sites
+                for (const adj of adjacentTiles) {
+                    if (adj.tile.type === TileType.OPTION) {
+                        selectedTile = adj;
+                        isOption = true;
+                        break;
+                    }
+                }
+                
+                // If no option site, look for repair sites (including flags that aren't next)
+                if (!selectedTile) {
+                    for (const adj of adjacentTiles) {
+                        if (adj.tile.type === TileType.REPAIR) {
+                            selectedTile = adj;
+                            break;
+                        }
+                        
+                        // Check if it's a flag (acts as repair site)
+                        const adjCheckpoint = gameState.course.definition.checkpoints.find(
+                            cp => cp.position.x === adj.x && cp.position.y === adj.y
+                        );
+                        if (adjCheckpoint) {
+                            selectedTile = adj;
+                            break;
+                        }
+                    }
+                }
+                
+                // Apply the effect of the selected adjacent tile
+                if (selectedTile) {
+                    if (isOption) {
+                        if (player.damage > 0) {
+                            player.damage--;
+                        }
+                        this.drawOptionCard(gameState, player);
+                        this.executionLog(gameState, `${player.name} used Mechanical Arm to access option site`, 'option');
+                    } else {
+                        // Repair site or flag
+                        if (player.damage > 0) {
+                            player.damage--;
+                            this.executionLog(gameState, `${player.name} used Mechanical Arm to repair at adjacent site`, 'option');
+                        }
+                    }
+                }
             }
         });
 
         this.io.to(gameState.roomCode).emit('game-state', gameState);
+    }
+
+    drawOptionCard(gameState: ServerGameState, player: Player): void {
+        // Check if deck is empty
+        if (!gameState.optionDeck || gameState.optionDeck.length === 0) {
+            this.executionLog(gameState, `No option cards available in deck`, 'option');
+            console.log(`Option deck is empty - no more cards available this game`);
+            return;
+        }
+
+        // Check if player already has max option cards (7)
+        if (!player.optionCards) {
+            player.optionCards = [];
+        }
+        
+        const maxOptionCards = 7;
+        if (player.optionCards.length >= maxOptionCards) {
+            this.executionLog(gameState, `${player.name} already has ${maxOptionCards} option cards (max)`, 'option');
+            // TODO: Later implement UI to let player choose which card to keep
+            return;
+        }
+
+        // Draw a card from the deck
+        const drawnCard = gameState.optionDeck.pop();
+        if (drawnCard) {
+            player.optionCards.push(drawnCard);
+            this.executionLog(gameState, `${player.name} drew option card: ${drawnCard.name}`, 'option');
+            console.log(`${player.name} drew ${drawnCard.name}. Deck has ${gameState.optionDeck.length} cards remaining`);
+        }
     }
 
     updateArchivePosition(gameState: ServerGameState, player: Player): void {

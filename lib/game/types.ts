@@ -1,3 +1,5 @@
+import { OptionCard } from './optionCards';
+
 export enum Direction {
   UP = 0,
   RIGHT = 1,
@@ -64,7 +66,7 @@ export interface Player {
   dealtCards: ProgramCard[];
   selectedCards: (ProgramCard | null)[];
   lockedRegisters: number;
-  optionCards: any[];  // Option cards held by player
+  optionCards: OptionCard[];  // Option cards held by player
 
   // Power Down fields
   powerState: PowerState;
@@ -88,8 +90,8 @@ export interface GameState {
   course: Course;
   roundNumber: number;
   cardsDealt: boolean;
-  optionDeck?: any[];  // Available option cards
-  discardedOptions?: any[];  // Discarded option cards
+  optionDeck?: OptionCard[];  // Available option cards
+  discardedOptions?: OptionCard[];  // Discarded option cards
   timerStartTime?: number; // Unix timestamp when timer started
   timerDuration?: number; // Duration in seconds
   timerConfig?: {

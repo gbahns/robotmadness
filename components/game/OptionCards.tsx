@@ -3,10 +3,9 @@ import { OptionCard } from '@/lib/game/optionCards';
 
 interface OptionCardsProps {
   optionCards: OptionCard[];
-  playerName: string;
 }
 
-export default function OptionCards({ optionCards, playerName }: OptionCardsProps) {
+export default function OptionCards({ optionCards }: OptionCardsProps) {
   const [expanded, setExpanded] = useState(false);
 
   if (!optionCards || optionCards.length === 0) {
@@ -29,52 +28,81 @@ export default function OptionCards({ optionCards, playerName }: OptionCardsProp
       
       {expanded && (
         <div className="mt-3 space-y-2">
-          {optionCards.map((card) => (
-            <div 
-              key={card.id}
-              className="bg-gray-700 rounded p-3 border border-purple-600/30 hover:border-purple-600/60 transition-colors"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h4 className="font-medium text-purple-400 text-sm">
-                    {card.name}
-                  </h4>
-                  <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                    {card.description}
-                  </p>
-                  {card.damageValue && (
-                    <div className="mt-1">
-                      <span className="text-xs text-yellow-400">
-                        Absorbs {card.damageValue} damage
+          {optionCards.map((card) => {
+            const isImplemented = card.implemented ?? false;
+            const isPassive = card.passive ?? false;
+            
+            return (
+              <div 
+                key={card.id}
+                className={`bg-gray-700 rounded p-3 border transition-colors ${
+                  isImplemented 
+                    ? 'border-purple-600/30 hover:border-purple-600/60' 
+                    : 'border-gray-600/30 hover:border-gray-600/60'
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h4 className={`font-medium text-sm ${
+                      isImplemented ? 'text-purple-400' : 'text-gray-500'
+                    }`}>
+                      {card.name}
+                      {!isImplemented && (
+                        <span className="text-xs text-gray-600 ml-2">(Not implemented)</span>
+                      )}
+                    </h4>
+                    <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                      {card.description}
+                    </p>
+                    <div className="mt-1 flex items-center gap-2">
+                      {card.type === 'ABLATIVE_COAT' && (
+                        <span className="text-xs text-yellow-400">
+                          Absorbed: {card.damageAbsorbed || 0}/3
+                        </span>
+                      )}
+                      {card.type === 'SHIELD' && card.usedThisRegister && (
+                        <span className="text-xs text-orange-400">
+                          Used this register
+                        </span>
+                      )}
+                      {card.damageValue && card.type !== 'ABLATIVE_COAT' && (
+                        <span className="text-xs text-yellow-400">
+                          Absorbs {card.damageValue} damage
+                        </span>
+                      )}
+                      <span className={`text-xs ${isPassive ? 'text-green-400' : 'text-blue-400'}`}>
+                        {isPassive ? '• Passive' : '• Active'}
                       </span>
                     </div>
-                  )}
-                </div>
-                <div className="ml-2 text-purple-500">
-                  🛡️
+                  </div>
+                  <div className={`ml-2 ${isImplemented ? 'text-purple-500' : 'text-gray-600'}`}>
+                    🛡️
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
       
       {!expanded && optionCards.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
-          {optionCards.slice(0, 3).map((card, index) => (
-            <span 
-              key={card.id}
-              className="text-xs bg-purple-900/30 text-purple-400 px-2 py-1 rounded"
-              title={card.name}
-            >
-              {card.name.length > 15 ? card.name.substring(0, 15) + '...' : card.name}
-            </span>
-          ))}
-          {optionCards.length > 3 && (
-            <span className="text-xs text-gray-500 px-2 py-1">
-              +{optionCards.length - 3} more
-            </span>
-          )}
+          {optionCards.map((card) => {
+            const isImplemented = card.implemented ?? false;
+            return (
+              <span 
+                key={card.id}
+                className={`text-xs px-2 py-1 rounded ${
+                  isImplemented 
+                    ? 'bg-purple-900/30 text-purple-400' 
+                    : 'bg-gray-800/50 text-gray-500'
+                }`}
+                title={card.name}
+              >
+                {card.name.length > 15 ? card.name.substring(0, 15) + '...' : card.name}
+              </span>
+            );
+          })}
         </div>
       )}
     </div>

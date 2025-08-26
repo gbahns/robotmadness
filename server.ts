@@ -72,6 +72,7 @@ interface ClientToServerEvents {
     'damage-prevention-complete': (data: { roomCode: string }) => void;
     'use-option-for-damage': (data: { roomCode: string; cardId: string }) => void;
     'register-update': (data: { roomCode: string; playerId: string; selectedCards: (ProgramCard | null)[] }) => void;
+    'deal-option-cards-to-all': (data: { roomCode: string }) => void;
 }
 
 interface InterServerEvents { }
@@ -625,6 +626,26 @@ app.prepare().then(() => {
             // Update game state so UI reflects the reduced damage
             io.to(roomCode).emit('game-state', gameState);
         }
+
+        // Dev/Test: Deal random option cards to all players
+        socket.on('deal-option-cards-to-all', ({ roomCode }) => {
+            const gameState = games.get(roomCode);
+            if (!gameState) return;
+            
+            // Only host can use this
+            if (socket.data.playerId !== gameState.host) {
+                console.log(`Non-host ${socket.data.playerId} tried to deal option cards`);
+                return;
+            }
+            
+            console.log(`[Dev] Host dealing 1 random option card to each player`);
+            
+            Object.values(gameState.players).forEach(player => {
+                gameEngine.drawOptionCard(gameState, player);
+            });
+            
+            io.to(roomCode).emit('game-state', gameState);
+        });
 
         socket.on('leave-game', () => {
             const roomCode = socket.data.roomCode;

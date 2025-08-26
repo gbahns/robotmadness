@@ -129,7 +129,7 @@ export default function GamePage() {
         ...data
       });
     },
-    onOptionCardUsedForDamage: (data: any) => {
+    onOptionCardUsedForDamage: (data: { playerName: string; card: { name: string }; damagePreventedSoFar: number; damageRemaining: number }) => {
       setLogEntries(prev => [...prev, {
         id: Date.now(),
         message: `${data.playerName} used ${data.card.name} to prevent damage (${data.damagePreventedSoFar}/${data.damageRemaining + data.damagePreventedSoFar} prevented)`,
@@ -252,7 +252,7 @@ export default function GamePage() {
         <div className="flex-1 flex flex-col min-h-0">
           {/* Game Header */}
           <div className="px-4 pt-4">
-            <GameHeader roomCode={roomCode} onLeaveGame={handleLeaveGame} />
+            <GameHeader roomCode={roomCode} onLeaveGame={handleLeaveGame} isHost={isHost} />
           </div>
 
           {/* Game Area - Main horizontal layout */}
@@ -335,7 +335,6 @@ export default function GamePage() {
                       <div className="mt-4">
                         <OptionCards 
                           optionCards={currentPlayer.optionCards}
-                          playerName={currentPlayer.name}
                         />
                       </div>
                     )}

@@ -1,6 +1,6 @@
 // lib/game/constants.ts
 
-import { CardType } from './types';
+import { CardType, Direction } from './types';
 
 export const GAME_CONFIG = {
   MAX_PLAYERS: 8,
@@ -23,9 +23,6 @@ export const DIRECTION_VECTORS = {
   [Direction.DOWN]: { x: 0, y: 1 },
   [Direction.LEFT]: { x: -1, y: 0 },
 } as const;
-
-// Import Direction from types
-import { Direction } from './types';
 
 // Card UI configuration
 export const CARD_DISPLAY = {

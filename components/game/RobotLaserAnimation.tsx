@@ -5,7 +5,8 @@ import { Player, Position } from '@/lib/game/types';
 export interface RobotLaserShot {
     shooterId: string;
     path: Position[];
-    targetId?: string;
+    targetId?: string;  // Deprecated: use targetIds instead
+    targetIds?: string[]; // All robots hit by this laser (for High-Power Laser)
     timestamp: number;
 }
 
@@ -56,7 +57,7 @@ export default function RobotLaserAnimation({ players, activeLasers, tileSize }:
             isHorizontal = shooter.direction === 1 || shooter.direction === 3; // East or West
         }
 
-        const elements = [];
+        const elements: React.ReactElement[] = [];
 
         // Render the laser beam path
         laser.path.forEach((pos, index) => {
@@ -114,23 +115,25 @@ export default function RobotLaserAnimation({ players, activeLasers, tileSize }:
             );
         });
 
-        // Add explosion effect if laser hit a target
-        if (laser.targetId && laser.path.length > 0) {
-            const lastPos = laser.path[laser.path.length - 1];
-            const explosionX = lastPos.x * tileSize + tileSize / 2;
-            const explosionY = lastPos.y * tileSize + tileSize / 2;
+        // Add explosion effects for all hit targets
+        const targets = laser.targetIds || (laser.targetId ? [laser.targetId] : []);
+        targets.forEach((targetId, targetIndex) => {
+            const targetPlayer = players[targetId];
+            if (targetPlayer) {
+                const explosionX = targetPlayer.position.x * tileSize + tileSize / 2;
+                const explosionY = targetPlayer.position.y * tileSize + tileSize / 2;
 
-            elements.push(
-                <div
-                    key={`explosion-${laser.shooterId}-${laser.timestamp}`}
-                    className="absolute pointer-events-none"
-                    style={{
-                        left: `${explosionX}px`,
-                        top: `${explosionY}px`,
-                        transform: 'translate(-50%, -50%)',
-                        zIndex: 45
-                    }}
-                >
+                elements.push(
+                    <div
+                        key={`explosion-${laser.shooterId}-${laser.timestamp}-${targetIndex}`}
+                        className="absolute pointer-events-none"
+                        style={{
+                            left: `${explosionX}px`,
+                            top: `${explosionY}px`,
+                            transform: 'translate(-50%, -50%)',
+                            zIndex: 45
+                        }}
+                    >
                     {/* Explosion burst effect */}
                     <div
                         className="absolute"
@@ -197,8 +200,9 @@ export default function RobotLaserAnimation({ players, activeLasers, tileSize }:
                         HIT!
                     </div>
                 </div>
-            );
-        }
+                );
+            }
+        });
 
         return elements;
     };
