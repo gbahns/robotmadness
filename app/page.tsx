@@ -247,7 +247,7 @@ export default function Home() {
           disabled={!playerName?.trim() || isSettingGuestName}
           className="px-8 py-3 bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold rounded-lg disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed transition"
         >
-          Create Practice Game
+          Practice Game
         </button>
       </div>
 
