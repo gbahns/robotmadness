@@ -62,8 +62,9 @@ export default function SignUpPage() {
         router.push("/")
         router.refresh()
       }
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err) {
+      const error = err as Error
+      setError(error.message)
       setLoading(false)
     }
   }

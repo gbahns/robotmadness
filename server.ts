@@ -58,6 +58,7 @@ interface ClientToServerEvents {
         userId?: string;
         username?: string;
         isAuthenticated?: boolean;
+        isPractice?: boolean;
     }) => void;
     'leave-game': () => void;
     'start-game': (data: { 

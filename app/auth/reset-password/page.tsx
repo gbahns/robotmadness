@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 
 export default function ResetPasswordPage() {
@@ -58,8 +57,9 @@ export default function ResetPasswordPage() {
         router.push('/auth/signin');
       }, 3000);
       
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message);
       setLoading(false);
     }
   };

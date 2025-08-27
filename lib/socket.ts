@@ -6,7 +6,7 @@ import { GameState, Player, SocketEvent } from './game/types';
 class SocketClient {
   private socket: Socket | null = null;
   private listeners: Map<string, Set<(...args: unknown[]) => void>> = new Map();
-  public auth: any = {}; // Store auth data
+  public auth: { userId?: string; username?: string; isAuthenticated?: boolean } = {}; // Store auth data
 
   connect(): Socket {
     if (!this.socket) {

@@ -35,7 +35,8 @@
       "Bash(test:*)",
       "Bash(npm uninstall:*)",
       "Bash(openssl rand:*)",
-      "Bash(tsx watch:*)"
+      "Bash(tsx watch:*)",
+      "Bash(docker:*)"
     ],
     "deny": [],
     "ask": []

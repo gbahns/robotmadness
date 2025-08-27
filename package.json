@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "npm run db:generate:local && tsx watch server.ts",
+    "dev": "npm run db:generate && tsx watch server.ts",
+    "dev:sqlite": "npm run db:generate:local && tsx watch server.ts",
     "dev:clean": "scripts\\dev.bat",
     "build": "next build",
     "build:clean": "rm -rf .next && next build",

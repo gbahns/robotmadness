@@ -81,7 +81,7 @@ export default function SettingsPage() {
       const res = await fetch('/api/settings/check-password');
       const data = await res.json();
       setHasPassword(data.hasPassword);
-    } catch (error) {
+    } catch {
       console.error('Failed to check password status');
     }
   };
@@ -91,7 +91,7 @@ export default function SettingsPage() {
       const res = await fetch('/api/settings/linked-accounts');
       const data = await res.json();
       setLinkedAccounts({ google: data.google, discord: data.discord });
-    } catch (error) {
+    } catch {
       console.error('Failed to check linked accounts');
     }
   };
@@ -106,7 +106,7 @@ export default function SettingsPage() {
         gamesPlayed: data.gamesPlayed,
         gamesHosted: data.gamesHosted
       });
-    } catch (error) {
+    } catch {
       console.error('Failed to check delete eligibility');
     }
   };
@@ -155,8 +155,9 @@ export default function SettingsPage() {
 
       setSuccess(`${provider} account unlinked successfully`);
       checkLinkedAccounts(); // Refresh the linked accounts
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message);
     } finally {
       setLoading(false);
     }
@@ -185,8 +186,9 @@ export default function SettingsPage() {
       
       // Refresh session to get updated data
       router.refresh();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message);
     } finally {
       setLoading(false);
     }
@@ -230,8 +232,9 @@ export default function SettingsPage() {
       setNewPassword('');
       setConfirmPassword('');
       setHasPassword(true);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message);
     } finally {
       setLoading(false);
     }
@@ -263,8 +266,9 @@ export default function SettingsPage() {
 
       // Sign out and redirect
       router.push('/api/auth/signout');
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message);
       setLoading(false);
     }
   };

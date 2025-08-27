@@ -83,12 +83,32 @@ When performing database migrations, **ALWAYS** check and use the existing TypeS
 
 ## Code Style Guidelines
 
-### TypeScript Best Practices
+### TypeScript Best Practices (STRICT - NO EXCEPTIONS)
 - **NEVER use `any` type** - Always specify proper types
+  - For errors in catch blocks: `catch (err) { const error = err as Error; }`
+  - For event handlers: `(e: React.FormEvent)` or `(e: React.ChangeEvent<HTMLInputElement>)`
+  - For unknown objects: Define an interface or use `Record<string, unknown>`
+- **NEVER leave unused variables or imports**
+  - Remove unused imports immediately
+  - If a variable must exist but isn't used, prefix with underscore: `_unusedVar`
+  - For catch blocks where error isn't used: `catch { }` (no parameter)
+- **ALWAYS use proper null checking**
+  - Use optional chaining: `object?.property`
+  - Use nullish coalescing: `value ?? defaultValue`
+  - Add null checks for nullable types: `if (value) { ... }`
 - Use union types (e.g., `string | number`) when values can be multiple types
 - Define interfaces or type aliases for complex objects
 - Properly type function parameters and return values
-- If you absolutely need to bypass typing temporarily, use `unknown` instead of `any`
+- For async functions, specify return type: `async (): Promise<void>`
+
+### Preventing Lint Warnings
+Before completing any code changes, ensure:
+1. No `any` types exist in the code
+2. All imports are used
+3. All variables are either used or removed
+4. All nullable objects are properly checked
+5. Event handlers have proper types
+6. Catch blocks handle errors properly without `any`
 
 ### Comments
 - DO NOT add comments unless explicitly requested by the user

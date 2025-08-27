@@ -34,8 +34,9 @@ export default function ForgotPasswordPage() {
       }
 
       setSubmitted(true);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message);
       setLoading(false);
     }
   };

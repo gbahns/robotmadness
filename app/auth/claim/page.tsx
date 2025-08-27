@@ -1,17 +1,23 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 
 export default function ClaimAccountPage() {
-  const router = useRouter();
   const [step, setStep] = useState<'identify' | 'claim'>('identify');
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [accountInfo, setAccountInfo] = useState<any>(null);
+  const [accountInfo, setAccountInfo] = useState<{
+    username: string;
+    displayName?: string;
+    lastPlayed?: string;
+    stats?: {
+      gamesPlayed: number;
+      gamesWon: number;
+    };
+  } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -37,7 +43,7 @@ export default function ClaimAccountPage() {
         setAccountInfo(data);
         setStep('claim');
       }
-    } catch (err) {
+    } catch {
       setError('Failed to check account. Please try again.');
     } finally {
       setLoading(false);
@@ -89,8 +95,9 @@ export default function ClaimAccountPage() {
         });
       }, 2000);
 
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message);
       setLoading(false);
     }
   };
@@ -195,11 +202,11 @@ export default function ClaimAccountPage() {
             <div className="bg-green-900/30 border border-green-600 p-4 rounded-lg">
               <p className="text-green-300 text-sm mb-2">Account found!</p>
               <div className="text-white">
-                <p className="font-bold">@{accountInfo.username}</p>
-                {accountInfo.displayName && (
+                <p className="font-bold">@{accountInfo?.username}</p>
+                {accountInfo?.displayName && (
                   <p className="text-sm text-gray-400">{accountInfo.displayName}</p>
                 )}
-                {accountInfo.lastPlayed && (
+                {accountInfo?.lastPlayed && (
                   <p className="text-xs text-gray-500 mt-1">
                     Last played: {accountInfo.lastPlayed}
                   </p>

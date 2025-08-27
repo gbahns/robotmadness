@@ -99,7 +99,8 @@ export const authConfig: NextAuthConfig = {
       // Initial sign in
       if (user) {
         token.id = user.id
-        token.username = (user as any).username
+        const userData = user as { username?: string }
+        token.username = userData.username
       }
       
       // Return previous token if the user is already signed in
@@ -131,7 +132,7 @@ export const authConfig: NextAuthConfig = {
       return session
     },
     
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account }) {
       // Allow OAuth sign-ins
       if (!account) return true;
       
