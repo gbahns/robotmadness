@@ -3,7 +3,14 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-const MONGO_URI = 'mongodb://gbahns:Spank921@droidraces-shard-00-00-zb636.mongodb.net:27017,droidraces-shard-00-01-zb636.mongodb.net:27017,droidraces-shard-00-02-zb636.mongodb.net:27017/droidraces?ssl=true&replicaSet=droidraces-shard-0&authSource=admin';
+// MongoDB connection - set MONGO_URI environment variable with connection string
+const MONGO_URI = process.env.MONGO_URI;
+
+if (!MONGO_URI) {
+  console.error('❌ MONGO_URI environment variable not set!');
+  console.error('Please set MONGO_URI with your MongoDB connection string');
+  process.exit(1);
+}
 
 async function fixGamesMigration() {
   const mongoClient = new MongoClient(MONGO_URI);

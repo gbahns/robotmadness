@@ -1,5 +1,55 @@
 # Project Context for AI Assistants
 
+## Database Migration Instructions
+
+### IMPORTANT: Use Existing Scripts
+When performing database migrations, **ALWAYS** check and use the existing TypeScript migration scripts in the `/scripts` folder before creating new ones:
+
+#### MongoDB to PostgreSQL Migration
+1. **User Migration**: `scripts/migrate-users.ts`
+   - Migrates users from MongoDB to PostgreSQL
+   - Maps MongoDB user fields to Prisma schema
+   - Preserves user IDs for relationship mapping
+
+2. **Game Migration**: `scripts/migrate-games.ts`
+   - Migrates games and game players from MongoDB
+   - Uses `games_view` collection for complete data
+   - Maps board IDs to names, robot IDs to colors
+   - Correctly links hosts and winners
+
+3. **Fix Scripts** (if needed after migration):
+   - `scripts/fix-winner-mapping.ts` - Corrects winner relationships
+   - `scripts/fix-games-migration.ts` - General game data fixes
+
+#### Field Mappings (MongoDB → PostgreSQL)
+- **Users**:
+  - Username comes from `players.name` field
+  - `players.userId` → `users._id`
+  - Email from `users.emails[0].address`
+  
+- **Games**:
+  - `games.userId` → host user ID
+  - `games.author` → host username
+  - `games.winner` → winner username (lookup user by name)
+  
+- **Players**:
+  - `players.gameId` → `games._id`
+  - `players.userId` → `users._id`
+  - `players.name` → username
+
+#### Migration Steps
+1. Set `DATABASE_URL` in `.env` to target PostgreSQL database
+2. Update MongoDB connection string in scripts if needed:
+   - Old format: `mongodb://user:pass@shard1,shard2,shard3/db?ssl=true`
+   - New format: `mongodb+srv://user:pass@cluster.mongodb.net/db`
+3. Run migrations in order:
+   ```bash
+   npx tsx scripts/migrate-users.ts
+   npx tsx scripts/migrate-games.ts
+   npx tsx scripts/fix-winner-mapping.ts  # if needed
+   ```
+4. Verify with: `npx tsx scripts/verify-users.ts` and `verify-games.ts`
+
 ## Development Environment
 
 ### Development Server

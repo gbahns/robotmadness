@@ -3,88 +3,61 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
-// =====================================================
-// PHASE 1: CORE TABLES - Users, Games, Game Players
-// =====================================================
-
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  username  String   @unique
-  name      String?
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  // Relations
-  hostedGames   Game[]       @relation("HostedGames")
-  gamesPlayed   GamePlayer[]
-  wonGames      Game[]       @relation("WonGames")
+  id          String       @id @default(uuid())
+  email       String       @unique
+  username    String       @unique
+  name        String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  hostedGames Game[]       @relation("HostedGames")
+  wonGames    Game[]       @relation("WonGames")
+  gamesPlayed GamePlayer[]
 }
 
 model Game {
-  id       String @id @default(uuid())
-  roomCode String @unique @default(cuid())
-  
-  // Basic game info
-  name      String?
-  hostId    String?
-  host      User?   @relation("HostedGames", fields: [hostId], references: [id])
-  
-  // For now, store board/course as simple strings
-  boardName   String?
-  courseName  String?
-  
-  // Game settings
-  maxPlayers Int     @default(8)
-  isPrivate  Boolean @default(false)
-  
-  // Game lifecycle
-  startedAt  DateTime?
-  endedAt    DateTime?
-  
-  // Results (populated when game ends)
+  id            String       @id @default(uuid())
+  roomCode      String       @unique @default(cuid())
+  name          String?
+  hostId        String?
+  boardName     String?
+  courseName    String?
+  maxPlayers    Int          @default(8)
+  isPrivate     Boolean      @default(false)
+  startedAt     DateTime?
+  endedAt       DateTime?
   winnerId      String?
-  winner        User?    @relation("WonGames", fields: [winnerId], references: [id])
-  finalResults  Json?    // Array of {playerId, position, flags, finalDamage}
-  totalDuration Int?     // Game duration in seconds
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  // Relations
-  players      GamePlayer[]
-  
+  finalResults  Json?
+  totalDuration Int?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  host          User?        @relation("HostedGames", fields: [hostId], references: [id])
+  winner        User?        @relation("WonGames", fields: [winnerId], references: [id])
+  players       GamePlayer[]
+
   @@index([roomCode])
   @@index([hostId])
 }
 
 model GamePlayer {
-  id String @id @default(uuid())
-  
-  // Foreign keys
-  gameId String
-  game   Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
-  
-  // Player game info
+  id              String   @id @default(uuid())
+  gameId          String
+  userId          String
   robotColor      String?
-  startingDock    Int?     // 1-8
+  startingDock    Int?
   joinedAt        DateTime @default(now())
-  
-  // Final results (populated when game ends)
   finalPosition   Int?
   flagsReached    Int?
   livesRemaining  Int?
   finalDamage     Int?
   robotsDestroyed Int?
-  
+  game            Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id])
+
   @@unique([gameId, userId])
   @@unique([gameId, startingDock])
   @@index([gameId])
