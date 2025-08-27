@@ -6,9 +6,10 @@ interface GameHeaderProps {
     roomCode: string;
     onLeaveGame: () => void;
     isHost?: boolean;
+    isPractice?: boolean;
 }
 
-export default function GameHeader({ roomCode, onLeaveGame, isHost }: GameHeaderProps) {
+export default function GameHeader({ roomCode, onLeaveGame, isHost, isPractice }: GameHeaderProps) {
     const handleDealOptionCards = () => {
         socketClient.emit('deal-option-cards-to-all', { roomCode });
     };
@@ -21,6 +22,11 @@ export default function GameHeader({ roomCode, onLeaveGame, isHost }: GameHeader
                 </Link>
             </div>
             <div className="flex items-center gap-6">
+                {isPractice && (
+                    <div className="bg-blue-900/30 border border-blue-700/50 px-3 py-1 rounded">
+                        <span className="text-blue-300 text-sm font-medium">PRACTICE MODE</span>
+                    </div>
+                )}
                 {isHost && (
                     <button
                         onClick={handleDealOptionCards}

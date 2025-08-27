@@ -26,6 +26,7 @@ type Game = {
   roomCode: string;
   name: string | null;
   boardName: string | null;
+  isPractice?: boolean;
   startedAt: string | null;
   endedAt: string | null;
   totalDuration: number | null;
@@ -295,8 +296,15 @@ export default function GamesPage() {
                       {formatDate(game.createdAt)}
                     </td>
                     <td className="px-3 py-2">
-                      <div className="text-white font-medium">
-                        {game.name || `Game ${game.id.substring(0, 8)}`}
+                      <div className="flex items-center gap-2">
+                        <span className="text-white font-medium">
+                          {game.name || `Game ${game.id.substring(0, 8)}`}
+                        </span>
+                        {game.isPractice && (
+                          <span className="text-xs bg-blue-900/50 text-blue-300 px-2 py-0.5 rounded">
+                            Practice
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-gray-300">

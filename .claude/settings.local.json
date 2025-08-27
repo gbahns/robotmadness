@@ -33,7 +33,9 @@
       "Bash(npx prisma:*)",
       "Bash(curl:*)",
       "Bash(test:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(openssl rand:*)",
+      "Bash(tsx watch:*)"
     ],
     "deny": [],
     "ask": []

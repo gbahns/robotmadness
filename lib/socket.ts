@@ -6,6 +6,7 @@ import { GameState, Player, SocketEvent } from './game/types';
 class SocketClient {
   private socket: Socket | null = null;
   private listeners: Map<string, Set<(...args: unknown[]) => void>> = new Map();
+  public auth: any = {}; // Store auth data
 
   connect(): Socket {
     if (!this.socket) {
@@ -14,6 +15,7 @@ class SocketClient {
         reconnection: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
+        auth: this.auth // Pass auth data on connection
       });
 
       this.socket.on('connect', () => {
@@ -67,8 +69,16 @@ class SocketClient {
   }
 
   // Game-specific methods
-  joinGame(roomCode: string, playerName: string, playerId?: string): void {
-    this.emit(SocketEvent.JOIN_GAME, { roomCode, playerName, playerId });
+  joinGame(roomCode: string, playerName: string, playerId?: string, isPractice?: boolean): void {
+    this.emit(SocketEvent.JOIN_GAME, { 
+      roomCode, 
+      playerName, 
+      playerId,
+      userId: this.auth?.userId,
+      username: this.auth?.username,
+      isAuthenticated: this.auth?.isAuthenticated || false,
+      isPractice: isPractice || false
+    });
   }
 
   startGame(roomCode: string, selectedCourse: string): void {

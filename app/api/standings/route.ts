@@ -35,9 +35,11 @@ function calculateExpectedScore(playerRating: number, opponentRating: number): n
 export async function GET() {
   try {
     // Get all games with players, ordered by creation date for ELO calculation
+    // EXCLUDE PRACTICE GAMES from standings
     const games = await prisma.game.findMany({
       where: {
-        winnerId: { not: null }  // Exclude ties (games with no winner)
+        winnerId: { not: null },  // Exclude ties (games with no winner)
+        isPractice: false  // Exclude practice games from standings
       },
       include: {
         players: {

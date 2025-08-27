@@ -51,7 +51,14 @@ interface ServerToClientEvents {
 
 interface ClientToServerEvents {
     'create-game': (data: { playerName: string; playerId: string; courseId?: string }, callback?: (response: { success: boolean; roomCode?: string; game?: any; error?: string }) => void) => void;
-    'join-game': (data: { roomCode: string; playerName: string; playerId: string }) => void;
+    'join-game': (data: { 
+        roomCode: string; 
+        playerName: string; 
+        playerId: string;
+        userId?: string;
+        username?: string;
+        isAuthenticated?: boolean;
+    }) => void;
     'leave-game': () => void;
     'start-game': (data: { 
         roomCode: string; 
@@ -81,6 +88,8 @@ interface InterServerEvents { }
 interface SocketData {
     roomCode?: string;
     playerId?: string;
+    userId?: string;
+    isAuthenticated?: boolean;
 }
 
 type IoServer = Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>;
@@ -118,7 +127,8 @@ app.prepare().then(() => {
                 name: game.name,
                 playerCount: Object.keys(game.players).length,
                 maxPlayers: 8,
-                phase: game.phase
+                phase: game.phase,
+                isPractice: game.isPractice || false
             }));
 
         res.json(openGames);
@@ -172,35 +182,73 @@ app.prepare().then(() => {
         //     console.log('create-game event exit');
         // });
 
-        socket.on('join-game', async ({ roomCode, playerName, playerId }) => {
+        socket.on('join-game', async ({ roomCode, playerName, playerId, userId, username, isAuthenticated, isPractice }) => {
             try {
-                console.log(`join-game event received: roomCode=${roomCode}, playerName=${playerName}, playerId=${playerId}`);
+                console.log(`join-game event received: roomCode=${roomCode}, playerName=${playerName}, playerId=${playerId}, isAuthenticated=${isAuthenticated}, isPractice=${isPractice}`);
                 let gameState = games.get(roomCode);
                 let isNewGame = false;
 
                 if (!gameState) {
+                    // Check if unauthenticated user is trying to create a real game
+                    if (!isAuthenticated && !isPractice) {
+                        console.log(`Unauthenticated user ${playerName} attempted to create a real game`);
+                        socket.emit('error', { message: 'You must be signed in to create or join real games. Please sign in or create a practice game instead.' });
+                        return;
+                    }
+                    
                     console.log(`Game ${roomCode} not found, creating it`);
                     gameState = gameEngine.createGame(roomCode, `${playerName}'s Game`); // Create if not found
                     games.set(roomCode, gameState);
                     isNewGame = true;
+                } else {
+                    // Check if unauthenticated user is trying to join a real game
+                    if (!isAuthenticated && !gameState.isPractice) {
+                        console.log(`Unauthenticated user ${playerName} attempted to join real game ${roomCode}`);
+                        socket.emit('error', { message: 'You must be signed in to join real games. Please sign in or join a practice game instead.' });
+                        return;
+                    }
                 }
 
-                // Ensure user exists in database
-                let user = await prisma.user.findUnique({
-                    where: { id: playerId }
-                });
-
-                if (!user) {
-                    // Create user if doesn't exist
-                    user = await prisma.user.create({
-                        data: {
-                            id: playerId,
-                            username: playerName.toLowerCase().replace(/\s+/g, '.'),
-                            email: `${playerName.toLowerCase().replace(/\s+/g, '.')}@placeholder.com`,
-                            name: playerName
-                        }
+                // Handle user based on authentication status
+                let user;
+                let effectivePlayerId: string;
+                
+                if (isAuthenticated && userId) {
+                    // For authenticated users, use their actual user ID
+                    effectivePlayerId = userId;
+                    user = await prisma.user.findUnique({
+                        where: { id: userId }
                     });
-                    console.log(`Created new user: ${user.username}`);
+                    
+                    if (!user) {
+                        // This shouldn't happen for authenticated users, but handle it gracefully
+                        console.error(`Authenticated user ${userId} not found in database`);
+                        socket.emit('error', { message: 'User authentication error' });
+                        return;
+                    }
+                    console.log(`Authenticated user ${user.username} joining game`);
+                } else {
+                    // For guest users, use the generated playerId as a temporary user
+                    effectivePlayerId = playerId;
+                    
+                    // Check if a temporary guest user already exists with this ID
+                    user = await prisma.user.findUnique({
+                        where: { id: playerId }
+                    });
+
+                    if (!user) {
+                        // Create a temporary guest user
+                        const guestUsername = `guest.${playerName.toLowerCase().replace(/\s+/g, '.')}.${Date.now()}`;
+                        user = await prisma.user.create({
+                            data: {
+                                id: playerId,
+                                username: guestUsername,
+                                email: `${guestUsername}@guest.local`,
+                                name: `${playerName} (Guest)`
+                            }
+                        });
+                        console.log(`Created guest user: ${user.username}`);
+                    }
                 }
 
                 // Create or get game in database
@@ -211,18 +259,22 @@ app.prepare().then(() => {
                             name: `${playerName}'s Game`,
                             hostId: user.id,
                             maxPlayers: 8,
-                            isPrivate: false
+                            isPrivate: false,
+                            isPractice: isPractice || false
                         }
                     });
-                    console.log(`Created game in database: ${game.id}`);
+                    console.log(`Created ${isPractice ? 'practice ' : ''}game in database: ${game.id}`);
+                    
+                    // Store practice mode in game state
+                    gameState.isPractice = isPractice || false;
                 }
 
-                // Add player to game
-                gameEngine.addPlayerToGame(gameState, playerId, playerName);
+                // Add player to game using the effective player ID
+                gameEngine.addPlayerToGame(gameState, effectivePlayerId, playerName);
 
                 // Get player's starting position (dock number)
-                const newPlayer = gameState.players[playerId];
-                const playerIndex = Object.keys(gameState.players).indexOf(playerId);
+                const newPlayer = gameState.players[effectivePlayerId];
+                const playerIndex = Object.keys(gameState.players).indexOf(effectivePlayerId);
                 const ROBOT_COLORS = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan'];
                 const robotColor = ROBOT_COLORS[playerIndex % ROBOT_COLORS.length];
                 const startingDock = newPlayer.startingPosition?.number || (playerIndex + 1);
@@ -253,9 +305,11 @@ app.prepare().then(() => {
                 }
 
                 socket.join(roomCode);
-                socket.join(playerId);
+                socket.join(effectivePlayerId);
                 socket.data.roomCode = roomCode;
-                socket.data.playerId = playerId;
+                socket.data.playerId = effectivePlayerId;
+                socket.data.userId = user.id;
+                socket.data.isAuthenticated = isAuthenticated || false;
 
                 io.to(roomCode).emit('player-joined', { player: newPlayer });
                 io.to(roomCode).emit('game-state', gameState);

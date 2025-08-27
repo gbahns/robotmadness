@@ -54,7 +54,7 @@ export function useGameSocket({
 }: UseGameSocketProps) {
     const logIdCounter = useRef(0);
 
-    const connectToGame = useCallback((name: string, playerId?: string | null) => {
+    const connectToGame = useCallback((name: string, playerId?: string | null, isPractice?: boolean) => {
         // Connect to socket server
         socketClient.connect();
 
@@ -406,7 +406,7 @@ export function useGameSocket({
         const id = playerId || `player-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         playerIdRef.current = id;
         localStorage.setItem('playerId', id);
-        socketClient.joinGame(roomCode, name, id);
+        socketClient.joinGame(roomCode, name, id, isPractice);
     }, [
         roomCode,
         // Only include stable callbacks that won't change

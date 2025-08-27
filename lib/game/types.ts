@@ -90,6 +90,7 @@ export interface GameState {
   course: Course;
   roundNumber: number;
   cardsDealt: boolean;
+  isPractice?: boolean;  // Practice mode - results not recorded
   optionDeck?: OptionCard[];  // Available option cards
   discardedOptions?: OptionCard[];  // Discarded option cards
   timerStartTime?: number; // Unix timestamp when timer started

@@ -9,7 +9,6 @@
 * hammers
 * handle endgame properly (pop up a modal with the game still visible, celebrate the winner, etc)
 * reduce the padding around the board to make better use of the space
-* add "Jump Jets" option card - allows robot to jump over pits when executing Move 2 or Move 3 cards (normally robots fall into any pit they move over)
 * improve the card look
     * add an up arrow to the move cards - make it big and lay the number over it in a circle like it is
     * make the back up arrow the same as the move cards, just pointing down instead of up
@@ -23,9 +22,10 @@
 * migrate data from legacy RoboRally game
 * make the execution delay configurable
 * when one robot dies, it's asking other players if they want to enter powered down (couldn't reproduce)
+* add "Jump Jets" option card - allows robot to jump over pits when executing Move 2 or Move 3 cards (normally robots fall into any pit they move over)
+* email integration for password resets
 
 ## In Progress
-* need to put the timer below the registers so the cards don't jump around when it appears
 * register phases keep executing after a player has won
 * Prevent further changes after timer expires
 * show all players cards for the current register / incremental card reveal while executing
@@ -118,3 +118,4 @@
 * pits aren't killing robots
 * when conveyor moves robot into a gear it rotates you as if it thinks its a corner conveyor, then the gear rotates you again
 * when you respawn on a flag it repairs damage; it's executing those things in the wrong order; should do repair damage, then respawn destroyed robots
+* need to put the timer below the registers so the cards don't jump around when it appears

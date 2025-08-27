@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
+import { useSession } from 'next-auth/react';
 import { GameState, ProgramCard, Player, Course } from '@/lib/game/types';
 import { socketClient } from '@/lib/socket';
 import CourseComponent from '@/components/game/Course';
@@ -25,10 +26,16 @@ import DamagePreventionDialog from '@/components/game/DamagePreventionDialog';
 import OptionCards from '@/components/game/OptionCards';
 import { OptionCard } from '@/lib/game/optionCards';
 
+function generateRoomCode(): string {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
 export default function GamePage() {
   const params = useParams();
   const router = useRouter();
-  const roomCode = params.roomCode as string;
+  const { data: session, status: sessionStatus } = useSession();
+  const initialRoomCode = params.roomCode as string;
+  const [roomCode, setRoomCode] = useState(initialRoomCode);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -141,22 +148,69 @@ export default function GamePage() {
 
   const hasConnectedRef = useRef(false);
   
+  // Handle new game creation
+  useEffect(() => {
+    if (initialRoomCode === 'new' && roomCode === 'new') {
+      // Generate a new room code
+      const newRoomCode = generateRoomCode();
+      setRoomCode(newRoomCode);
+      
+      // Update the URL without triggering a navigation
+      window.history.replaceState({}, '', `/game/${newRoomCode}`);
+    }
+  }, [initialRoomCode, roomCode]);
+
   useEffect(() => {
     // Prevent multiple connections
-    if (hasConnectedRef.current) return;
+    if (hasConnectedRef.current || sessionStatus === 'loading') return;
     
-    // Check if we have a player name in localStorage
-    const storedName = localStorage.getItem('playerName');
-    const storedPlayerId = localStorage.getItem('playerId');
-
-    if (storedName) {
+    // Don't connect if we're still generating a new room code
+    if (roomCode === 'new') return;
+    
+    // Check if this is a practice game
+    const isPractice = sessionStorage.getItem('practiceMode') === 'true';
+    if (isPractice) {
+      // Clean up session storage
+      sessionStorage.removeItem('practiceMode');
+    }
+    
+    // Determine player name and ID based on authentication status
+    if (session?.user) {
+      // Authenticated user
+      const userName = session.user.name || session.user.username || session.user.email;
+      const userId = session.user.id;
+      
       hasConnectedRef.current = true;
-      setPlayerName(storedName);
-      playerIdRef.current = storedPlayerId || '';
-      connectToGame(storedName, storedPlayerId);
-    } else {
-      setShowNameModal(true);
-      setLoading(false);
+      setPlayerName(userName || '');
+      playerIdRef.current = userId;
+      
+      // Store auth info in socket connection
+      socketClient.auth = {
+        userId: userId,
+        username: session.user.username,
+        isAuthenticated: true
+      };
+      
+      connectToGame(userName || '', userId, isPractice);
+    } else if (sessionStatus === 'unauthenticated') {
+      // Guest user - check localStorage
+      const storedName = localStorage.getItem('playerName');
+      const storedPlayerId = localStorage.getItem('playerId');
+
+      if (storedName) {
+        hasConnectedRef.current = true;
+        setPlayerName(storedName);
+        playerIdRef.current = storedPlayerId || '';
+        
+        socketClient.auth = {
+          isAuthenticated: false
+        };
+        
+        connectToGame(storedName, storedPlayerId, isPractice);
+      } else {
+        setShowNameModal(true);
+        setLoading(false);
+      }
     }
 
     // Cleanup on unmount
@@ -167,7 +221,7 @@ export default function GamePage() {
     };
     // Remove connectToGame from dependencies - it's stable within the hook
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [session, sessionStatus, roomCode]);
 
 
   const handleJoinGame = () => {
@@ -252,7 +306,7 @@ export default function GamePage() {
         <div className="flex-1 flex flex-col min-h-0">
           {/* Game Header */}
           <div className="px-4 pt-2">
-            <GameHeader roomCode={roomCode} onLeaveGame={handleLeaveGame} isHost={isHost} />
+            <GameHeader roomCode={roomCode} onLeaveGame={handleLeaveGame} isHost={isHost} isPractice={gameState?.isPractice} />
           </div>
 
           {/* Game Area - Main horizontal layout */}

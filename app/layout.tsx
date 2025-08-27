@@ -36,6 +36,8 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+import { auth } from "@/lib/auth"
+import SessionProvider from "@/components/auth/SessionProvider"
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -44,17 +46,21 @@ export const metadata: Metadata = {
   description: 'Play RobotMadness board game online with friends',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await auth()
+  
   return (
     <html lang="en">
       <body className={inter.className}>
-        <main className="min-h-screen bg-gray-900 text-white">
-          {children}
-        </main>
+        <SessionProvider session={session}>
+          <main className="min-h-screen bg-gray-900 text-white">
+            {children}
+          </main>
+        </SessionProvider>
       </body>
     </html>
   );
