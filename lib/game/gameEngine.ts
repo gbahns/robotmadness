@@ -1195,7 +1195,15 @@ export class GameEngine {
             const tile = this.getTileAt(gameState, player.position.x, player.position.y);
             if (!tile) return;
             if ((tile.type === TileType.EXPRESS_CONVEYOR && includeExpress) || (tile.type === TileType.CONVEYOR && includeNormal)) {
-                const vector = this.DIRECTION_VECTORS[tile.direction!];
+                if (!tile.direction && tile.direction !== 0) {
+                    console.warn(`Conveyor at (${tile.position.x}, ${tile.position.y}) has no direction`);
+                    return;
+                }
+                const vector = this.DIRECTION_VECTORS[tile.direction];
+                if (!vector) {
+                    console.warn(`Invalid direction ${tile.direction} for conveyor at (${tile.position.x}, ${tile.position.y})`);
+                    return;
+                }
                 const newX = player.position.x + vector.x;
                 const newY = player.position.y + vector.y;
                 this.executionLog(gameState, `${player.name} moved by conveyor`);
@@ -1217,7 +1225,11 @@ export class GameEngine {
             }
             player.position = { ...to };
             const toTile = this.getTileAt(gameState, to.x, to.y);
-            if (toTile && toTile.rotate && (fromTile.type === TileType.CONVEYOR || fromTile.type === TileType.EXPRESS_CONVEYOR)) {
+            // Only rotate if moving from conveyor to another conveyor (corner conveyors)
+            // Don't rotate when moving onto gears or other rotating elements
+            if (toTile && toTile.rotate && 
+                (fromTile.type === TileType.CONVEYOR || fromTile.type === TileType.EXPRESS_CONVEYOR) &&
+                (toTile.type === TileType.CONVEYOR || toTile.type === TileType.EXPRESS_CONVEYOR)) {
                 if (toTile.rotate === 'clockwise') {
                     player.direction = (player.direction + 1) % 4;
                 } else if (toTile.rotate === 'counterclockwise') {
