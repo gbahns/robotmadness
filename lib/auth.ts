@@ -6,14 +6,9 @@ import Google from "next-auth/providers/google"
 import Discord from "next-auth/providers/discord"
 import type { NextAuthConfig } from "next-auth"
 
-// In production, trust Railway's health check domain
-const trustedHosts = process.env.NODE_ENV === 'production' 
-  ? ['healthcheck.railway.app', process.env.NEXTAUTH_URL?.replace(/^https?:\/\//, '')]
-  : undefined;
-
 export const authConfig: NextAuthConfig = {
   adapter: PrismaAdapter(prisma),
-  trustHost: process.env.NODE_ENV === 'production' ? true : false,
+  trustHost: true, // Trust the host - NextAuth will validate against NEXTAUTH_URL
   providers: [
     // Google OAuth
     Google({
