@@ -51,7 +51,7 @@ export default function Course({
     }
 
     return (
-        <div ref={containerRef} className="relative h-full flex justify-center">
+        <div ref={containerRef} className="relative h-full w-full flex justify-center items-center">
             <div className="relative">
                 {/* Board component renders the base board and manages tile size */}
                 <BoardComponent

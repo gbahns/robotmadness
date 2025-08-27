@@ -29,25 +29,44 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
     const calculateTileSize = () => {
       if (!containerRef.current || !board) return;
 
-      // Get the parent element's dimensions instead of our own
-      let parent = containerRef.current.parentElement;
-      if (!parent) return;
-      parent = parent.parentElement;
-      if (!parent) return;
+      // ROBUST BOARD SIZING LOGIC
+      // This finds the game container and calculates optimal tile size
+      // Priority order for finding container:
+      // 1. The main game board area (flex-1 container)
+      // 2. Any parent with h-full class
+      // 3. Direct parent's parent as fallback
+      
+      let gameBoardContainer = containerRef.current.closest('.flex-1.flex.justify-center.items-center');
+      if (!gameBoardContainer) {
+        gameBoardContainer = containerRef.current.closest('[class*="h-full"]');
+      }
+      if (!gameBoardContainer) {
+        gameBoardContainer = containerRef.current.parentElement?.parentElement;
+      }
+      
+      if (!gameBoardContainer) {
+        console.warn('Board: Could not find suitable parent container for sizing');
+        return;
+      }
 
-      const parentWidth = parent.clientWidth;
-      const parentHeight = parent.clientHeight;
+      const parentWidth = gameBoardContainer.clientWidth;
+      const parentHeight = gameBoardContainer.clientHeight;
 
-      console.log('Parent dimensions:', {
-        width: parentWidth,
-        height: parentHeight,
-        boardWidth: board.width,
-        boardHeight: board.height
-      });
+      // Debug logging (can be removed in production)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Board sizing:', {
+          parentWidth,
+          parentHeight,
+          boardWidth: board.width,
+          boardHeight: board.height,
+          container: gameBoardContainer.className.substring(0, 50)
+        });
+      }
 
-      // Calculate based on parent size
-      const maxWidthTileSize = Math.floor(parentWidth / board.width);
-      const maxHeightTileSize = Math.floor((parentHeight - 60) / board.height);
+      // Calculate tile size with minimal padding
+      // Padding: 20px horizontal (10px each side), 40px vertical (20px each side)
+      const maxWidthTileSize = Math.floor((parentWidth - 20) / board.width);
+      const maxHeightTileSize = Math.floor((parentHeight - 40) / board.height);
 
       console.log('Calculated tile sizes:', {
         maxWidthTileSize,
@@ -71,9 +90,14 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
 
     window.addEventListener('resize', calculateTileSize);
 
+    // Observe the parent container for size changes
     const resizeObserver = new ResizeObserver(calculateTileSize);
-    if (containerRef.current) {
-      resizeObserver.observe(containerRef.current);
+    const gameBoardContainer = containerRef.current?.closest('.flex-1.flex.justify-center.items-center') ||
+                               containerRef.current?.closest('[class*="h-full"]') ||
+                               containerRef.current?.parentElement?.parentElement;
+    
+    if (gameBoardContainer) {
+      resizeObserver.observe(gameBoardContainer as Element);
     }
 
     return () => {

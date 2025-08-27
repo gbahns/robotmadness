@@ -13,7 +13,7 @@ export default function GameHeader({ roomCode, onLeaveGame, isHost }: GameHeader
         socketClient.emit('deal-option-cards-to-all', { roomCode });
     };
     return (
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-2">
             <div className="flex items-center gap-4">
                 <h1 className="text-3xl font-bold">RobotMadness</h1>
                 <Link href="/" className="text-blue-400 hover:underline text-sm">

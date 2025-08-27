@@ -251,7 +251,7 @@ export default function GamePage() {
 
         <div className="flex-1 flex flex-col min-h-0">
           {/* Game Header */}
-          <div className="px-4 pt-4">
+          <div className="px-4 pt-2">
             <GameHeader roomCode={roomCode} onLeaveGame={handleLeaveGame} isHost={isHost} />
           </div>
 
