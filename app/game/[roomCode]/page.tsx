@@ -287,10 +287,6 @@ export default function GamePage() {
                     />
                   )}
 
-                  {/* Timer - show during programming phase */}
-                  {gameState?.phase === 'programming' && (
-                    <Timer timeLeft={timerTimeLeft} isActive={isTimerActive} />
-                  )}
 
                   {/* Hand - moved under players list (or show powered down status) */}
                   {gameState?.phase === 'programming' && currentPlayer && (
@@ -369,6 +365,11 @@ export default function GamePage() {
                       </div>
                     )}
                   </div>
+                )}
+
+                {/* Timer - show during programming phase (moved below registers) */}
+                {gameState?.phase === 'programming' && (
+                  <Timer timeLeft={timerTimeLeft} isActive={isTimerActive} />
                 )}
 
                 {(gameState?.phase === 'waiting' || (showPowerDownPrompt && currentPlayer?.lives || 0 > 0)) && (
