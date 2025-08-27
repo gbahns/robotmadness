@@ -12,7 +12,7 @@ scripts/
 .env.production.local
 
 # Prisma files not needed in production
-prisma/migrations/
+prisma/migrations
 prisma/seed.ts
 prisma/schema.sqlite.prisma
 prisma/schema.postgresql.prisma
