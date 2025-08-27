@@ -8,7 +8,7 @@ import UserButton from '@/components/auth/UserButton';
 
 interface GameInfo {
   roomCode: string;
-  name: string;
+  name?: string;
   playerCount: number;
   maxPlayers: number;
   phase: string;
@@ -267,7 +267,7 @@ export default function Home() {
               >
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-semibold">{game.name}</h3>
+                    <h3 className="text-lg font-semibold">{game.name || `Game ${game.roomCode}`}</h3>
                     {game.isPractice && (
                       <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded font-medium">
                         PRACTICE

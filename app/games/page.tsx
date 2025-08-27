@@ -369,9 +369,15 @@ export default function GamesPage() {
                                 {game.players.map((player) => (
                                   <div key={player.id} className="text-xs bg-gray-700 rounded px-2 py-1">
                                     <div className="text-white font-medium">
-                                      {player.user.name || player.user.username}
-                                      {player.user.name && (
-                                        <span className="text-gray-400 ml-1">(@{player.user.username})</span>
+                                      {player.user ? (
+                                        <>
+                                          {player.user.name || player.user.username}
+                                          {player.user.name && (
+                                            <span className="text-gray-400 ml-1">(@{player.user.username})</span>
+                                          )}
+                                        </>
+                                      ) : (
+                                        <span className="text-gray-400">Unknown Player</span>
                                       )}
                                     </div>
                                     <div className="text-gray-400">

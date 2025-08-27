@@ -125,7 +125,7 @@ app.prepare().then(() => {
             .filter(game => game.phase === GamePhase.WAITING)
             .map(game => ({
                 roomCode: game.roomCode,
-                name: game.name,
+                name: game.name || `Game ${game.roomCode}`,
                 playerCount: Object.keys(game.players).length,
                 maxPlayers: 8,
                 phase: game.phase,
@@ -423,6 +423,8 @@ app.prepare().then(() => {
             } else {
                 // Just update this player's status
                 io.to(roomCode).emit('player-submitted', { playerId, playerName: gameState.players[playerId].name });
+                // Also send the updated game state so all clients see the submitted status
+                io.to(roomCode).emit('game-state', gameState);
                 console.log(`Player ${gameState.players[playerId].name} submitted, waiting for others...`);
             }
         });
