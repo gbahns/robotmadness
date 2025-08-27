@@ -433,15 +433,6 @@ export class GameEngine {
         // If game ended during register execution, don't continue
         if ((gameState.phase as GamePhase) === GamePhase.ENDED) return;
 
-        // Respawn any dead robots and check if we need to wait for their decisions
-        const needToWaitForRespawnDecisions = this.respawnDeadRobots(gameState);
-
-        if (needToWaitForRespawnDecisions) {
-            console.log('Waiting for respawn power-down decisions before ending turn...');
-            // Don't call endTurn yet - it will be called after all respawn decisions are made
-            return;
-        }
-
         // 2. TODO: Handle repairs & upgrades
 
         // 3. TODO: Handle power downs
@@ -541,7 +532,17 @@ export class GameEngine {
         gameState.allPlayersDead = false; // Reset the flag
         this.dealCards(gameState);
 
-        // 6. Reset turn number (if tracking)
+        // 6. Respawn any dead robots AFTER repairs (this is the correct order)
+        // Repairs happen first, then option cards, then respawn destroyed robots
+        const needToWaitForRespawnDecisions = this.respawnDeadRobots(gameState);
+
+        if (needToWaitForRespawnDecisions) {
+            console.log('Waiting for respawn power-down decisions...');
+            // The respawn decision handler will emit the game state when done
+            return;
+        }
+
+        // 7. Reset turn number (if tracking)
         //gameState.turnNumber = (gameState.turnNumber || 0) + 1;
         this.io.to(gameState.roomCode).emit('game-state', gameState);
     }
