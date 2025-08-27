@@ -6,6 +6,12 @@ export default auth((req) => {
   const isAuthPage = req.nextUrl.pathname.startsWith("/auth")
   const isGamePage = req.nextUrl.pathname.startsWith("/game")
   const isApiRoute = req.nextUrl.pathname.startsWith("/api")
+  const isHealthCheck = req.nextUrl.pathname === "/api/health"
+  
+  // Skip auth for health checks
+  if (isHealthCheck) {
+    return NextResponse.next()
+  }
   
   // For now, allow game access without auth (gradual migration)
   // We'll enable this later once auth is fully integrated

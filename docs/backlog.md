@@ -1,4 +1,6 @@
 ## Backlog
+* in the Power Rankings swap the display name and username
+* in the game history when a game is expanded show the players' display names
 * when a player submits their cards color there little register indicators green
 * more distinction between the registers and cards in your hands
 * make the robot arrow black instead of white when the robot color is light

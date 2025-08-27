@@ -205,9 +205,9 @@ describe('Respawn Order', () => {
                 return false; // No decisions needed
             };
 
-            // Override dealCards to track when it's called
-            const originalDealCards = (gameEngine as any).dealCards;
-            (gameEngine as any).dealCards = function(gs: ServerGameState) {
+            // Override dealCardsWithoutPowerDownCheck to track when cards are dealt
+            const originalDealCards = (gameEngine as any).dealCardsWithoutPowerDownCheck;
+            (gameEngine as any).dealCardsWithoutPowerDownCheck = function(gs: ServerGameState) {
                 executionOrder.push('dealCards');
                 // Don't actually deal cards in test
             };
@@ -218,7 +218,8 @@ describe('Respawn Order', () => {
             await (gameEngine as any).endTurn(gameState);
 
             // Verify the correct execution order
-            expect(executionOrder).toEqual(['repairs', 'dealCards', 'respawn']);
+            // Repairs happen first (step 5.a), then respawn (step 5.d), then deal cards for next turn
+            expect(executionOrder).toEqual(['repairs', 'respawn', 'dealCards']);
         });
 
         it('should not respawn robots if game has ended', async () => {
