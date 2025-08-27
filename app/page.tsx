@@ -253,7 +253,7 @@ export default function Home() {
 
       {/* Open games list */}
       <div className="max-w-4xl mx-auto">
-        <h2 className="text-2xl font-bold mb-4">Open Games</h2>
+        <h2 className="text-2xl font-bold mb-4 text-center">Open Games</h2>
         {loadingGames ? (
           <div className="text-center text-gray-400">Loading games...</div>
         ) : openGames.length > 0 ? (

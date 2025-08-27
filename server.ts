@@ -542,10 +542,10 @@ app.prepare().then(() => {
                     id => id !== playerId
                 );
 
-                // If all powered down players have decided, proceed with dealing cards
+                // If all powered down players have decided, continue with cleanup
                 if (gameState.waitingForPowerDownDecisions.length === 0) {
-                    console.log('All power down decisions received, dealing cards...');
-                    gameEngine.proceedWithDealingCards(gameState);
+                    console.log('All power down decisions received, continuing cleanup...');
+                    gameEngine.finishTurnCleanup(gameState);
                     io.to(roomCode).emit('game-state', gameState);
                 }
             }
@@ -604,8 +604,12 @@ app.prepare().then(() => {
 
                 // If all respawning players have decided, proceed with dealing cards
                 if (gameState.waitingForRespawnDecisions.length === 0) {
-                    console.log('All respawn decisions received, ending turn...');
-                    gameEngine.endTurn(gameState);
+                    console.log('All respawn decisions received, dealing cards for next turn...');
+                    // Now deal cards for the next turn
+                    gameState.currentRegister = 0;
+                    gameState.roundNumber++;
+                    gameState.allPlayersDead = false;
+                    gameEngine.dealCardsWithoutPowerDownCheck(gameState);
                     io.to(roomCode).emit('game-state', gameState);
                 }
             }

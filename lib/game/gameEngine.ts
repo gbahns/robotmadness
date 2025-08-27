@@ -266,6 +266,44 @@ export class GameEngine {
         }
     }
 
+    async checkPowerDownDecisions(gameState: ServerGameState): Promise<boolean> {
+        const poweredDownPlayers: Player[] = [];
+        
+        for (const playerId in gameState.players) {
+            const player = gameState.players[playerId];
+            
+            if (player.powerState === PowerState.OFF && player.lives > 0) {
+                poweredDownPlayers.push(player);
+                // Send power down option ONLY to the specific player
+                setTimeout(() => {
+                    console.log(`Emitting power-down-option ONLY to powered-down player ${player.id} (${player.name})`);
+                    this.io.to(player.id).emit('power-down-option', {
+                        message: 'You are powered down. Stay powered down for another turn?'
+                    });
+                }, 100);
+                console.log(`Waiting for ${player.name} to decide on continuing power down...`);
+            }
+        }
+
+        // If there are powered down players, we need to wait for their decisions
+        if (poweredDownPlayers.length > 0) {
+            gameState.waitingForPowerDownDecisions = poweredDownPlayers.map(p => p.id);
+            gameState.phase = GamePhase.POWER_DOWN_DECISION;
+            return true; // Need to wait
+        }
+
+        return false; // No need to wait
+    }
+
+    dealCardsWithoutPowerDownCheck(gameState: ServerGameState): void {
+        // This is the actual card dealing logic without power-down checks
+        // Clear the respawn decisions tracking after dealing cards
+        gameState.playersWhoMadeRespawnDecisions = undefined;
+        
+        // Proceed with dealing
+        this.proceedWithDealingCards(gameState);
+    }
+
     dealCards(gameState: ServerGameState): void {
         // STEP 1: Handle powered down players FIRST (before creating deck)
         // They need to decide whether to stay powered down
@@ -500,16 +538,16 @@ export class GameEngine {
         // Don't end turn if game has already ended
         if (gameState.phase === GamePhase.ENDED) return;
 
-        console.log('Ending turn and dealing cards for next turn');
+        console.log('Ending turn - starting cleanup phase');
 
-        // Execute repairs at the end of the turn (robots on repair sites get healed)
+        // Step 5.a: Repairs & upgrades
         await this.executeRepairs(gameState);
 
+        // Step 5.b: Clear programmed registers (unless locked)
         for (const playerId in gameState.players) {
             const player = gameState.players[playerId];
 
             if (player.lives > 0) {
-                // 2. Wipe registers - discard all program cards from non-locked registers
                 // Clear selected cards (keeping locked ones if damage >= 5)
                 const lockedCount = Math.max(0, player.damage - 4);
                 console.log("CLEANING UP CARDS FOR PLAYER", player.name, "LOCKED COUNT:", lockedCount);
@@ -517,33 +555,46 @@ export class GameEngine {
                     player.selectedCards[i] = null;
                 }
 
-                // 3. Reset submission state for next turn
-                player.submitted = false; //is this needed or does dealCards handle it?
+                // Reset submission state for next turn
+                player.submitted = false;
 
-                // 4. Clear dealt cards (they were used this turn)
-                player.dealtCards = []; //is this needed or does dealCards handle it?
+                // Clear dealt cards (they were used this turn)
+                player.dealtCards = [];
             }
         }
 
-        // 5. Deal new cards for the next turn
-        console.log('Dealing new cards for next turn');
-        gameState.currentRegister = 0;
-        gameState.roundNumber++;
-        gameState.allPlayersDead = false; // Reset the flag
-        this.dealCards(gameState);
+        // Step 5.c: Powered down robots announce whether they will remain powered down
+        const needToWaitForPowerDownDecisions = await this.checkPowerDownDecisions(gameState);
+        
+        if (needToWaitForPowerDownDecisions) {
+            console.log('Waiting for power-down decisions...');
+            // The power down decision handler will continue the sequence
+            return;
+        }
 
-        // 6. Respawn any dead robots AFTER repairs (this is the correct order)
-        // Repairs happen first, then option cards, then respawn destroyed robots
+        // Continue with the rest of the cleanup
+        await this.finishTurnCleanup(gameState);
+    }
+
+    async finishTurnCleanup(gameState: ServerGameState): Promise<void> {
+        // Step 5.d: Destroyed robots reenter the race at their archive marker
         const needToWaitForRespawnDecisions = this.respawnDeadRobots(gameState);
 
         if (needToWaitForRespawnDecisions) {
             console.log('Waiting for respawn power-down decisions...');
-            // The respawn decision handler will emit the game state when done
+            // The respawn decision handler will continue to deal cards
             return;
         }
 
-        // 7. Reset turn number (if tracking)
-        //gameState.turnNumber = (gameState.turnNumber || 0) + 1;
+        // Step 6: Ready for the next turn - Deal new cards
+        console.log('Dealing new cards for next turn');
+        gameState.currentRegister = 0;
+        gameState.roundNumber++;
+        gameState.allPlayersDead = false; // Reset the flag
+        
+        // Now deal cards WITHOUT asking for power-down decisions (we already did that)
+        this.dealCardsWithoutPowerDownCheck(gameState);
+
         this.io.to(gameState.roomCode).emit('game-state', gameState);
     }
 
@@ -1138,6 +1189,9 @@ export class GameEngine {
             // Robots reenter with 2 damage tokens (per rules)
             player.damage = 2;
         }
+
+        // NOTE: Robots do NOT get repairs when respawning on repair sites
+        // Repairs happen BEFORE respawns in the turn order (step 5.a before 5.d)
 
         this.io.to(gameState.roomCode).emit('robot-respawned', {
             playerName: player.name,

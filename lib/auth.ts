@@ -99,8 +99,21 @@ export const authConfig: NextAuthConfig = {
       // Initial sign in
       if (user) {
         token.id = user.id
-        const userData = user as { username?: string }
+        const userData = user as { username?: string; name?: string }
         token.username = userData.username
+        token.name = userData.name
+      }
+      
+      // Update token when session is updated (e.g., profile changes)
+      if (trigger === "update") {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { username: true, name: true }
+        })
+        if (dbUser) {
+          token.username = dbUser.username
+          token.name = dbUser.name
+        }
       }
       
       // Return previous token if the user is already signed in
@@ -111,13 +124,14 @@ export const authConfig: NextAuthConfig = {
       }
       
       // For subsequent requests, ensure we have the user data
-      if (token.id && !token.username) {
+      if (token.id && (!token.username || !token.name)) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { username: true }
+          select: { username: true, name: true }
         })
         if (dbUser) {
           token.username = dbUser.username
+          token.name = dbUser.name
         }
       }
       
@@ -128,6 +142,7 @@ export const authConfig: NextAuthConfig = {
       if (session.user) {
         session.user.id = token.id as string
         session.user.username = token.username as string
+        session.user.name = token.name as string
       }
       return session
     },

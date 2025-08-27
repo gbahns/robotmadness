@@ -1,4 +1,5 @@
 ## Backlog
+* when a player submits their cards color there little register indicators green
 * more distinction between the registers and cards in your hands
 * make the robot arrow black instead of white when the robot color is light
 * make the screen layout adapt correctly to different window sizes and zoom level

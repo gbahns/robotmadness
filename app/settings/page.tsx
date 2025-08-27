@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 export default function SettingsPage() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -184,7 +184,22 @@ export default function SettingsPage() {
 
       setSuccess('Profile updated successfully!');
       
+      // Update local state with new values
+      if (data.user) {
+        setUsername(data.user.username);
+        setDisplayName(data.user.name || '');
+      }
+      
       // Refresh session to get updated data
+      await update({
+        ...session,
+        user: {
+          ...session?.user,
+          username: data.user.username,
+          name: data.user.name
+        }
+      });
+      
       router.refresh();
     } catch (err) {
       const error = err as Error;
