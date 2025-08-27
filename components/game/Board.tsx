@@ -36,12 +36,13 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
       // 2. Any parent with h-full class
       // 3. Direct parent's parent as fallback
       
-      let gameBoardContainer = containerRef.current.closest('.flex-1.flex.justify-center.items-center');
+      let gameBoardContainer: Element | null = containerRef.current.closest('.flex-1.flex.justify-center.items-center');
       if (!gameBoardContainer) {
         gameBoardContainer = containerRef.current.closest('[class*="h-full"]');
       }
       if (!gameBoardContainer) {
-        gameBoardContainer = containerRef.current.parentElement?.parentElement;
+        const parent = containerRef.current.parentElement?.parentElement;
+        gameBoardContainer = parent || null;
       }
       
       if (!gameBoardContainer) {
@@ -92,12 +93,17 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
 
     // Observe the parent container for size changes
     const resizeObserver = new ResizeObserver(calculateTileSize);
-    const gameBoardContainer = containerRef.current?.closest('.flex-1.flex.justify-center.items-center') ||
-                               containerRef.current?.closest('[class*="h-full"]') ||
-                               containerRef.current?.parentElement?.parentElement;
+    let observeTarget: Element | null = null;
     
-    if (gameBoardContainer) {
-      resizeObserver.observe(gameBoardContainer as Element);
+    if (containerRef.current) {
+      observeTarget = containerRef.current.closest('.flex-1.flex.justify-center.items-center') ||
+                     containerRef.current.closest('[class*="h-full"]') ||
+                     containerRef.current.parentElement?.parentElement ||
+                     null;
+    }
+    
+    if (observeTarget) {
+      resizeObserver.observe(observeTarget);
     }
 
     return () => {
