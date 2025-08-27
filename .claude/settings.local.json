@@ -32,7 +32,8 @@
       "Bash(npx prisma db pull:*)",
       "Bash(npx prisma:*)",
       "Bash(curl:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": [],
     "ask": []
