@@ -669,6 +669,14 @@ export class GameEngine {
             // Movement is valid, update position
             player.position.x = newX;
             player.position.y = newY;
+
+            // Check if the robot moved onto a pit (they fall immediately, can't jump over)
+            const tile = this.getTileAt(gameState, newX, newY);
+            if (tile && tile.type === TileType.PIT) {
+                this.executionLog(gameState, `${player.name} fell into a pit!`);
+                this.destroyRobot(gameState, player, 'fell into a pit');
+                break; // Stop movement if robot falls into pit
+            }
         }
     }
 
@@ -709,6 +717,14 @@ export class GameEngine {
         // Push is valid, update position
         playerToPush.position.x = newX;
         playerToPush.position.y = newY;
+        
+        // Check if the pushed robot lands on a pit
+        const tile = this.getTileAt(gameState, newX, newY);
+        if (tile && tile.type === TileType.PIT) {
+            this.executionLog(gameState, `${playerToPush.name} was pushed into a pit!`);
+            this.destroyRobot(gameState, playerToPush, 'fell into a pit');
+            return true; // Push succeeded (robot fell into pit)
+        }
         
         // Check for Ramming Gear and apply damage
         // Only applies when the robot with Ramming Gear is actively moving (not being pushed or moved by conveyors)
