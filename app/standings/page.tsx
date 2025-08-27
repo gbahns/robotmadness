@@ -329,11 +329,11 @@ export default function StandingsPage() {
                     </td>
                     <td className="px-3 py-2">
                       <div className="font-medium text-white">
-                        {standing.username}
+                        {standing.name || standing.username}
                       </div>
                       {standing.name && (
                         <div className="text-xs text-gray-400">
-                          {standing.name}
+                          @{standing.username}
                         </div>
                       )}
                     </td>

@@ -8,6 +8,7 @@ type GamePlayer = {
   userId: string;
   user: {
     username: string;
+    name: string | null;
   };
   flagsReached: number;
   livesRemaining: number;
@@ -34,9 +35,11 @@ type Game = {
   finalResults: FinalResult[] | null;
   host: {
     username: string;
+    name: string | null;
   } | null;
   winner: {
     username: string;
+    name: string | null;
   } | null;
   players: GamePlayer[];
   _count: {
@@ -308,7 +311,14 @@ export default function GamesPage() {
                       </div>
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-gray-300">
-                      {game.host?.username || '-'}
+                      {game.host ? (
+                        <div>
+                          <div className="font-medium">{game.host.name || game.host.username}</div>
+                          {game.host.name && (
+                            <div className="text-xs text-gray-500">@{game.host.username}</div>
+                          )}
+                        </div>
+                      ) : '-'}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-gray-300 text-xs">
                       {game.boardName || '-'}
@@ -323,9 +333,12 @@ export default function GamesPage() {
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap">
                       {game.winner ? (
-                        <span className="text-yellow-400 font-medium">
-                          {game.winner.username}
-                        </span>
+                        <div className="text-yellow-400">
+                          <div className="font-medium">{game.winner.name || game.winner.username}</div>
+                          {game.winner.name && (
+                            <div className="text-xs text-yellow-600">@{game.winner.username}</div>
+                          )}
+                        </div>
                       ) : (
                         <span className="text-gray-500">-</span>
                       )}
@@ -355,7 +368,12 @@ export default function GamesPage() {
                               <div className="mt-1 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                                 {game.players.map((player) => (
                                   <div key={player.id} className="text-xs bg-gray-700 rounded px-2 py-1">
-                                    <span className="text-white font-medium">{player.user.username}</span>
+                                    <div className="text-white font-medium">
+                                      {player.user.name || player.user.username}
+                                      {player.user.name && (
+                                        <span className="text-gray-400 ml-1">(@{player.user.username})</span>
+                                      )}
+                                    </div>
                                     <div className="text-gray-400">
                                       Flags: {player.flagsReached} | 
                                       Lives: {player.livesRemaining} | 

@@ -77,11 +77,13 @@ export default function PlayersList({
                                     <div
                                         key={index}
                                         className={`w-2 h-3 rounded-sm ${
-                                            player.selectedCards && player.selectedCards[index] !== null
+                                            player.submitted
+                                                ? 'bg-green-500'
+                                                : player.selectedCards && player.selectedCards[index] !== null
                                                 ? 'bg-white'
                                                 : 'bg-gray-600'
                                         }`}
-                                        title={`Register ${index + 1}`}
+                                        title={`Register ${index + 1}${player.submitted ? ' (Submitted)' : ''}`}
                                     />
                                 ))}
                             </div>

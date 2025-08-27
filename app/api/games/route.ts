@@ -84,11 +84,13 @@ export async function GET() {
         host: {
           select: {
             username: true,
+            name: true,
           }
         },
         winner: {
           select: {
             username: true,
+            name: true,
           }
         },
         players: {
@@ -96,6 +98,7 @@ export async function GET() {
             user: {
               select: {
                 username: true,
+                name: true,
               }
             }
           }
