@@ -1,6 +1,4 @@
 ## Backlog
-* need to put the timer below the registers so the cards don't jump around when it appears
-* robots can't jump pits
 * more distinction between the registers and cards in your hands
 * make the robot arrow black instead of white when the robot color is light
 * make the screen layout adapt correctly to different window sizes and zoom level
@@ -11,6 +9,7 @@
 * hammers
 * handle endgame properly (pop up a modal with the game still visible, celebrate the winner, etc)
 * reduce the padding around the board to make better use of the space
+* add "Jump Jets" option card - allows robot to jump over pits when executing Move 2 or Move 3 cards (normally robots fall into any pit they move over)
 * improve the card look
     * add an up arrow to the move cards - make it big and lay the number over it in a circle like it is
     * make the back up arrow the same as the move cards, just pointing down instead of up
@@ -26,7 +25,7 @@
 * when one robot dies, it's asking other players if they want to enter powered down (couldn't reproduce)
 
 ## In Progress
-* when you respawn on a flag it repairs damage; it's executing those things in the wrong order; should do repair damage, then respawn destroyed robots
+* need to put the timer below the registers so the cards don't jump around when it appears
 * register phases keep executing after a player has won
 * Prevent further changes after timer expires
 * show all players cards for the current register / incremental card reveal while executing
@@ -118,3 +117,4 @@
 * when a robot has lost all of its lives, they're still asked how they want to reenter, dealt cards, etc
 * pits aren't killing robots
 * when conveyor moves robot into a gear it rotates you as if it thinks its a corner conveyor, then the gear rotates you again
+* when you respawn on a flag it repairs damage; it's executing those things in the wrong order; should do repair damage, then respawn destroyed robots
