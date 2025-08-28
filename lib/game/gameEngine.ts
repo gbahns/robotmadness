@@ -1164,14 +1164,87 @@ export class GameEngine {
         }
     }
 
-    performRespawn(gameState: ServerGameState, playerId: string, direction: Direction) {
+    getAvailableAdjacentPositions(
+        gameState: ServerGameState, 
+        centerPosition: Position, 
+        occupyingPlayerIds: string[]
+    ): Position[] {
+        const availablePositions: Position[] = [];
+        const board = gameState.course.board;
+        
+        // Check all 8 adjacent positions (orthogonal and diagonal)
+        const adjacentOffsets = [
+            { x: 0, y: -1 },  // North
+            { x: 1, y: 0 },   // East
+            { x: 0, y: 1 },   // South
+            { x: -1, y: 0 },  // West
+            { x: 1, y: -1 },  // Northeast
+            { x: 1, y: 1 },   // Southeast
+            { x: -1, y: 1 },  // Southwest
+            { x: -1, y: -1 }, // Northwest
+        ];
+        
+        for (const offset of adjacentOffsets) {
+            const x = centerPosition.x + offset.x;
+            const y = centerPosition.y + offset.y;
+            
+            // Check if position is within board bounds
+            if (x < 0 || x >= board.width || y < 0 || y >= board.height) {
+                continue;
+            }
+            
+            // Check if tile is not a pit
+            const tile = board.tiles[y][x];
+            if (tile.type === TileType.PIT) {
+                continue;
+            }
+            
+            // Check if position is not occupied by another robot
+            let isOccupied = false;
+            for (const p of Object.values(gameState.players)) {
+                if (!p.isDead && p.position.x === x && p.position.y === y) {
+                    isOccupied = true;
+                    break;
+                }
+            }
+            
+            // Check if position will be occupied by a player respawning before this one
+            for (const pid of occupyingPlayerIds) {
+                const p = gameState.players[pid];
+                if (p && p.respawnPosition && p.respawnPosition.x === x && p.respawnPosition.y === y) {
+                    isOccupied = true;
+                    break;
+                }
+            }
+            
+            if (!isOccupied) {
+                availablePositions.push({ x, y });
+            }
+        }
+        
+        // If no adjacent positions available, expand search radius
+        if (availablePositions.length === 0) {
+            console.warn('No adjacent positions available, expanding search radius');
+            // Could implement expanding rings search here if needed
+        }
+        
+        return availablePositions;
+    }
+
+    performRespawn(gameState: ServerGameState, playerId: string, direction: Direction, alternatePosition?: Position) {
         const player = gameState.players[playerId];
         if (!player || !player.awaitingRespawn) return;
 
-        console.log(`Performing respawn for ${player.name} at archive position facing ${Direction[direction]}`);
+        console.log(`Performing respawn for ${player.name} at ${alternatePosition ? `alternate position (${alternatePosition.x}, ${alternatePosition.y})` : 'archive position'} facing ${Direction[direction]}`);
 
-        // Respawn at archive position with chosen direction
-        player.position = { ...player.archiveMarker };
+        // Respawn at chosen position (archive or alternate) with chosen direction
+        if (alternatePosition) {
+            player.position = { ...alternatePosition };
+            player.respawnPosition = { ...alternatePosition }; // Track for other respawning players
+        } else {
+            player.position = { ...player.archiveMarker };
+            player.respawnPosition = { ...player.archiveMarker };
+        }
         player.direction = direction;
 
         // Robot is no longer dead or awaiting respawn
@@ -1203,6 +1276,10 @@ export class GameEngine {
 
     respawnDeadRobots(gameState: ServerGameState): boolean {
         const respawningPlayers: string[] = [];
+        
+        // Group respawning players by their archive marker position
+        const respawnGroups: Map<string, string[]> = new Map();
+        
         Object.values(gameState.players).forEach(player => {
             if (player.isDead) {
                 console.log(`Checking respawn for ${player.name}: lives=${player.lives}, isDead=${player.isDead}`);
@@ -1218,18 +1295,56 @@ export class GameEngine {
                     // Mark that this player is awaiting respawn (but don't respawn yet!)
                     player.awaitingRespawn = true;
 
-                    // Ask the player to choose direction and power down mode
-                    console.log(`Emitting respawn-power-down-option ONLY to player ${player.id} (${player.name})`);
-                    this.io.to(player.id).emit('respawn-power-down-option', {
-                        message: `You will respawn with 2 damage. Choose your facing direction and whether to enter powered down mode for safety.`,
-                        isRespawn: true
-                    });
+                    // Group players by archive position
+                    const archiveKey = `${player.archiveMarker.x},${player.archiveMarker.y}`;
+                    if (!respawnGroups.has(archiveKey)) {
+                        respawnGroups.set(archiveKey, []);
+                    }
+                    respawnGroups.get(archiveKey)!.push(player.id);
 
                     // Track that this player needs to make a respawn decision
                     respawningPlayers.push(player.id);
                 } else {
                     console.log(`${player.name} has no lives left and is eliminated.`);
                 }
+            }
+        });
+        
+        // Sort respawning players by death order (first to die respawns first)
+        // For now, we'll use the order they appear in the players object
+        // In a full implementation, we'd track death timestamps
+        
+        // Send respawn options to each player
+        respawningPlayers.forEach(playerId => {
+            const player = gameState.players[playerId];
+            const archiveKey = `${player.archiveMarker.x},${player.archiveMarker.y}`;
+            const playersAtSameArchive = respawnGroups.get(archiveKey)!;
+            const playerIndex = playersAtSameArchive.indexOf(playerId);
+            
+            // First player gets the archive position, others need to choose adjacent
+            const needsAlternatePosition = playerIndex > 0;
+            
+            if (needsAlternatePosition) {
+                // Get available adjacent positions
+                const availablePositions = this.getAvailableAdjacentPositions(
+                    gameState, 
+                    player.archiveMarker,
+                    playersAtSameArchive.slice(0, playerIndex) // Players who are respawning before this one
+                );
+                
+                console.log(`Emitting respawn-power-down-option to player ${player.id} (${player.name}) with alternate positions`);
+                this.io.to(player.id).emit('respawn-power-down-option', {
+                    message: `Your archive position is occupied. Choose an adjacent tile, facing direction, and whether to enter powered down mode.`,
+                    isRespawn: true,
+                    needsAlternatePosition: true,
+                    availablePositions: availablePositions
+                });
+            } else {
+                console.log(`Emitting respawn-power-down-option ONLY to player ${player.id} (${player.name})`);
+                this.io.to(player.id).emit('respawn-power-down-option', {
+                    message: `You will respawn with 2 damage. Choose your facing direction and whether to enter powered down mode for safety.`,
+                    isRespawn: true
+                });
             }
         });
 

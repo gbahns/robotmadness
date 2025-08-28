@@ -95,7 +95,7 @@
 * improve the game page layout
 * When timer hits 0, randomly fill empty registers
 * when a player submits their cards color their little register indicators green
-
+* when two robots reenter on the same archive marker, the second on picks an adjacent tile on which to reenter
 
 ## Defect Fix History
 * damage isn't reducing number of cards dealt

@@ -61,6 +61,7 @@ export interface Player {
   isDead?: boolean;
   respawnDirection?: Direction;
   awaitingRespawn?: boolean;
+  respawnPosition?: Position;  // Track where player is respawning for collision detection
 
   // Cards
   dealtCards: ProgramCard[];

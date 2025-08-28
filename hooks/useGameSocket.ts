@@ -1,5 +1,5 @@
 import { useRef, useCallback, MutableRefObject } from 'react';
-import { GameState, Player, PowerState, ProgramCard } from '@/lib/game/types';
+import { GameState, Player, PowerState, ProgramCard, Position } from '@/lib/game/types';
 import { socketClient } from '@/lib/socket';
 import { RobotLaserShot } from '@/components/game/RobotLaserAnimation';
 
@@ -19,6 +19,7 @@ interface UseGameSocketProps {
     onShowPowerDownPrompt: (show: boolean) => void;
     onShowRespawnModal: (show: boolean) => void;
     onIsRespawnDecision: (isRespawn: boolean) => void;
+    onRespawnAlternatePositions: (positions: Position[] | undefined) => void;
     onIsSubmitted: (submitted: boolean) => void;
     onError: (error: string) => void;
     onLoading: (loading: boolean) => void;
@@ -44,6 +45,7 @@ export function useGameSocket({
     onShowPowerDownPrompt,
     onShowRespawnModal,
     onIsRespawnDecision,
+    onRespawnAlternatePositions,
     onIsSubmitted,
     onError,
     onLoading,
@@ -330,8 +332,19 @@ export function useGameSocket({
             onIsRespawnDecision(false);
         };
 
-        const handleRespawnPowerDownOption = (data: { message: string; isRespawn?: boolean }) => {
+        const handleRespawnPowerDownOption = (data: { 
+            message: string; 
+            isRespawn?: boolean;
+            needsAlternatePosition?: boolean;
+            availablePositions?: Position[];
+        }) => {
             console.log('Respawn power down option:', data.message);
+            if (data.needsAlternatePosition && data.availablePositions) {
+                console.log('Alternate positions available:', data.availablePositions);
+                onRespawnAlternatePositions(data.availablePositions);
+            } else {
+                onRespawnAlternatePositions(undefined);
+            }
             onShowRespawnModal(true);
             onIsRespawnDecision(true);
         };

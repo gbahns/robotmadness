@@ -12,6 +12,9 @@ interface CourseProps {
     isHost?: boolean;
     gameState?: GameState;
     activeLasers?: RobotLaserShot[];
+    selectableTiles?: Array<{x: number, y: number}>;
+    onTileClick?: (x: number, y: number) => void;
+    selectedTile?: {x: number, y: number};
 }
 
 export default function Course({
@@ -20,7 +23,10 @@ export default function Course({
     currentPlayerId,
     isHost,
     gameState,
-    activeLasers = []
+    activeLasers = [],
+    selectableTiles,
+    onTileClick,
+    selectedTile
 }: CourseProps) {
     const [course, setCourse] = useState<CourseType | null>(null);
     const [tileSize, setTileSize] = useState(50);
@@ -61,6 +67,9 @@ export default function Course({
                     activeLasers={activeLasers}
                     onTileSizeChange={handleTileSizeChange}
                     checkpoints={course.definition.checkpoints}
+                    selectableTiles={selectableTiles}
+                    onTileClick={onTileClick}
+                    selectedTile={selectedTile}
                 />
 
                 {/* Checkpoint overlay - positioned absolutely over the board */}

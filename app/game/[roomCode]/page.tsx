@@ -3,7 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import { useSession } from 'next-auth/react';
-import { GameState, ProgramCard, Player, Course } from '@/lib/game/types';
+import { GameState, ProgramCard, Player, Course, Position } from '@/lib/game/types';
 import { socketClient } from '@/lib/socket';
 import CourseComponent from '@/components/game/Course';
 import Hand from '@/components/game/Hand';
@@ -55,6 +55,8 @@ export default function GamePage() {
   const [showPowerDownPrompt, setShowPowerDownPrompt] = useState(false);
   const [showRespawnModal, setShowRespawnModal] = useState(false);
   const [isRespawnDecision, setIsRespawnDecision] = useState(false);
+  const [respawnAlternatePositions, setRespawnAlternatePositions] = useState<Position[] | undefined>();
+  const [selectedRespawnTile, setSelectedRespawnTile] = useState<Position | undefined>();
   const [timerTimeLeft, setTimerTimeLeft] = useState(0);
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [damagePreventionDialog, setDamagePreventionDialog] = useState<{
@@ -115,6 +117,13 @@ export default function GamePage() {
     onShowPowerDownPrompt: setShowPowerDownPrompt,
     onShowRespawnModal: setShowRespawnModal,
     onIsRespawnDecision: setIsRespawnDecision,
+    onRespawnAlternatePositions: (positions) => {
+      setRespawnAlternatePositions(positions);
+      // Auto-select first position if available
+      if (positions && positions.length > 0) {
+        setSelectedRespawnTile(positions[0]);
+      }
+    },
     onIsSubmitted: setIsSubmitted,
     onError: setError,
     onLoading: setLoading,
@@ -322,6 +331,13 @@ export default function GamePage() {
                   isHost={isHost}
                   gameState={gameState || undefined}
                   activeLasers={activeLasers}
+                  selectableTiles={respawnAlternatePositions}
+                  selectedTile={selectedRespawnTile}
+                  onTileClick={(x, y) => {
+                    if (respawnAlternatePositions?.some(pos => pos.x === x && pos.y === y)) {
+                      setSelectedRespawnTile({x, y});
+                    }
+                  }}
                 />
               </div>
             </div>
@@ -476,9 +492,13 @@ export default function GamePage() {
                     playerId={currentPlayer.id}
                     playerName={currentPlayer.name}
                     isRespawn={isRespawnDecision}
+                    alternatePositions={respawnAlternatePositions}
+                    selectedPosition={selectedRespawnTile}
                     onComplete={() => {
                       setShowRespawnModal(false);
                       setShowPowerDownPrompt(false);
+                      setRespawnAlternatePositions(undefined);
+                      setSelectedRespawnTile(undefined);
                     }}
                   />
                 )}

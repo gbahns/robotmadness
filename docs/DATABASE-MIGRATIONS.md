@@ -67,6 +67,33 @@ UPDATE "User" SET "isAdmin" = true WHERE email = 'user@example.com';
 3. **Automatic migration** - Railway runs `npx prisma migrate deploy`
 4. **Verify** - Check application logs for migration success
 
+## Baselining Existing Production Database
+
+If you're switching from `db push` to migrations on an existing production database, you'll encounter this error:
+```
+Error: P3018
+Database error: relation "User" already exists
+```
+
+### Solution: Baseline the Database
+
+**Option 1: Using the baseline script**
+```bash
+# Set your production DATABASE_URL
+export DATABASE_URL="postgresql://..."
+
+# Run the baseline script
+npx tsx scripts/baseline-production.ts
+```
+
+**Option 2: Manual baseline**
+```bash
+# Mark the initial migration as already applied
+npx prisma migrate resolve --applied 000_initial
+```
+
+This tells Prisma that the schema already exists and the initial migration should be considered complete.
+
 ## Troubleshooting
 
 ### "Database schema is not in sync"

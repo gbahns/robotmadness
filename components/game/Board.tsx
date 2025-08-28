@@ -16,12 +16,25 @@ interface BoardProps {
   activeLasers?: RobotLaserShot[];
   onTileSizeChange?: (tileSize: number) => void;
   checkpoints?: Checkpoint[];
+  selectableTiles?: Array<{x: number, y: number}>;
+  onTileClick?: (x: number, y: number) => void;
+  selectedTile?: {x: number, y: number};
 }
 
 
 const ROBOT_COLORS = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan'];
 
-export default function Board({ board, players, activeLasers = [], currentPlayerId, onTileSizeChange, checkpoints = [] }: BoardProps) {
+export default function Board({ 
+  board, 
+  players, 
+  activeLasers = [], 
+  currentPlayerId, 
+  onTileSizeChange, 
+  checkpoints = [],
+  selectableTiles,
+  onTileClick,
+  selectedTile
+}: BoardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [tileSize, setTileSize] = useState(50);
 
@@ -687,21 +700,35 @@ export default function Board({ board, players, activeLasers = [], currentPlayer
       >
         {/* Render tiles */}
         {Array.from({ length: board.height }, (_, y) => (
-          Array.from({ length: board.width }, (_, x) => (
-            <div
-              key={`${x}-${y}`}
-              className="absolute"
-              style={{
-                left: x * tileSize,
-                top: y * tileSize,
-                width: tileSize,
-                height: tileSize
-              }}
-              title={getTileTooltip(x, y)}
-            >
-              {getTileContent(x, y)}
-            </div>
-          ))
+          Array.from({ length: board.width }, (_, x) => {
+            const isSelectable = selectableTiles?.some(t => t.x === x && t.y === y);
+            const isSelected = selectedTile?.x === x && selectedTile?.y === y;
+            
+            return (
+              <div
+                key={`${x}-${y}`}
+                className={`absolute ${isSelectable ? 'cursor-pointer' : ''}`}
+                style={{
+                  left: x * tileSize,
+                  top: y * tileSize,
+                  width: tileSize,
+                  height: tileSize
+                }}
+                title={getTileTooltip(x, y)}
+                onClick={isSelectable && onTileClick ? () => onTileClick(x, y) : undefined}
+              >
+                {getTileContent(x, y)}
+                {/* Highlight selectable tiles */}
+                {isSelectable && (
+                  <div className={`absolute inset-0 pointer-events-none ${
+                    isSelected 
+                      ? 'bg-blue-500 bg-opacity-50 border-2 border-blue-400' 
+                      : 'bg-yellow-400 bg-opacity-30 border-2 border-yellow-500'
+                  }`} style={{ zIndex: 25 }} />
+                )}
+              </div>
+            );
+          })
         ))}
 
         {/* Render laser beams on top of tiles but below robots */}

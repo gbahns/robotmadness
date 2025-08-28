@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { socketClient } from '@/lib/socket';
-import { Direction } from '@/lib/game/types';
+import { Direction, Position } from '@/lib/game/types';
 
 interface RespawnDecisionPanelProps {
     roomCode: string;
     playerId: string;
     playerName: string;
     isRespawn?: boolean;
+    alternatePositions?: Position[];
+    selectedPosition?: Position;
     onComplete: () => void;
 }
 
@@ -30,42 +32,35 @@ export default function RespawnDecisionPanel({
     playerId,
     playerName,
     isRespawn = false,
+    alternatePositions,
+    selectedPosition,
     onComplete
 }: RespawnDecisionPanelProps) {
     const [selectedDirection, setSelectedDirection] = useState<Direction>(Direction.UP);
     
-    // Emit respawn preview when direction changes or on mount
+    // Emit respawn preview when direction or position changes
     React.useEffect(() => {
         if (isRespawn) {
             socketClient.emit('respawn-preview', {
                 roomCode,
                 playerId,
-                direction: selectedDirection
+                direction: selectedDirection,
+                position: selectedPosition
             });
         }
-    }, [selectedDirection, isRespawn, roomCode, playerId]);
-    
-    // Send initial preview on mount for respawn
-    React.useEffect(() => {
-        if (isRespawn) {
-            socketClient.emit('respawn-preview', {
-                roomCode,
-                playerId,
-                direction: Direction.UP
-            });
-        }
-    }, [isRespawn, playerId, roomCode]);
+    }, [selectedDirection, selectedPosition, isRespawn, roomCode, playerId]);
 
     const handleDecision = (powerDown: boolean) => {
         console.log(`${playerName} chooses to ${powerDown ? 'enter powered down' : 'stay powered on'} ${isRespawn ? `facing ${Direction[selectedDirection]}` : ''}`);
         
         if (isRespawn) {
-            // For respawn decisions, send direction choice
+            // For respawn decisions, send direction choice and optional position
             socketClient.emit('respawn-decision', { 
                 roomCode, 
                 playerId, 
                 powerDown,
-                direction: selectedDirection
+                direction: selectedDirection,
+                position: selectedPosition
             });
         } else {
             // For regular power down decisions
@@ -99,7 +94,11 @@ export default function RespawnDecisionPanel({
             {isRespawn ? (
                 <div className="space-y-3">
                     <p className="text-sm text-gray-300">
-                        You will respawn with 2 damage. Choose your facing direction:
+                        {alternatePositions && alternatePositions.length > 0 
+                            ? `Your archive position is occupied. ${selectedPosition 
+                                ? `Selected tile: (${selectedPosition.x}, ${selectedPosition.y}). Choose facing:` 
+                                : "Click a highlighted tile on the board to select respawn position."}`
+                            : "You will respawn with 2 damage. Choose your facing direction:"}
                     </p>
 
                     {/* Direction Selection - Compact Grid */}
@@ -124,8 +123,12 @@ export default function RespawnDecisionPanel({
                     <div className="grid grid-cols-2 gap-2">
                         <button
                             onClick={() => handleDecision(true)}
-                            className="px-3 py-2 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold rounded 
-                                     transition-all text-sm flex items-center justify-center gap-1"
+                            disabled={alternatePositions && alternatePositions.length > 0 && !selectedPosition}
+                            className={`px-3 py-2 font-semibold rounded transition-all text-sm flex items-center justify-center gap-1
+                                ${alternatePositions && alternatePositions.length > 0 && !selectedPosition
+                                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                                    : 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                                }`}
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -136,8 +139,12 @@ export default function RespawnDecisionPanel({
 
                         <button
                             onClick={() => handleDecision(false)}
-                            className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded 
-                                     transition-all text-sm flex items-center justify-center gap-1"
+                            disabled={alternatePositions && alternatePositions.length > 0 && !selectedPosition}
+                            className={`px-3 py-2 font-semibold rounded transition-all text-sm flex items-center justify-center gap-1
+                                ${alternatePositions && alternatePositions.length > 0 && !selectedPosition
+                                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                                    : 'bg-green-600 hover:bg-green-700 text-white'
+                                }`}
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}

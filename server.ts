@@ -2,7 +2,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import next from 'next';
-import { GameState, ProgramCard, GamePhase, Course, Player, PowerState, Direction } from './lib/game/types';
+import { GameState, ProgramCard, GamePhase, Course, Player, PowerState, Direction, Position } from './lib/game/types';
 import { GameEngine, ServerGameState } from './lib/game/gameEngine';
 import { prisma } from './lib/prisma';
 
@@ -33,7 +33,12 @@ interface ServerToClientEvents {
     'player-powered-down': (data: { playerId: string, playerName: string }) => void;
     'power-down-option': (data: { message: string }) => void;
     'player-power-state-changed': (data: { playerId: string, playerName: string, powerState: PowerState, announcedPowerDown?: boolean }) => void;
-    'respawn-power-down-option': (data: { message: string; isRespawn?: boolean }) => void;
+    'respawn-power-down-option': (data: { 
+        message: string; 
+        isRespawn?: boolean;
+        needsAlternatePosition?: boolean;
+        availablePositions?: Position[];
+    }) => void;
     'register-update': (data: { playerId: string; selectedCards: (ProgramCard | null)[] }) => void;
     'damage-prevention-opportunity': (data: { 
         damageAmount: number; 
@@ -76,8 +81,8 @@ interface ClientToServerEvents {
     'request-game-state': (roomCode: string) => void;
     'toggle-power-down': (data: { roomCode: string; playerId: string; selectedCards: (ProgramCard | null)[] }) => void;
     'continue-power-down': (data: { roomCode: string; playerId: string; continueDown: boolean }) => void;
-    'respawn-decision': (data: { roomCode: string; playerId: string; powerDown: boolean; direction: Direction }) => void;
-    'respawn-preview': (data: { roomCode: string; playerId: string; direction: Direction }) => void;
+    'respawn-decision': (data: { roomCode: string; playerId: string; powerDown: boolean; direction: Direction; position?: Position }) => void;
+    'respawn-preview': (data: { roomCode: string; playerId: string; direction: Direction; position?: Position }) => void;
     'damage-prevention-complete': (data: { roomCode: string }) => void;
     'use-option-for-damage': (data: { roomCode: string; cardId: string }) => void;
     'register-update': (data: { roomCode: string; playerId: string; selectedCards: (ProgramCard | null)[] }) => void;
@@ -554,16 +559,16 @@ app.prepare().then(() => {
         });
 
         // Handle respawn preview - update robot position and direction for preview
-        socket.on('respawn-preview', ({ roomCode, playerId, direction }) => {
+        socket.on('respawn-preview', ({ roomCode, playerId, direction, position }) => {
             const gameState = games.get(roomCode);
             if (!gameState) return;
 
             const player = gameState.players[playerId];
             if (!player) return;
 
-            // Place robot at archive position with selected direction for preview
+            // Place robot at selected position (or archive position) with selected direction for preview
             if (player.lives <= 0 || (player as any).awaitingRespawn) {
-                player.position = { ...player.archiveMarker };
+                player.position = position ? { ...position } : { ...player.archiveMarker };
                 player.direction = direction;
                 
                 // Broadcast updated game state to all players so they see the robot
@@ -572,15 +577,15 @@ app.prepare().then(() => {
         });
 
         // Handle respawn decision with direction choice
-        socket.on('respawn-decision', ({ roomCode, playerId, powerDown, direction }) => {
+        socket.on('respawn-decision', ({ roomCode, playerId, powerDown, direction, position }) => {
             const gameState = games.get(roomCode);
             if (!gameState) return;
 
             const player = gameState.players[playerId];
             if (!player) return;
 
-            // Perform the actual respawn with the chosen direction
-            gameEngine.performRespawn(gameState, playerId, direction);
+            // Perform the actual respawn with the chosen direction and optional position
+            gameEngine.performRespawn(gameState, playerId, direction, position);
 
             if (powerDown) {
                 // Enter powered down mode
