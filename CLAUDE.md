@@ -56,10 +56,15 @@ When performing database migrations, **ALWAYS** check and use the existing TypeS
 **DEV SERVER MANAGEMENT:** 
 - You should manage the development server (`npm run dev`) automatically
 - Always kill any existing process on port 3000 before starting: `npx kill-port 3000`
-- After running `npm run build`, restart the dev server
+- Use background bash with: `npx kill-port 3000 2>/dev/null; npm run dev`
+- **IMPORTANT**: After running `npm run build`, ALWAYS restart the dev server automatically:
+  1. Kill the existing dev server bash process using KillBash
+  2. Start a new dev server in the background with the command above
+  3. This ensures the dev server reflects the latest build changes
 - Run the dev server in background mode using `run_in_background: true`
 - Check server status with BashOutput tool to ensure it started properly
-- IMPORTANT: Always ensure only one instance is running to avoid port conflicts
+- If multiple instances seem to be running, kill all bash processes and start fresh
+- The dev-server-manager agent is not needed since WSL is now properly configured
 
 ### Testing and Building
 - Use `npm run build` to check for TypeScript errors and build issues
