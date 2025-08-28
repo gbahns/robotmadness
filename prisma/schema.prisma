@@ -18,6 +18,9 @@ model User {
   image         String?      // Avatar URL
   emailVerified DateTime?    // For email verification
   
+  // Admin privileges
+  isAdmin       Boolean      @default(false)
+  
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
   

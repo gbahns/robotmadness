@@ -149,6 +149,11 @@ export default function Home() {
         <Link href="/board-editor" className="text-gray-300 hover:text-yellow-400 font-medium transition-colors">
           Board Editor
         </Link>
+        {session?.user?.isAdmin && (
+          <Link href="/admin" className="text-red-400 hover:text-red-300 font-medium transition-colors">
+            Admin
+          </Link>
+        )}
       </nav>
 
       {/* Header */}

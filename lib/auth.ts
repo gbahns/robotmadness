@@ -100,20 +100,22 @@ export const authConfig: NextAuthConfig = {
       // Initial sign in
       if (user) {
         token.id = user.id
-        const userData = user as { username?: string; name?: string }
+        const userData = user as { username?: string; name?: string; isAdmin?: boolean }
         token.username = userData.username
         token.name = userData.name
+        token.isAdmin = userData.isAdmin || false
       }
       
       // Update token when session is updated (e.g., profile changes)
       if (trigger === "update") {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { username: true, name: true }
+          select: { username: true, name: true, isAdmin: true }
         })
         if (dbUser) {
           token.username = dbUser.username
           token.name = dbUser.name
+          token.isAdmin = dbUser.isAdmin
         }
       }
       
@@ -125,14 +127,15 @@ export const authConfig: NextAuthConfig = {
       }
       
       // For subsequent requests, ensure we have the user data
-      if (token.id && (!token.username || !token.name)) {
+      if (token.id && (!token.username || !token.name || token.isAdmin === undefined)) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { username: true, name: true }
+          select: { username: true, name: true, isAdmin: true }
         })
         if (dbUser) {
           token.username = dbUser.username
           token.name = dbUser.name
+          token.isAdmin = dbUser.isAdmin
         }
       }
       
@@ -144,6 +147,7 @@ export const authConfig: NextAuthConfig = {
         session.user.id = token.id as string
         session.user.username = token.username as string
         session.user.name = token.name as string
+        session.user.isAdmin = token.isAdmin as boolean
       }
       return session
     },
