@@ -107,7 +107,7 @@ export function useGameSocket({
             const { playerName, checkpointNumber } = data;
             onLogEntry({
                 id: logIdCounter.current++,
-                message: `${playerName} reached checkpoint ${checkpointNumber}!`,
+                message: `${playerName} reached flag ${checkpointNumber}!`,
                 type: 'checkpoint',
                 timestamp: new Date()
             });

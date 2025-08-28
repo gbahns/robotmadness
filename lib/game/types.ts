@@ -101,6 +101,14 @@ export interface GameState {
     threshold: number; // Number of players that triggers timer
     duration: number; // Timer duration in seconds
   };
+  currentExecutingPlayerId?: string; // Player whose card is currently executing
+  waitingOn?: {
+    type: 'cards' | 'powerDown' | 'respawn' | 'damagePrevention';
+    playerIds: string[];
+    playerNames: string[];
+    completedPlayerIds?: string[]; // For tracking who has already made their decision
+    completedPlayerNames?: string[];
+  };
 }
 
 export interface BoardDefinition {

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Player } from '@/lib/game/types';
+import { OPTION_CARDS } from '@/lib/game/optionCards';
 
 interface PlayersListProps {
     players: Record<string, Player>;
@@ -34,10 +35,11 @@ export default function PlayersList({
                 {playerArray.map((player, index) => (
                     <div
                         key={`${player.id}-info`}
-                        className={`flex items-center justify-between py-1 px-2 rounded ${
+                        className={`py-1 px-2 rounded ${
                             player.id === currentPlayerId ? 'bg-gray-700' : ''
                         } ${player.isDisconnected ? 'opacity-50' : ''}`}
                     >
+                        <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 min-w-0 flex-1">
                             {/* Player Number Badge */}
                             <div 
@@ -117,6 +119,28 @@ export default function PlayersList({
                                 </span>
                             )}
                         </div>
+                        </div>
+                        {/* Option Cards */}
+                        {player.optionCards && player.optionCards.length > 0 && (
+                            <div className="mt-1 text-xs">
+                                {player.optionCards.map((card, idx) => {
+                                    const cardDef = OPTION_CARDS[card.type];
+                                    const isImplemented = cardDef?.implemented ?? false;
+                                    return (
+                                        <span key={card.id}>
+                                            <span 
+                                                className={isImplemented ? 'text-purple-400' : 'text-gray-500'}
+                                                title={cardDef?.description || card.description}
+                                                style={{ cursor: 'help' }}
+                                            >
+                                                {card.name}
+                                            </span>
+                                            {idx < player.optionCards.length - 1 && <span className="text-gray-500">, </span>}
+                                        </span>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                 ))}
                 {!players || playerArray.length === 0 && (

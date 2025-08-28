@@ -21,10 +21,12 @@ import GameHeader from '@/components/game/GameHeader';
 import { LoadingScreen, NameModal, ErrorScreen, GameOverModal } from '@/components/game/LoadingStates';
 import { useGameSocket } from '@/hooks/useGameSocket';
 import { useCardManagement } from '@/hooks/useCardManagement';
+import WaitingStatus from '@/components/game/WaitingStatus';
 import Timer from '@/components/game/Timer';
 import DamagePreventionDialog from '@/components/game/DamagePreventionDialog';
-import OptionCards from '@/components/game/OptionCards';
+// import OptionCards from '@/components/game/OptionCards';  // Keeping for potential future use
 import { OptionCard } from '@/lib/game/optionCards';
+import AllPlayersPrograms from '@/components/game/AllPlayersPrograms';
 
 function generateRoomCode(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -357,6 +359,13 @@ export default function GamePage() {
                     />
                   )}
 
+                  {/* Waiting Status */}
+                  {gameState && (
+                    <WaitingStatus 
+                      gameState={gameState} 
+                      currentPlayerId={playerIdRef.current}
+                    />
+                  )}
 
                   {/* Hand - moved under players list (or show powered down status) */}
                   {gameState?.phase === 'programming' && currentPlayer && (
@@ -382,6 +391,17 @@ export default function GamePage() {
                   )
                 )}
 
+                {/* Show all players' programs during execution */}
+                {gameState?.phase === 'executing' && (
+                  <AllPlayersPrograms
+                    players={gameState.players}
+                    currentRegister={gameState.currentRegister}
+                    phase={gameState.phase}
+                    currentExecutingPlayerId={gameState.currentExecutingPlayerId}
+                    currentPlayerId={playerIdRef.current}
+                  />
+                )}
+                
                 {/* Program Registers - moved under hand */}
                 {(gameState?.phase === 'programming' || gameState?.phase === 'executing') && currentPlayer && (
                   <div>
@@ -397,13 +417,14 @@ export default function GamePage() {
                     />
                     
                     {/* Option Cards Display - moved below registers */}
+                    {/* Option Cards panel removed - cards now shown in player list with tooltips
                     {currentPlayer.optionCards && currentPlayer.optionCards.length > 0 && (
                       <div className="mt-4">
                         <OptionCards 
                           optionCards={currentPlayer.optionCards}
                         />
                       </div>
-                    )}
+                    )} */}
                     
                     {/* All control buttons together */}
                     {gameState?.phase === 'programming' && (

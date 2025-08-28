@@ -164,6 +164,87 @@ export class GameEngine {
         delete gameState.players[playerId];
     }
 
+    updateWaitingStatus(gameState: ServerGameState): void {
+        const activePlayers = Object.values(gameState.players).filter(p => p.lives > 0);
+        console.log('[WaitingStatus] Updating waiting status...');
+        
+        // Check what we're waiting for based on game phase
+        if (gameState.phase === GamePhase.PROGRAMMING) {
+            const waitingForCards = activePlayers.filter(p => 
+                !p.submitted && p.powerState !== PowerState.OFF
+            );
+            
+            if (waitingForCards.length > 0) {
+                gameState.waitingOn = {
+                    type: 'cards',
+                    playerIds: waitingForCards.map(p => p.id),
+                    playerNames: waitingForCards.map(p => p.name)
+                };
+            } else {
+                gameState.waitingOn = undefined;
+            }
+        } else if (gameState.waitingForPowerDownDecisions && gameState.waitingForPowerDownDecisions.length > 0) {
+            const waitingPlayers = gameState.waitingForPowerDownDecisions
+                .map(id => gameState.players[id])
+                .filter(p => p);
+            
+            gameState.waitingOn = {
+                type: 'powerDown',
+                playerIds: gameState.waitingForPowerDownDecisions,
+                playerNames: waitingPlayers.map(p => p.name)
+            };
+        } else if (gameState.waitingForRespawnDecisions && gameState.waitingForRespawnDecisions.length > 0) {
+            const waitingPlayers = gameState.waitingForRespawnDecisions
+                .map(id => gameState.players[id])
+                .filter(p => p);
+            
+            gameState.waitingOn = {
+                type: 'respawn',
+                playerIds: gameState.waitingForRespawnDecisions,
+                playerNames: waitingPlayers.map(p => p.name)
+            };
+        } else if (gameState.pendingDamage && gameState.pendingDamage.size > 0) {
+            // Get all players with pending damage
+            const allPendingPlayers = Array.from(gameState.pendingDamage.entries());
+            
+            // Separate into waiting and completed
+            const waitingPlayerIds: string[] = [];
+            const completedPlayerIds: string[] = [];
+            
+            allPendingPlayers.forEach(([playerId, pending]) => {
+                if (pending.completed) {
+                    completedPlayerIds.push(playerId);
+                } else {
+                    waitingPlayerIds.push(playerId);
+                }
+            });
+            
+            const waitingPlayers = waitingPlayerIds
+                .map(id => gameState.players[id])
+                .filter(p => p);
+            
+            const completedPlayers = completedPlayerIds
+                .map(id => gameState.players[id])
+                .filter(p => p);
+            
+            if (waitingPlayerIds.length > 0) {
+                gameState.waitingOn = {
+                    type: 'damagePrevention',
+                    playerIds: waitingPlayerIds,
+                    playerNames: waitingPlayers.map(p => p.name),
+                    completedPlayerIds: completedPlayerIds,
+                    completedPlayerNames: completedPlayers.map(p => p.name)
+                };
+                console.log('[WaitingStatus] Waiting on damage prevention:', waitingPlayers.map(p => p.name), 'Completed:', completedPlayers.map(p => p.name));
+            } else {
+                gameState.waitingOn = undefined;
+                console.log('[WaitingStatus] All damage prevention complete, clearing waiting status');
+            }
+        } else {
+            gameState.waitingOn = undefined;
+        }
+    }
+
     // selectBoard(gameState: ServerGameState, boardId: string): Board {
     //     const board = getBoardById(boardId);
     //     gameState.board = board;
@@ -289,6 +370,11 @@ export class GameEngine {
         if (poweredDownPlayers.length > 0) {
             gameState.waitingForPowerDownDecisions = poweredDownPlayers.map(p => p.id);
             gameState.phase = GamePhase.POWER_DOWN_DECISION;
+            
+            // Update waiting status and emit to all players
+            this.updateWaitingStatus(gameState);
+            this.io.to(gameState.roomCode).emit('game-state', gameState);
+            
             return true; // Need to wait
         }
 
@@ -340,6 +426,11 @@ export class GameEngine {
         if (poweredDownPlayers.length > 0) {
             gameState.waitingForPowerDownDecisions = poweredDownPlayers.map(p => p.id);
             gameState.phase = GamePhase.POWER_DOWN_DECISION;
+            
+            // Update waiting status and emit to all players
+            this.updateWaitingStatus(gameState);
+            this.io.to(gameState.roomCode).emit('game-state', gameState);
+            
             // Return early - actual card dealing will happen after decisions are made
             return;
         }
@@ -398,6 +489,9 @@ export class GameEngine {
         // Emit timer clear to clients
         this.io.to(gameState.roomCode).emit('timer-update', { timeLeft: 0 });
 
+        // Update waiting status to show who we're waiting for cards from
+        this.updateWaitingStatus(gameState);
+        
         // Emit the updated game state
         this.io.to(gameState.roomCode).emit('game-state', gameState);
 
@@ -627,6 +721,13 @@ export class GameEngine {
         for (const { playerId, card, player } of programmedCards) {
             if (player.isDead) continue;
 
+            // Set the currently executing player
+            gameState.currentExecutingPlayerId = playerId;
+            this.io.to(gameState.roomCode).emit('game-state', gameState);
+            
+            // Small delay to show which card is about to execute
+            await new Promise(resolve => setTimeout(resolve, 300));
+
             //console.log(`BEFORE EXECUTING THIS CARD: Player ${playerToLog.name}'s CARDS:`, playerToLog.selectedCards);
             console.log(`${player.name} executes ${card.type} (priority ${card.priority})`);
             await this.executeCard(gameState, player, card);
@@ -640,6 +741,9 @@ export class GameEngine {
             this.io.to(gameState.roomCode).emit('game-state', gameState);
             await new Promise(resolve => setTimeout(resolve, this.registerExecutionDelay));
         }
+        
+        // Clear the currently executing player after all cards are done
+        gameState.currentExecutingPlayerId = undefined;
         //console.log(`AFTER EXECUTING THIS REGISTER: Player ${playerToLog.name}'s CARDS:`, playerToLog.selectedCards);
     }
 
@@ -998,6 +1102,10 @@ export class GameEngine {
         
         console.log(`[DamagePrevention] Waiting for ${playersNeedingDialog.length} players to complete damage prevention`);
         
+        // Update waiting status and emit to all players
+        this.updateWaitingStatus(gameState);
+        this.io.to(gameState.roomCode).emit('game-state', gameState);
+        
         // Wait for all players needing dialog to complete their choices (15 second timeout)
         await new Promise(resolve => {
             const startTime = Date.now();
@@ -1202,7 +1310,7 @@ export class GameEngine {
             // Check if position is not occupied by another robot
             let isOccupied = false;
             for (const p of Object.values(gameState.players)) {
-                if (!p.isDead && p.position.x === x && p.position.y === y) {
+                if (p.lives > 0 && !p.awaitingRespawn && p.position.x === x && p.position.y === y) {
                     isOccupied = true;
                     break;
                 }
@@ -1321,15 +1429,38 @@ export class GameEngine {
             const playersAtSameArchive = respawnGroups.get(archiveKey)!;
             const playerIndex = playersAtSameArchive.indexOf(playerId);
             
-            // First player gets the archive position, others need to choose adjacent
-            const needsAlternatePosition = playerIndex > 0;
+            // Check if a live robot is on the archive position
+            const liveRobotOnArchive = Object.values(gameState.players).some(p => 
+                p.lives > 0 && 
+                p.id !== playerId &&
+                p.position.x === player.archiveMarker.x && 
+                p.position.y === player.archiveMarker.y
+            );
+            
+            // Need alternate position if there's a live robot OR if not first in respawn queue
+            const needsAlternatePosition = liveRobotOnArchive || playerIndex > 0;
             
             if (needsAlternatePosition) {
+                // Build list of players who will occupy positions (respawning before this one)
+                const occupyingPlayerIds = [...playersAtSameArchive.slice(0, playerIndex)];
+                
+                // If a live robot is on the archive, treat it as occupying that position
+                if (liveRobotOnArchive) {
+                    const liveRobotId = Object.values(gameState.players).find(p => 
+                        p.lives > 0 && 
+                        p.position.x === player.archiveMarker.x && 
+                        p.position.y === player.archiveMarker.y
+                    )?.id;
+                    if (liveRobotId && !occupyingPlayerIds.includes(liveRobotId)) {
+                        occupyingPlayerIds.push(liveRobotId);
+                    }
+                }
+                
                 // Get available adjacent positions
                 const availablePositions = this.getAvailableAdjacentPositions(
                     gameState, 
                     player.archiveMarker,
-                    playersAtSameArchive.slice(0, playerIndex) // Players who are respawning before this one
+                    occupyingPlayerIds
                 );
                 
                 console.log(`Emitting respawn-power-down-option to player ${player.id} (${player.name}) with alternate positions`);
@@ -1354,6 +1485,11 @@ export class GameEngine {
             // Initialize the tracking array for players who made respawn decisions
             gameState.playersWhoMadeRespawnDecisions = [];
             console.log(`Waiting for respawn decisions from: ${respawningPlayers.map(id => gameState.players[id].name).join(', ')}`);
+            
+            // Update waiting status and emit to all players
+            this.updateWaitingStatus(gameState);
+            this.io.to(gameState.roomCode).emit('game-state', gameState);
+            
             return true; // Indicate we need to wait
         }
 
@@ -1994,7 +2130,7 @@ export class GameEngine {
                 // Update archive position when touching a checkpoint
                 this.updateArchivePosition(gameState, player);
 
-                this.executionLog(gameState, `${player.name} reached checkpoint ${checkpoint.number}!`);
+                this.executionLog(gameState, `${player.name} reached flag ${checkpoint.number}!`, 'checkpoint');
                 touchedCheckpoint = true;
 
                 // Check if player has won

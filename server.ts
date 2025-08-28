@@ -414,6 +414,9 @@ app.prepare().then(() => {
             gameState.players[playerId].selectedCards = cards;
             gameState.players[playerId].submitted = true;
 
+            // Update waiting status after submission
+            gameEngine.updateWaitingStatus(gameState);
+            
             // Check if timer should start based on configuration
             gameEngine.checkTimerStart(gameState);
 
@@ -504,6 +507,9 @@ app.prepare().then(() => {
                 gameState.waitingForRespawnDecisions = gameState.waitingForRespawnDecisions.filter(
                     id => id !== playerId
                 );
+                
+                // Update waiting status after respawn decision
+                gameEngine.updateWaitingStatus(gameState);
 
                 if (selectedCards === null) {
                     console.log(`${player.name} chose to power down after respawn. ${gameState.waitingForRespawnDecisions.length} players still waiting.`);
@@ -549,10 +555,16 @@ app.prepare().then(() => {
                     id => id !== playerId
                 );
 
+                // Update waiting status after power down decision
+                gameEngine.updateWaitingStatus(gameState);
+                
                 // If all powered down players have decided, continue with cleanup
                 if (gameState.waitingForPowerDownDecisions.length === 0) {
                     console.log('All power down decisions received, continuing cleanup...');
                     gameEngine.finishTurnCleanup(gameState);
+                    io.to(roomCode).emit('game-state', gameState);
+                } else {
+                    // Still waiting for other players, emit updated state
                     io.to(roomCode).emit('game-state', gameState);
                 }
             }
@@ -609,6 +621,9 @@ app.prepare().then(() => {
                 }
                 gameState.playersWhoMadeRespawnDecisions.push(playerId);
 
+                // Update waiting status after respawn decision
+                gameEngine.updateWaitingStatus(gameState);
+
                 // If all respawning players have decided, proceed with dealing cards
                 if (gameState.waitingForRespawnDecisions.length === 0) {
                     console.log('All respawn decisions received, dealing cards for next turn...');
@@ -616,7 +631,11 @@ app.prepare().then(() => {
                     gameState.currentRegister = 0;
                     gameState.roundNumber++;
                     gameState.allPlayersDead = false;
+                    gameState.waitingOn = undefined; // Clear waiting status
                     gameEngine.dealCardsWithoutPowerDownCheck(gameState);
+                    io.to(roomCode).emit('game-state', gameState);
+                } else {
+                    // Still waiting for other players, emit updated state
                     io.to(roomCode).emit('game-state', gameState);
                 }
             }
@@ -650,36 +669,40 @@ app.prepare().then(() => {
                 return;
             }
             
-            // Find the player by socket ID
-            const player = Object.values(gameState.players).find(p => p.id === socket.id);
+            // Use socket.data.playerId which should have the actual player ID
+            const playerId = socket.data.playerId || socket.id;
+            console.log(`[DamagePrevention] Looking for player with ID: ${playerId}`);
+            
+            const player = gameState.players[playerId];
             if (!player) {
-                console.log(`[DamagePrevention] No player found for socket ${socket.id}`);
-                // Try using socket data as fallback
-                const playerId = socket.data.playerId;
-                if (playerId && gameState.pendingDamage?.has(playerId)) {
-                    const pending = gameState.pendingDamage.get(playerId);
-                    console.log(`[DamagePrevention] Using socket.data.playerId: ${playerId}. Prevented ${pending?.prevented || 0} of ${pending?.amount || 0} damage`);
-                    if (pending) {
-                        pending.completed = true;
-                        console.log(`[DamagePrevention] Set completed flag to true for ${playerId}`);
-                    }
-                }
+                console.log(`[DamagePrevention] No player found for ${playerId}`);
                 return;
             }
             
-            const playerId = player.id;
+            // Initialize pendingDamage if it doesn't exist (might happen after server restart)
+            if (!gameState.pendingDamage) {
+                gameState.pendingDamage = new Map();
+                console.log(`[DamagePrevention] Initialized pendingDamage Map`);
+            }
             
             // Mark damage prevention as complete
-            if (gameState.pendingDamage?.has(playerId)) {
+            if (gameState.pendingDamage.has(playerId)) {
                 const pending = gameState.pendingDamage.get(playerId);
                 console.log(`[DamagePrevention] Player ${player.name} completed damage prevention. Prevented ${pending?.prevented || 0} of ${pending?.amount || 0} damage`);
                 // Set completed flag to trigger immediate resolution
                 if (pending) {
                     pending.completed = true;
                     console.log(`[DamagePrevention] Set completed flag to true for ${playerId}`);
+                    
+                    // Update waiting status and emit to all players
+                    gameEngine.updateWaitingStatus(gameState);
+                    io.to(roomCode).emit('game-state', gameState);
                 }
             } else {
-                console.log(`[DamagePrevention] No pending damage found for ${playerId}`);
+                console.log(`[DamagePrevention] No pending damage found for ${playerId} - this might happen after a server restart`);
+                // Still update waiting status in case we need to clear it
+                gameEngine.updateWaitingStatus(gameState);
+                io.to(roomCode).emit('game-state', gameState);
             }
         });
 

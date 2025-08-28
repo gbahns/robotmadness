@@ -25,7 +25,10 @@ export default function Hand({ cards, selectedCards, onCardClick, isSubmitted }:
           {cards.slice(0, 5).map((card, index) => {
             const isProgrammed = isCardProgrammed(card);
             return (
-              <div key={`${card.id}-${index}`} className={isProgrammed ? 'opacity-50' : ''}>
+              <div 
+                key={`${card.id}-${index}`} 
+                className={`relative ${isProgrammed ? 'opacity-30 grayscale' : ''}`}
+              >
                 <Card
                   card={card}
                   index={index}
@@ -33,6 +36,13 @@ export default function Hand({ cards, selectedCards, onCardClick, isSubmitted }:
                   isDraggable={!isSubmitted && !isProgrammed}
                   onClick={() => !isSubmitted && !isProgrammed && onCardClick(index)}
                 />
+                {isProgrammed && (
+                  <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                    <div className="bg-gray-900 bg-opacity-80 text-yellow-400 text-xs font-bold px-2 py-1 rounded border border-yellow-500">
+                      USED
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -45,7 +55,10 @@ export default function Hand({ cards, selectedCards, onCardClick, isSubmitted }:
               const index = realIndex + 5;
               const isProgrammed = isCardProgrammed(card);
               return (
-                <div key={`${card.id}-${index}`} className={isProgrammed ? 'opacity-50' : ''}>
+                <div 
+                  key={`${card.id}-${index}`} 
+                  className={`relative ${isProgrammed ? 'opacity-30 grayscale' : ''}`}
+                >
                   <Card
                     card={card}
                     index={index}
@@ -53,6 +66,13 @@ export default function Hand({ cards, selectedCards, onCardClick, isSubmitted }:
                     isDraggable={!isSubmitted && !isProgrammed}
                     onClick={() => !isSubmitted && !isProgrammed && onCardClick(index)}
                   />
+                  {isProgrammed && (
+                    <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                      <div className="bg-gray-900 bg-opacity-80 text-yellow-400 text-xs font-bold px-2 py-1 rounded border border-yellow-500">
+                        USED
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
