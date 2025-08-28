@@ -136,11 +136,11 @@ export function useGameSocket({
                     state.players[playerIdRef.current] &&
                     prevState.players[playerIdRef.current]) {
 
-                    // Preserve local selected cards and submitted state for current player
+                    // Preserve local selected cards for current player
+                    // But don't preserve submitted state - use the server's value
                     const preservedCurrentPlayer = {
                         ...state.players[playerIdRef.current],
-                        selectedCards: prevState.players[playerIdRef.current].selectedCards,
-                        submitted: prevState.players[playerIdRef.current].submitted
+                        selectedCards: prevState.players[playerIdRef.current].selectedCards
                     };
 
                     return {

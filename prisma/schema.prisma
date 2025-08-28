@@ -12,26 +12,17 @@ model User {
   email         String       @unique
   username      String       @unique
   name          String?
-  
-  // Authentication fields
-  password      String?      // Optional - for email/password auth
-  image         String?      // Avatar URL
-  emailVerified DateTime?    // For email verification
-  
-  // Admin privileges
-  isAdmin       Boolean      @default(false)
-  
+  password      String?
+  image         String?
+  emailVerified DateTime?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
-  
-  // OAuth relations
+  isAdmin       Boolean      @default(false)
   accounts      Account[]
-  sessions      Session[]
-  
-  // Game relations
   hostedGames   Game[]       @relation("HostedGames")
   wonGames      Game[]       @relation("WonGames")
   gamesPlayed   GamePlayer[]
+  sessions      Session[]
 }
 
 model Game {
@@ -80,7 +71,6 @@ model GamePlayer {
   @@index([userId])
 }
 
-// NextAuth Account model for OAuth providers
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -94,25 +84,22 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@index([userId])
 }
 
-// NextAuth Session model
 model Session {
   id           String   @id @default(cuid())
   sessionToken String   @unique
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@index([userId])
 }
 
-// NextAuth Verification tokens for passwordless auth
 model VerificationToken {
   identifier String
   token      String   @unique
@@ -121,15 +108,13 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-// Password reset tokens
 model PasswordResetToken {
-  id      String   @id @default(uuid())
-  email   String
-  token   String   @unique
-  expires DateTime
-  
+  id        String   @id @default(uuid())
+  email     String
+  token     String   @unique
+  expires   DateTime
   createdAt DateTime @default(now())
-  
+
   @@unique([email, token])
   @@index([email])
 }

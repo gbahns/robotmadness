@@ -2,7 +2,6 @@
 * more distinction between the registers and cards in your hands
 * make the robot arrow black instead of white when the robot color is light
 * make the screen layout adapt correctly to different window sizes and zoom level
-* when two robots reenter on the same archive marker, the second on picks an adjacent tile on which to reenter
 * somehow make checkpoints and possibly other board elements visible when a robot is sitting on them
 * reset cards is executing the logic on both the client and the server; only need one
 * server got stuck resetting or dealing cards for next turn; one robot had 9 damage, might be related to that
@@ -34,9 +33,6 @@
 * Authentication audit log - track login events for security
 
 ## In Progress
-* in the Power Rankings swap the display name and username
-* in the game history show the host's and winner's dispaly name, and when a game is expanded show all the players' display names
-* when a player submits their cards color there little register indicators green
 * register phases keep executing after a player has won
 * show all players cards for the current register / incremental card reveal while executing
 
@@ -98,6 +94,7 @@
 * refine the look of pits
 * improve the game page layout
 * When timer hits 0, randomly fill empty registers
+* when a player submits their cards color their little register indicators green
 
 
 ## Defect Fix History
@@ -129,3 +126,5 @@
 * when conveyor moves robot into a gear it rotates you as if it thinks its a corner conveyor, then the gear rotates you again
 * when you respawn on a flag it repairs damage; it's executing those things in the wrong order; should do repair damage, then respawn destroyed robots
 * need to put the timer below the registers so the cards don't jump around when it appears
+* in the Power Rankings swap the display name and username
+* in the game history show the host's and winner's dispaly name, and when a game is expanded show all the players' display names
