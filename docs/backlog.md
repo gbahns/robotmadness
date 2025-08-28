@@ -1,5 +1,5 @@
 ## Backlog
-* more distinction between the registers and cards in your hands
+* when a player dies they lose ONE option card and they get to pick which one
 * make the robot arrow black instead of white when the robot color is light
 * make the screen layout adapt correctly to different window sizes and zoom level
 * somehow make checkpoints and possibly other board elements visible when a robot is sitting on them
@@ -33,8 +33,7 @@
 * Authentication audit log - track login events for security
 
 ## In Progress
-* register phases keep executing after a player has won
-* show all players cards for the current register / incremental card reveal while executing
+* display robots' archive markers
 
 ## Done
 * robots pushing each other
@@ -96,6 +95,11 @@
 * When timer hits 0, randomly fill empty registers
 * when a player submits their cards color their little register indicators green
 * when two robots reenter on the same archive marker, the second on picks an adjacent tile on which to reenter
+* more distinction between the registers and cards in your hands
+* register phases keep executing after a player has won (fixed - stops after current register completes)
+* show all players cards for the current register / incremental card reveal while executing
+* "Player reached flag n" in green in execution log
+* when the game is waiting on a player to make a decision it needs to show other players what they're waiting on
 
 ## Defect Fix History
 * damage isn't reducing number of cards dealt
