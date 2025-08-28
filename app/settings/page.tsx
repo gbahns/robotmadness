@@ -645,6 +645,7 @@ export default function SettingsPage() {
                         <strong>Your account cannot be deleted</strong> because you have participated in {deleteEligibility.gamesPlayed} game(s) 
                         and hosted {deleteEligibility.gamesHosted} game(s). This history is part of other players&apos; records.
                       </p>
+                      {/* Anonymization disabled per admin request
                       <p>
                         However, you can <strong>anonymize your account</strong> which will:
                       </p>
@@ -664,6 +665,8 @@ export default function SettingsPage() {
                     >
                       {loading ? "Anonymizing..." : "Anonymize My Account"}
                     </button>
+                      */}
+                    </div>
                   </div>
                 )}
               </div>
