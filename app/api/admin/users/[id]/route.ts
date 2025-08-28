@@ -5,8 +5,9 @@ import { auth } from "@/lib/auth";
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const authError = await requireAdmin();
   if (authError) return authError;
 
@@ -19,7 +20,7 @@ export async function PATCH(
       const existing = await prisma.user.findFirst({
         where: {
           AND: [
-            { id: { not: params.id } },
+            { id: { not: id } },
             {
               OR: [
                 username ? { username } : {},
@@ -39,7 +40,7 @@ export async function PATCH(
     }
 
     const updatedUser = await prisma.user.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         username,
         name,
@@ -74,14 +75,15 @@ export async function PATCH(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const authError = await requireAdmin();
   if (authError) return authError;
 
   // Don't allow admin to delete themselves
   const session = await auth();
-  if (session?.user?.id === params.id) {
+  if (session?.user?.id === id) {
     return NextResponse.json(
       { error: 'Cannot delete your own account' },
       { status: 400 }
@@ -91,7 +93,7 @@ export async function DELETE(
   try {
     // Delete user and all related data (cascade)
     await prisma.user.delete({
-      where: { id: params.id }
+      where: { id }
     });
 
     return NextResponse.json({ success: true });

@@ -25,6 +25,14 @@
 * add "Jump Jets" option card - allows robot to jump over pits when executing Move 2 or Move 3 cards (normally robots fall into any pit they move over)
 * email integration for password resets
 
+## Authentication Enhancements (Future)
+* Email verification for new signups - prevent fake accounts
+* Two-Factor Authentication (2FA) - enhanced security
+* Session management UI - view/revoke active sessions
+* Password strength requirements - enforce minimum complexity
+* Rate limiting on auth endpoints - prevent brute force attacks
+* Authentication audit log - track login events for security
+
 ## In Progress
 * in the Power Rankings swap the display name and username
 * in the game history show the host's and winner's dispaly name, and when a game is expanded show all the players' display names

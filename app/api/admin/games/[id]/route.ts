@@ -4,15 +4,16 @@ import { NextResponse } from "next/server";
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const authError = await requireAdmin();
   if (authError) return authError;
 
   try {
     // Delete game and all related data (cascade)
     await prisma.game.delete({
-      where: { id: params.id }
+      where: { id }
     });
 
     return NextResponse.json({ success: true });

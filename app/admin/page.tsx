@@ -46,18 +46,6 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [editingGame, setEditingGame] = useState<Game | null>(null);
-
-  useEffect(() => {
-    if (status === 'loading') return;
-    
-    if (!session?.user?.isAdmin) {
-      router.push('/');
-      return;
-    }
-
-    fetchData();
-  }, [status, session, router, activeTab]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -82,6 +70,18 @@ export default function AdminDashboard() {
     }
   };
 
+  useEffect(() => {
+    if (status === 'loading') return;
+    
+    if (!session?.user?.isAdmin) {
+      router.push('/');
+      return;
+    }
+
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, session, router, activeTab]);
+
   const handleDeleteUser = async (userId: string) => {
     if (!confirm('Are you sure you want to delete this user? This will also delete all their game history.')) {
       return;
@@ -98,7 +98,7 @@ export default function AdminDashboard() {
         const error = await res.json();
         alert(`Failed to delete user: ${error.message}`);
       }
-    } catch (error) {
+    } catch {
       alert('Failed to delete user');
     }
   };
@@ -124,7 +124,7 @@ export default function AdminDashboard() {
         const error = await res.json();
         alert(`Failed to update user: ${error.message}`);
       }
-    } catch (error) {
+    } catch {
       alert('Failed to update user');
     }
   };
@@ -145,7 +145,7 @@ export default function AdminDashboard() {
         const error = await res.json();
         alert(`Failed to delete game: ${error.message}`);
       }
-    } catch (error) {
+    } catch {
       alert('Failed to delete game');
     }
   };
