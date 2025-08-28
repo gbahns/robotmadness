@@ -4,7 +4,7 @@ import { GAME_CONFIG } from './constants';
 import { buildCourse, getCourseById, RISKY_EXCHANGE } from './courses/courses';
 import { hasWallBetween } from './wall-utils';
 import { getTileAt as getCanonicalTileAt } from './tile-utils';
-import { createOptionCard, OptionCardType } from './optionCards';
+import { createOptionCard, OptionCardType, OptionCard } from './optionCards';
 import { prisma } from '../prisma';
 
 export interface ServerGameState extends GameState {
@@ -19,6 +19,11 @@ export interface ServerGameState extends GameState {
         source: string;
         prevented: number;
         completed?: boolean;
+    }>;
+    pendingDecisions?: Record<string, {
+        type: string;
+        playerId: string;
+        optionCards?: OptionCard[];
     }>;
 }
 
@@ -167,6 +172,24 @@ export class GameEngine {
     updateWaitingStatus(gameState: ServerGameState): void {
         const activePlayers = Object.values(gameState.players).filter(p => p.lives > 0);
         console.log('[WaitingStatus] Updating waiting status...');
+        
+        // Check for pending option card loss decisions first
+        const pendingOptionCardLosses = Object.entries(gameState.pendingDecisions || {})
+            .filter(([, decision]) => decision.type === 'option-card-loss')
+            .map(([playerId]) => playerId);
+            
+        if (pendingOptionCardLosses.length > 0) {
+            const waitingPlayers = pendingOptionCardLosses
+                .map(id => gameState.players[id])
+                .filter(p => p);
+                
+            gameState.waitingOn = {
+                type: 'optionCardLoss',
+                playerIds: pendingOptionCardLosses,
+                playerNames: waitingPlayers.map(p => p.name)
+            };
+            return;
+        }
         
         // Check what we're waiting for based on game phase
         if (gameState.phase === GamePhase.PROGRAMMING) {
@@ -1238,6 +1261,20 @@ export class GameEngine {
         player.isDead = true;
         player.position = { x: -1, y: -1 };
 
+        // Check if player has option cards to lose (only if they have lives remaining)
+        if (player.lives > 0 && player.optionCards && player.optionCards.length > 0) {
+            // Set up a decision for the player to choose which option card to lose
+            if (!gameState.pendingDecisions) {
+                gameState.pendingDecisions = {};
+            }
+            gameState.pendingDecisions[player.id] = {
+                type: 'option-card-loss',
+                playerId: player.id,
+                optionCards: [...player.optionCards] // Make a copy of their current cards
+            };
+            console.log(`${player.name} must choose an option card to lose`);
+        }
+
         this.io.to(gameState.roomCode).emit('robot-destroyed', {
             playerName: player.name,
             reason: reason
@@ -1383,6 +1420,32 @@ export class GameEngine {
     }
 
     respawnDeadRobots(gameState: ServerGameState): boolean {
+        // First check if there are pending option card loss decisions
+        const pendingOptionCardLosses = Object.entries(gameState.pendingDecisions || {})
+            .filter(([, decision]) => decision.type === 'option-card-loss');
+            
+        if (pendingOptionCardLosses.length > 0) {
+            console.log(`Waiting for option card loss decisions from ${pendingOptionCardLosses.length} player(s)`);
+            
+            // Send option card loss prompts to players who need to decide
+            pendingOptionCardLosses.forEach(([playerId, decision]) => {
+                const player = gameState.players[playerId];
+                if (player && decision.optionCards) {
+                    console.log(`Sending option-card-loss-decision to ${player.name}`);
+                    this.io.to(playerId).emit('option-card-loss-decision', {
+                        message: `Your robot was destroyed. Choose one option card to lose.`,
+                        optionCards: decision.optionCards
+                    });
+                }
+            });
+            
+            // Update waiting status
+            this.updateWaitingStatus(gameState);
+            this.io.to(gameState.roomCode).emit('game-state', gameState);
+            
+            return true; // Indicate we need to wait for decisions
+        }
+        
         const respawningPlayers: string[] = [];
         
         // Group respawning players by their archive marker position

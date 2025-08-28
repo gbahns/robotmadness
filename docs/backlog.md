@@ -1,11 +1,7 @@
 ## Backlog
-* when a player dies they lose ONE option card and they get to pick which one
 * make the robot arrow black instead of white when the robot color is light
 * make the screen layout adapt correctly to different window sizes and zoom level
-* somehow make checkpoints and possibly other board elements visible when a robot is sitting on them
 * reset cards is executing the logic on both the client and the server; only need one
-* server got stuck resetting or dealing cards for next turn; one robot had 9 damage, might be related to that
-* hammers
 * handle endgame properly (pop up a modal with the game still visible, celebrate the winner, etc)
 * reduce the padding around the board to make better use of the space
 * improve the card look
@@ -33,7 +29,7 @@
 * Authentication audit log - track login events for security
 
 ## In Progress
-* display robots' archive markers
+* when a player dies they lose ONE option card and they get to pick which one
 
 ## Done
 * robots pushing each other
@@ -100,6 +96,8 @@
 * show all players cards for the current register / incremental card reveal while executing
 * "Player reached flag n" in green in execution log
 * when the game is waiting on a player to make a decision it needs to show other players what they're waiting on
+* display robots' archive markers
+* somehow make checkpoints and possibly other board elements visible when a robot is sitting on them
 
 ## Defect Fix History
 * damage isn't reducing number of cards dealt

@@ -30,7 +30,37 @@ export default function Course({
 }: CourseProps) {
     const [course, setCourse] = useState<CourseType | null>(null);
     const [tileSize, setTileSize] = useState(50);
+    const [ctrlKeyPressed, setCtrlKeyPressed] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
+
+    // Handle Control key press/release for hiding flags
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.ctrlKey) {
+                setCtrlKeyPressed(true);
+            }
+        };
+
+        const handleKeyUp = (e: KeyboardEvent) => {
+            if (!e.ctrlKey) {
+                setCtrlKeyPressed(false);
+            }
+        };
+
+        const handleBlur = () => {
+            setCtrlKeyPressed(false);
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+        window.addEventListener('blur', handleBlur);
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keyup', handleKeyUp);
+            window.removeEventListener('blur', handleBlur);
+        };
+    }, []);
 
     useEffect(() => {
         const courseDefinition = getCourseById(courseId);
@@ -72,14 +102,14 @@ export default function Course({
                     selectedTile={selectedTile}
                 />
 
-                {/* Checkpoint overlay - positioned absolutely over the board */}
+                {/* Checkpoint overlay - positioned absolutely over the board (flags hidden when Control is pressed) */}
                 <CheckpointOverlay
                     checkpoints={course.definition.checkpoints}
                     boardWidth={course.board.width}
                     boardHeight={course.board.height}
                     tileSize={tileSize}
                     checkpointsCompleted={players[currentPlayerId || '']?.checkpointsVisited || 0}
-
+                    hideFlagsOnly={ctrlKeyPressed}
                 />
 
                 {/* Course info overlay */}

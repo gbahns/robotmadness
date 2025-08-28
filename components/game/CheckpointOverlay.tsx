@@ -7,23 +7,39 @@ interface CheckpointOverlayProps {
     boardHeight: number;
     tileSize: number;
     checkpointsCompleted: number;
+    hideFlagsOnly?: boolean;
 }
+
+// CSS for the waving animation - only affects skew and scale, not position
+const waveAnimationStyle = `
+@keyframes wave {
+    0% { transform: skewY(0deg) scaleX(1); }
+    25% { transform: skewY(-2deg) scaleX(0.98) translateX(1px); }
+    50% { transform: skewY(0deg) scaleX(1); }
+    75% { transform: skewY(2deg) scaleX(0.98) translateX(-1px); }
+    100% { transform: skewY(0deg) scaleX(1); }
+}
+`;
 
 export default function CheckpointOverlay({
     checkpoints,
     boardWidth,
     boardHeight,
     tileSize,
-    checkpointsCompleted
+    checkpointsCompleted,
+    hideFlagsOnly = false
 }: CheckpointOverlayProps) {
     return (
-        <div
-            className="absolute top-0 left-0 pointer-events-none z-20"
-            style={{
-                width: boardWidth * tileSize,
-                height: boardHeight * tileSize
-            }}
-        >
+        <>
+            {/* Inject the animation styles */}
+            <style>{waveAnimationStyle}</style>
+            <div
+                className="absolute top-0 left-0 pointer-events-none z-20"
+                style={{
+                    width: boardWidth * tileSize,
+                    height: boardHeight * tileSize
+                }}
+            >
             {checkpoints.map((checkpoint) => (
                 <div
                     key={`checkpoint-${checkpoint.number}`}
@@ -36,7 +52,7 @@ export default function CheckpointOverlay({
                     }}
                 >
                     <div className="relative">
-                        {/* Wrench icon - black version */}
+                        {/* Wrench icon - black version (always visible) */}
                         <div
                             className="absolute flex items-center justify-center"
                             style={{
@@ -61,35 +77,49 @@ export default function CheckpointOverlay({
                             </div>
                         </div>
 
-                        {/* Flag pole */}
-                        <div
-                            className="absolute bg-gray-600"
-                            style={{
-                                width: '3px',
-                                height: tileSize * 0.6,
-                                left: '50%',
-                                top: '50%',
-                                //transform: 'translate(-60%, -50%)'  // Center both X and Y
-                                transform: `translate(-${tileSize * 0.2}px, -${tileSize * 0.3}px)`,
-                            }}
-                        />
+                        {/* Flag and pole (hidden when Control is pressed) */}
+                        {!hideFlagsOnly && (
+                            <>
+                                {/* Flag pole */}
+                                <div
+                                    className="absolute bg-gray-700"
+                                    style={{
+                                        width: '4px',
+                                        height: tileSize * 0.8,
+                                        left: '50%',
+                                        top: '50%',
+                                        transform: `translate(-${tileSize * 0.15}px, -${tileSize * 0.4}px)`,
+                                        borderRadius: '2px'
+                                    }}
+                                />
 
-                        {/* Flag */}
-                        <div
-                            className={`absolute bg-${checkpointsCompleted >= checkpoint.number ? 'green' : 'red'}-600 flex items-center justify-center text-white font-bold shadow-lg`}
-                            style={{
-                                width: tileSize * 0.4,
-                                height: tileSize * 0.3,
-                                left: '50%',
-                                top: '50%',
-                                //transform: `translate(0, -${tileSize * 0.25}px)`,  // Center X, move up Y
-                                transform: `translate(-${tileSize * 0.2}px, -${tileSize * 0.3}px)`,
-                                fontSize: tileSize * 0.2,
-                                clipPath: 'polygon(0 0, 100% 15%, 85% 50%, 100% 85%, 0 100%)'
-                            }}
-                        >
-                            {checkpoint.number}
-                        </div>
+                                {/* Flag container for positioning */}
+                                <div
+                                    className="absolute"
+                                    style={{
+                                        width: tileSize * 0.55,
+                                        height: tileSize * 0.4,
+                                        left: '50%',
+                                        top: '50%',
+                                        transform: `translate(-${tileSize * 0.13}px, -${tileSize * 0.4}px)`,
+                                    }}
+                                >
+                                    {/* Animated flag */}
+                                    <div
+                                        className={`absolute w-full h-full bg-${checkpointsCompleted >= checkpoint.number ? 'green' : 'red'}-600 flex items-center justify-center text-white font-bold shadow-lg`}
+                                        style={{
+                                            transformOrigin: 'left center',
+                                            fontSize: tileSize * 0.25,
+                                            clipPath: 'polygon(0 0, 100% 15%, 85% 50%, 100% 85%, 0 100%)',
+                                            animation: `wave ${2 + (checkpoint.number * 0.3)}s ease-in-out infinite`,
+                                            animationDelay: `${checkpoint.number * 0.5}s`
+                                        }}
+                                    >
+                                        {checkpoint.number}
+                                    </div>
+                                </div>
+                            </>
+                        )}
 
                         {/* Base circle (optional, for visibility) */}
                         {/* <div
@@ -105,6 +135,7 @@ export default function CheckpointOverlay({
                     </div>
                 </div>
             ))}
-        </div>
+            </div>
+        </>
     );
 }

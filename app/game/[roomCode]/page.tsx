@@ -24,6 +24,7 @@ import { useCardManagement } from '@/hooks/useCardManagement';
 import WaitingStatus from '@/components/game/WaitingStatus';
 import Timer from '@/components/game/Timer';
 import DamagePreventionDialog from '@/components/game/DamagePreventionDialog';
+import OptionCardLossDialog from '@/components/game/OptionCardLossDialog';
 // import OptionCards from '@/components/game/OptionCards';  // Keeping for potential future use
 import { OptionCard } from '@/lib/game/optionCards';
 import AllPlayersPrograms from '@/components/game/AllPlayersPrograms';
@@ -65,6 +66,12 @@ export default function GamePage() {
     isOpen: boolean;
     damageAmount: number;
     source: string;
+    optionCards: OptionCard[];
+  } | null>(null);
+  
+  const [optionCardLossDialog, setOptionCardLossDialog] = useState<{
+    isOpen: boolean;
+    message: string;
     optionCards: OptionCard[];
   } | null>(null);
 
@@ -154,6 +161,13 @@ export default function GamePage() {
         type: 'option',
         timestamp: new Date(),
       }]);
+    },
+    onOptionCardLossDecision: (data: { message: string; optionCards: OptionCard[] }) => {
+      setOptionCardLossDialog({
+        isOpen: true,
+        message: data.message,
+        optionCards: data.optionCards
+      });
     }
   });
 
@@ -312,6 +326,17 @@ export default function GamePage() {
             roomCode={roomCode}
             onClose={() => setDamagePreventionDialog(null)}
           />
+        )}
+
+        {optionCardLossDialog && optionCardLossDialog.isOpen && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <OptionCardLossDialog
+              roomCode={roomCode}
+              playerId={playerIdRef.current}
+              optionCards={optionCardLossDialog.optionCards}
+              onClose={() => setOptionCardLossDialog(null)}
+            />
+          </div>
         )}
 
         <div className="flex-1 flex flex-col min-h-0">

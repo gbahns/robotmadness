@@ -47,6 +47,10 @@ export default function WaitingStatus({ gameState, currentPlayerId }: WaitingSta
             message = `Waiting for ${playerNames.join(', ')} to prevent damage`;
             icon = '🛡️';
             break;
+        case 'optionCardLoss':
+            message = `Waiting for ${playerNames.join(', ')} to choose option card to lose`;
+            icon = '💔';
+            break;
     }
     
     // If current player is being waited on, show a different message
@@ -63,6 +67,9 @@ export default function WaitingStatus({ gameState, currentPlayerId }: WaitingSta
                 break;
             case 'damagePrevention':
                 message = 'Choose cards to prevent damage';
+                break;
+            case 'optionCardLoss':
+                message = 'Choose which option card to lose';
                 break;
         }
     }

@@ -37,6 +37,37 @@ export default function Board({
 }: BoardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [tileSize, setTileSize] = useState(50);
+  const [shiftKeyPressed, setShiftKeyPressed] = useState(false);
+
+  // Handle Shift key press/release for hiding robots
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.shiftKey) {
+        setShiftKeyPressed(true);
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (!e.shiftKey) {
+        setShiftKeyPressed(false);
+      }
+    };
+
+    // Also handle when Shift key is released by window blur
+    const handleBlur = () => {
+      setShiftKeyPressed(false);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('blur', handleBlur);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, []);
 
   useEffect(() => {
     const calculateTileSize = () => {
@@ -742,8 +773,75 @@ export default function Board({
           />
         </div>
 
-        {/* Render robots as separate animated layer */}
-        {Object.values(players).map((player) => {
+        {/* Render archive markers - grouped by position */}
+        {(() => {
+          // Group players by archive position
+          const archiveGroups = new Map<string, Array<{player: Player, index: number}>>();
+          
+          Object.values(players).forEach(player => {
+            // Only include if archive marker is set (not at default 0,0)
+            if (!player.archiveMarker || (player.archiveMarker.x === 0 && player.archiveMarker.y === 0)) {
+              return;
+            }
+            
+            const key = `${player.archiveMarker.x},${player.archiveMarker.y}`;
+            const playerIndex = getPlayerIndex(player.id);
+            
+            if (!archiveGroups.has(key)) {
+              archiveGroups.set(key, []);
+            }
+            archiveGroups.get(key)!.push({ player, index: playerIndex });
+          });
+          
+          // Render grouped markers
+          return Array.from(archiveGroups.entries()).map(([posKey, playersAtPos]) => {
+            const [x, y] = posKey.split(',').map(Number);
+            
+            return (
+              <div
+                key={`archive-group-${posKey}`}
+                className="absolute pointer-events-none"
+                style={{
+                  left: x * tileSize,
+                  top: y * tileSize,
+                  width: tileSize,
+                  height: tileSize,
+                  zIndex: 15 // Above board elements (5-10), below checkpoints (20), below robots (30)
+                }}
+              >
+                {/* Render each marker in a grid layout */}
+                {playersAtPos.map((playerData, idx) => {
+                  // Calculate position in grid (3 columns max)
+                  const col = idx % 3;
+                  const row = Math.floor(idx / 3);
+                  const markerSize = tileSize * 0.28; // Slightly smaller to fit more
+                  const spacing = tileSize * 0.02; // Small gap between markers
+                  
+                  return (
+                    <div
+                      key={`archive-${playerData.player.id}`}
+                      className="absolute rounded-full flex items-center justify-center text-white font-bold border-2 border-black border-opacity-30"
+                      style={{
+                        backgroundColor: ROBOT_COLORS[playerData.index % ROBOT_COLORS.length],
+                        width: markerSize,
+                        height: markerSize,
+                        fontSize: markerSize * 0.6,
+                        left: col * (markerSize + spacing),
+                        top: row * (markerSize + spacing),
+                        opacity: 0.8
+                      }}
+                    >
+                      {playerData.index + 1}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          });
+        })()}
+
+        {/* Render robots as separate animated layer (hidden when Shift is pressed) */}
+        {!shiftKeyPressed && Object.values(players).map((player) => {
           if (player.lives <= 0) return null;
           
           const playerIndex = getPlayerIndex(player.id);

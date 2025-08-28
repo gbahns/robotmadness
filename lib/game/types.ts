@@ -103,7 +103,7 @@ export interface GameState {
   };
   currentExecutingPlayerId?: string; // Player whose card is currently executing
   waitingOn?: {
-    type: 'cards' | 'powerDown' | 'respawn' | 'damagePrevention';
+    type: 'cards' | 'powerDown' | 'respawn' | 'damagePrevention' | 'optionCardLoss';
     playerIds: string[];
     playerNames: string[];
     completedPlayerIds?: string[]; // For tracking who has already made their decision

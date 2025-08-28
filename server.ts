@@ -4,6 +4,7 @@ import { Server, Socket } from 'socket.io';
 import next from 'next';
 import { GameState, ProgramCard, GamePhase, Course, Player, PowerState, Direction, Position } from './lib/game/types';
 import { GameEngine, ServerGameState } from './lib/game/gameEngine';
+import { OptionCardType, OptionCard } from './lib/game/optionCards';
 import { prisma } from './lib/prisma';
 
 const dev = process.env.NODE_ENV !== 'production';
@@ -52,6 +53,14 @@ interface ServerToClientEvents {
         damagePreventedSoFar: number; 
         damageRemaining: number 
     }) => void;
+    'option-card-loss-decision': (data: {
+        message: string;
+        optionCards: OptionCard[];
+    }) => void;
+    'option-card-lost': (data: {
+        playerName: string;
+        cardName: string;
+    }) => void;
 }
 
 interface ClientToServerEvents {
@@ -87,6 +96,7 @@ interface ClientToServerEvents {
     'use-option-for-damage': (data: { roomCode: string; cardId: string }) => void;
     'register-update': (data: { roomCode: string; playerId: string; selectedCards: (ProgramCard | null)[] }) => void;
     'deal-option-cards-to-all': (data: { roomCode: string }) => void;
+    'option-card-loss-decision': (data: { roomCode: string; playerId: string; cardToLose: OptionCardType }) => void;
 }
 
 interface InterServerEvents { }
@@ -796,6 +806,41 @@ app.prepare().then(() => {
             // Update game state so UI reflects the reduced damage
             io.to(roomCode).emit('game-state', gameState);
         }
+
+        // Handle option card loss decision (when robot is destroyed)
+        socket.on('option-card-loss-decision', ({ roomCode, playerId, cardToLose }) => {
+            const gameState = games.get(roomCode);
+            if (!gameState) return;
+
+            const player = gameState.players[playerId];
+            if (!player) return;
+
+            // Validate that this player has a pending option card loss decision
+            if (!gameState.pendingDecisions || 
+                !gameState.pendingDecisions[playerId] || 
+                gameState.pendingDecisions[playerId].type !== 'option-card-loss') {
+                console.log(`Player ${player.name} tried to make option card loss decision without pending decision`);
+                return;
+            }
+
+            // Find and remove the specified card
+            const cardIndex = player.optionCards?.findIndex(card => card.type === cardToLose);
+            if (cardIndex !== undefined && cardIndex >= 0) {
+                const removedCard = player.optionCards?.splice(cardIndex, 1)[0];
+                console.log(`${player.name} lost option card: ${removedCard?.name}`);
+                
+                io.to(roomCode).emit('option-card-lost', {
+                    playerName: player.name,
+                    cardName: removedCard?.name
+                });
+            }
+
+            // Clear the pending decision
+            delete gameState.pendingDecisions[playerId];
+            
+            // Update game state for all players
+            io.to(roomCode).emit('game-state', gameState);
+        });
 
         // Dev/Test: Deal random option cards to all players
         socket.on('deal-option-cards-to-all', ({ roomCode }) => {

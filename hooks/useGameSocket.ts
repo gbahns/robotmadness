@@ -27,6 +27,7 @@ interface UseGameSocketProps {
     onTimerExpired?: () => void;
     onDamagePreventionOpportunity?: (data: any) => void;
     onOptionCardUsedForDamage?: (data: any) => void;
+    onOptionCardLossDecision?: (data: { message: string; optionCards: any[] }) => void;
 }
 
 export function useGameSocket({
@@ -52,7 +53,8 @@ export function useGameSocket({
     onTimerUpdate,
     onTimerExpired,
     onDamagePreventionOpportunity,
-    onOptionCardUsedForDamage
+    onOptionCardUsedForDamage,
+    onOptionCardLossDecision
 }: UseGameSocketProps) {
     const logIdCounter = useRef(0);
 
@@ -349,6 +351,13 @@ export function useGameSocket({
             onIsRespawnDecision(true);
         };
 
+        const handleOptionCardLossDecision = (data: { message: string; optionCards: any[] }) => {
+            console.log('Option card loss decision:', data.message);
+            if (onOptionCardLossDecision) {
+                onOptionCardLossDecision(data);
+            }
+        };
+
         // ===== Register all event handlers =====
         
         // Simple inline handlers
@@ -394,6 +403,22 @@ export function useGameSocket({
         if (onOptionCardUsedForDamage) {
             socketClient.on('option-card-used-for-damage', (data) => onOptionCardUsedForDamage(data));
         }
+        
+        // Option card loss decision event
+        if (onOptionCardLossDecision) {
+            socketClient.on('option-card-loss-decision', (data) => handleOptionCardLossDecision(data as { message: string; optionCards: any[] }));
+        }
+        
+        // Option card lost event (when a player loses a card)
+        socketClient.on('option-card-lost', (data) => {
+            const typedData = data as { playerName: string; cardName: string };
+            onLogEntry({
+                id: logIdCounter.current++,
+                message: `${typedData.playerName} lost option card: ${typedData.cardName}`,
+                type: 'damage',
+                timestamp: new Date()
+            });
+        });
         
         // Handle register updates from other players
         socketClient.on('register-update', (data) => {
