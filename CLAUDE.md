@@ -53,12 +53,13 @@ When performing database migrations, **ALWAYS** check and use the existing TypeS
 ## Development Environment
 
 ### Development Server
-**IMPORTANT - DO NOT MANAGE DEV SERVER:** 
-- The development server (`npm run dev`) should be managed manually by the user
-- DO NOT attempt to start, stop, or restart the dev server
-- DO NOT use the dev-server-manager agent
-- If the user mentions the dev server isn't running, inform them they need to run `npm run dev` manually
-- Focus on code changes only - the user will handle server management
+**DEV SERVER MANAGEMENT:** 
+- You should manage the development server (`npm run dev`) automatically
+- Always kill any existing process on port 3000 before starting: `npx kill-port 3000`
+- After running `npm run build`, restart the dev server
+- Run the dev server in background mode using `run_in_background: true`
+- Check server status with BashOutput tool to ensure it started properly
+- IMPORTANT: Always ensure only one instance is running to avoid port conflicts
 
 ### Testing and Building
 - Use `npm run build` to check for TypeScript errors and build issues
