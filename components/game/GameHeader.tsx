@@ -27,11 +27,11 @@ export default function GameHeader({ roomCode, onLeaveGame, isHost, isPractice }
                         <span className="text-blue-300 text-sm font-medium">PRACTICE MODE</span>
                     </div>
                 )}
-                {isHost && (
+                {isHost && isPractice && (
                     <button
                         onClick={handleDealOptionCards}
                         className="bg-purple-600 hover:bg-purple-700 px-3 py-1 rounded text-xs font-semibold"
-                        title="Deal 1 random option card to each player (dev/test)"
+                        title="Deal 1 random option card to each player (practice mode only)"
                     >
                         +1 Option Card (All)
                     </button>
