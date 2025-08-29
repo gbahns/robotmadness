@@ -12,7 +12,7 @@ export const RISKY_EXCHANGE: CourseDefinition = {
     difficulty: 'beginner',
     minPlayers: 2,
     maxPlayers: 8,
-    boards: ['exchange-factory-floor', 'docking-bay-1'], // Individual boards, not combined!
+    boards: ['docking-bay-1', 'exchange-factory-floor'], // Individual boards, not combined!
     checkpoints: [
         { position: { x: 7, y: 1 }, number: 1 },  // Top center of factory floor
         { position: { x: 9, y: 7 }, number: 2 },  // Right side of factory floor
@@ -454,9 +454,11 @@ export function buildCourse(courseDef: CourseDefinition): Course {
     } else if (boardDefs.length > 1) {
         // Stack boards from bottom to top
         // The first board in the array should appear at the bottom of the screen
-        combinedBoard = boardDefs[0];
-        for (let i = 1; i < boardDefs.length; i++) {
-            combinedBoard = combineBoardsVertically(boardDefs[i], combinedBoard);
+        // Start with the last board (which will be at the top)
+        combinedBoard = boardDefs[boardDefs.length - 1];
+        // Add each board below the previous one, working backwards
+        for (let i = boardDefs.length - 2; i >= 0; i--) {
+            combinedBoard = combineBoardsVertically(combinedBoard, boardDefs[i]);
         }
     } else {
         throw new Error(`Invalid board configuration for course: ${courseDef.id}`);
@@ -511,7 +513,6 @@ export function buildCourse(courseDef: CourseDefinition): Course {
  * Combines two boards vertically: first board on top, second board on bottom.
  * @param topBoard - The board that will be placed on top
  * @param bottomBoard - The board that will be placed on bottom
- * Note: In RoboRally, factory floors typically go on top, docking bays on bottom
  */
 export function combineBoardsVertically(topBoard: BoardDefinition, bottomBoard: BoardDefinition): BoardDefinition {
     const combinedHeight = topBoard.height + bottomBoard.height;
