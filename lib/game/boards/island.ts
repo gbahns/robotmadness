@@ -81,8 +81,8 @@ export const ISLAND_BOARD: BoardDefinition = {
         { position: { x: 8, y: 5 }, type: TileType.CONVEYOR, direction: Direction.UP },
         { position: { x: 8, y: 4 }, type: TileType.CONVEYOR, direction: Direction.UP },
         { position: { x: 5, y: 5 }, type: TileType.OPTION },
-        { position: { x: 6, y: 3 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
-        { position: { x: 5, y: 8 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
+        { position: { x: 5, y: 8 }, type: TileType.CONVEYOR, direction: Direction.RIGHT, entries: [Direction.UP, Direction.LEFT] },
+        { position: { x: 6, y: 3 }, type: TileType.CONVEYOR, direction: Direction.LEFT, entries: [Direction.DOWN, Direction.RIGHT] },
     ],
 
     walls: [
