@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "npm run db:generate && tsx watch server.ts",
+    "dev2": "nodemon --exec ts-node server.ts",
     "dev:sqlite": "npm run db:generate:local && tsx watch server.ts",
     "dev:clean": "scripts\\dev.bat",
     "build": "next build",
@@ -54,9 +55,11 @@
     "eslint": "^9",
     "eslint-config-next": "15.4.5",
     "jest": "^30.0.5",
+    "nodemon": "^3.1.10",
     "prisma": "^6.14.0",
     "tailwindcss": "^4",
     "ts-jest": "^29.4.1",
+    "ts-node": "^10.9.2",
     "tsx": "^4.20.5"
   }
 }
