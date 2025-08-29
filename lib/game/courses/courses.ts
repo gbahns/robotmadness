@@ -254,7 +254,9 @@ function rotateBoardDefinition(board: BoardDefinition, degrees: number): BoardDe
                     y: maxY - tile.position.y
                 },
                 // Rotate direction if present (0->2, 1->3, 2->0, 3->1)
-                direction: tile.direction !== undefined ? ((tile.direction + 2) % 4) as Direction : undefined
+                direction: tile.direction !== undefined ? ((tile.direction + 2) % 4) as Direction : undefined,
+                // Rotate entry directions if present (180 degree rotation)
+                entries: tile.entries ? tile.entries.map(entry => ((entry + 2) % 4) as Direction) : undefined
             }));
         }
 
@@ -311,7 +313,9 @@ function rotateBoardDefinition(board: BoardDefinition, degrees: number): BoardDe
                     y: maxX - tile.position.x  // width - x becomes y
                 },
                 // Rotate direction counterclockwise (0->3, 1->0, 2->1, 3->2)
-                direction: tile.direction !== undefined ? ((tile.direction + 3) % 4) as Direction : undefined
+                direction: tile.direction !== undefined ? ((tile.direction + 3) % 4) as Direction : undefined,
+                // Rotate entry directions counterclockwise (270 degree rotation)
+                entries: tile.entries ? tile.entries.map(entry => ((entry + 3) % 4) as Direction) : undefined
             }));
         }
 
@@ -368,7 +372,9 @@ function rotateBoardDefinition(board: BoardDefinition, degrees: number): BoardDe
                     y: tile.position.x  // x becomes y
                 },
                 // Rotate direction clockwise (0->1, 1->2, 2->3, 3->0)
-                direction: tile.direction !== undefined ? ((tile.direction + 1) % 4) as Direction : undefined
+                direction: tile.direction !== undefined ? ((tile.direction + 1) % 4) as Direction : undefined,
+                // Rotate entry directions clockwise (90 degree rotation)
+                entries: tile.entries ? tile.entries.map(entry => ((entry + 1) % 4) as Direction) : undefined
             }));
         }
 
