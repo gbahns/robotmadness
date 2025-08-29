@@ -380,7 +380,7 @@ interface ConveyorBeltProps {
   tileSize: number;
 }
 
-export default function ConveyorBelt({ type, direction, rotate, entries, tileSize }: ConveyorBeltProps) {
+export default function ConveyorBelt({ type, direction, rotate, entries }: ConveyorBeltProps) {
   // Determine if this is a rotating conveyor based on entries
   let effectiveRotate: 'clockwise' | 'counterclockwise' | undefined = rotate;
   let isMergeConveyor = false;
