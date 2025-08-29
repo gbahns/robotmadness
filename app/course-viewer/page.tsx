@@ -171,7 +171,7 @@ export default function CourseViewerPage() {  // Renamed from BoardViewerPage
                         </div>
                     </div>
                 ) : course ? (
-                    <div className="flex justify-center overflow-auto" style={{ height: 'calc(100vh - 120px)' }}>
+                    <div className="flex-1 flex justify-center items-center overflow-auto h-full" style={{ height: 'calc(100vh - 120px)' }}>
                         <Course
                             courseId={selectedCourseId}
                             players={{}}
