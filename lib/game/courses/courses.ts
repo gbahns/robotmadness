@@ -167,10 +167,27 @@ export const DEATH_TRAP_COURSE: CourseDefinition = {
     minPlayers: 2,
     maxPlayers: 4,
     boards: ['docking-bay-2', 'island'],
+    boardRotations: [0, 270], // No rotation for docking bay, 270° (90° CCW) for island
     checkpoints: [
         { position: { x: 7, y: 7 }, number: 1 },
         { position: { x: 0, y: 4 }, number: 2 },
         { position: { x: 6, y: 5 }, number: 3 }
+    ]
+};
+
+export const PILGRIMAGE_COURSE: CourseDefinition = {
+    id: 'pilgrimage',
+    name: 'Pilgrimage',
+    description: 'A rough-and-tumble journey.',
+    difficulty: 'hard',
+    minPlayers: 2,
+    maxPlayers: 8,
+    boards: ['docking-bay-2', 'exchange-factory-floor', 'cross'],
+    boardRotations: [0, 180, 180],
+    checkpoints: [
+        { position: { x: 4, y: 8 }, number: 1 },
+        { position: { x: 9, y: 19 }, number: 2 },
+        { position: { x: 2, y: 14 }, number: 3 }
     ]
 };
 
@@ -182,7 +199,8 @@ export const SINGLE_BOARD_COURSE_DEFINITIONS: CourseDefinition[] = [
     TWISTER_COURSE,
     BLOODBATH_CHESS_COURSE,
     AROUND_THE_WORLD_COURSE,
-    DEATH_TRAP_COURSE
+    DEATH_TRAP_COURSE,
+    PILGRIMAGE_COURSE
 ];
 
 // =============================================================================
