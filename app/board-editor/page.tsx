@@ -126,29 +126,23 @@ const DIRECTION_OPTIONS = [
     { value: Direction.LEFT, name: 'Left', arrow: '←' },
 ];
 
-const ROTATION_OPTIONS = [
-    { value: 'none' as const, name: 'Straight', icon: '→' },
-    { value: 'clockwise' as const, name: 'Clockwise', icon: '↻' },
-    { value: 'counterclockwise' as const, name: 'Counter-CW', icon: '↺' },
-];
-
 export default function BoardEditorWithGameRendering() {
     const [boardDef, setBoardDef] = useState<BoardDefinition>(createEmptyBoard());
     const [selectedItem, setSelectedItem] = useState<PaletteItem>(TOOL_PALETTE[0]);
     const [selectedDirection, setSelectedDirection] = useState<Direction>(Direction.UP);
-    const [selectedRotation, setSelectedRotation] = useState<'none' | 'clockwise' | 'counterclockwise'>('none');
+    const [selectedEntries, setSelectedEntries] = useState<Direction[]>([]);
     const [selectedLaserStrength, setSelectedLaserStrength] = useState<number>(1);
     const [showGrid, setShowGrid] = useState(true);
     const [showCoordinates, setShowCoordinates] = useState(false);
     const [showValidation, setShowValidation] = useState(false);
     const [showTemplates, setShowTemplates] = useState(false);
-    const [showGameBoards, setShowGameBoards] = useState(false);
     const [isDrawing, setIsDrawing] = useState(false);
     const [history, setHistory] = useState<BoardDefinition[]>([createEmptyBoard()]);
     const [historyIndex, setHistoryIndex] = useState(0);
     // Tile size will be calculated by BoardRenderer
     const [calculatedTileSize, setCalculatedTileSize] = useState(50);
     const [hoveredTile, setHoveredTile] = useState<{ x: number; y: number; side?: Direction } | null>(null);
+    const [selectedBoardId, setSelectedBoardId] = useState<string>('');
 
     // Convert BoardDefinition to Board type for BoardRenderer
     const convertToBoard = (def: BoardDefinition): Board => {
@@ -178,6 +172,7 @@ export default function BoardEditorWithGameRendering() {
                         type: tile.type,
                         direction: tile.direction,
                         rotate: tile.rotate,
+                        entries: tile.entries,
                         registers: tile.registers,
                         walls: []
                     };
@@ -244,6 +239,28 @@ export default function BoardEditorWithGameRendering() {
         }
     }, [history, historyIndex]);
 
+    // Load saved board on mount
+    useEffect(() => {
+        const savedBoardId = localStorage.getItem('boardEditor_selectedBoardId');
+        if (savedBoardId) {
+            const boardDefinition = getBoardDefinitionById(savedBoardId);
+            if (boardDefinition) {
+                const newBoard = cloneBoardDefinition(boardDefinition);
+                setBoardDef(newBoard);
+                setHistory([newBoard]);
+                setHistoryIndex(0);
+                setSelectedBoardId(savedBoardId);
+            }
+        }
+    }, []);
+
+    // Save board ID to localStorage when it changes
+    useEffect(() => {
+        if (selectedBoardId) {
+            localStorage.setItem('boardEditor_selectedBoardId', selectedBoardId);
+        }
+    }, [selectedBoardId]);
+
     // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -296,24 +313,23 @@ export default function BoardEditorWithGameRendering() {
                     newTile.direction = selectedDirection;
                 }
 
-                // Add rotation for conveyors if selected
-                if ((selectedItem.type === TileType.CONVEYOR || selectedItem.type === TileType.EXPRESS_CONVEYOR) && selectedRotation !== 'none') {
-                    newTile.rotate = selectedRotation as 'clockwise' | 'counterclockwise';
+                // Add entry points for conveyors if selected
+                if ((selectedItem.type === TileType.CONVEYOR || selectedItem.type === TileType.EXPRESS_CONVEYOR) && selectedEntries.length > 0) {
+                    newTile.entries = selectedEntries;
                 }
 
-                // Handle gears - they always need rotation, use selectedRotation or default to clockwise
+                // Handle gears - check if counterclockwise entry is selected
                 if (selectedItem.type === TileType.GEAR_CW) {
-                    newTile.rotate = selectedRotation === 'counterclockwise' ? 'counterclockwise' : 'clockwise';
-                    // For gears, we need to set the correct type based on rotation
-                    if (selectedRotation === 'counterclockwise') {
+                    // Use a simple toggle - if any entry is selected, make it CCW
+                    if (selectedEntries.length > 0) {
                         newTile.type = TileType.GEAR_CCW;
                     }
                 }
 
                 // Add registers for pushers based on rotation selection
                 if (selectedItem.type === TileType.PUSHER) {
-                    // Use rotation to determine odd/even registers
-                    newTile.registers = selectedRotation === 'counterclockwise' ? [2, 4] : [1, 3, 5];
+                    // Use entries to determine odd/even registers
+                    newTile.registers = selectedEntries.length > 0 ? [2, 4] : [1, 3, 5];
                     console.log('Placing pusher with registers:', newTile.registers);
                 }
 
@@ -322,7 +338,7 @@ export default function BoardEditorWithGameRendering() {
 
             return { ...prev, tiles: newTiles };
         });
-    }, [selectedItem.type, selectedItem.tool, selectedDirection, selectedRotation, updateBoard]);
+    }, [selectedItem.type, selectedItem.tool, selectedDirection, selectedEntries, updateBoard]);
 
     const placeLaser = useCallback((x: number, y: number, direction: Direction) => {
         updateBoard(prev => {
@@ -570,13 +586,13 @@ export default function BoardEditorWithGameRendering() {
                             <ConveyorBelt 
                                 type={selectedItem.type === TileType.EXPRESS_CONVEYOR ? 'express' : 'conveyor'}
                                 direction={selectedDirection}
-                                rotate={selectedRotation === 'clockwise' ? 'clockwise' : selectedRotation === 'counterclockwise' ? 'counterclockwise' : undefined}
+                                entries={selectedEntries}
                                 tileSize={calculatedTileSize}
                             />
                         )}
                         {(selectedItem.type === TileType.GEAR_CW || selectedItem.type === TileType.GEAR_CCW) && (
                             <Gear 
-                                type={selectedRotation === 'counterclockwise' ? TileType.GEAR_CCW : TileType.GEAR_CW} 
+                                type={selectedEntries.length > 0 ? TileType.GEAR_CCW : TileType.GEAR_CW} 
                                 tileSize={calculatedTileSize} 
                             />
                         )}
@@ -745,6 +761,7 @@ export default function BoardEditorWithGameRendering() {
             walls: [],
             startingPositions: []
         }));
+        setSelectedBoardId(''); // Clear selected board when clearing
     };
 
     const loadTemplate = (templateId: string) => {
@@ -753,6 +770,7 @@ export default function BoardEditorWithGameRendering() {
             const newBoard = cloneBoardDefinition(template);
             setBoardDef(newBoard);
             addToHistory(newBoard);
+            setSelectedBoardId(''); // Clear selected board when loading template
         }
     };
 
@@ -762,6 +780,7 @@ export default function BoardEditorWithGameRendering() {
             const newBoard = cloneBoardDefinition(boardDefinition);
             setBoardDef(newBoard);
             addToHistory(newBoard);
+            setSelectedBoardId(boardId);
         }
     };
 
@@ -792,7 +811,7 @@ export default function BoardEditorWithGameRendering() {
         try {
             const dataStr = JSON.stringify(boardDef, null, 2);
             await navigator.clipboard.writeText(dataStr);
-            alert('Board JSON copied to clipboard!');
+            // Silent success - no alert
         } catch (err) {
             console.error('Failed to copy to clipboard:', err);
             // Fallback for older browsers
@@ -802,7 +821,7 @@ export default function BoardEditorWithGameRendering() {
             textArea.select();
             document.execCommand('copy');
             document.body.removeChild(textArea);
-            alert('Board JSON copied to clipboard!');
+            // Silent success - no alert
         }
     };
 
@@ -810,7 +829,7 @@ export default function BoardEditorWithGameRendering() {
         try {
             const tsCode = exportToTypeScript(boardDef);
             await navigator.clipboard.writeText(tsCode);
-            alert('Board TypeScript code copied to clipboard!');
+            // Silent success - no alert
         } catch (err) {
             console.error('Failed to copy TypeScript to clipboard:', err);
             // Fallback for older browsers
@@ -820,7 +839,7 @@ export default function BoardEditorWithGameRendering() {
             textArea.select();
             document.execCommand('copy');
             document.body.removeChild(textArea);
-            alert('Board TypeScript code copied to clipboard!');
+            // Silent success - no alert
         }
     };
 
@@ -878,7 +897,35 @@ export default function BoardEditorWithGameRendering() {
         <div className="min-h-screen bg-gray-900 text-white p-4">
             <div className="max-w-7xl mx-auto">
                 <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-3xl font-bold">Board Editor</h1>
+                    <div className="flex items-center gap-4">
+                        <h1 className="text-3xl font-bold">Board Editor</h1>
+                        {/* Board Selection */}
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm font-medium">Board:</label>
+                            <select
+                                value={selectedBoardId}
+                                onChange={(e) => {
+                                    if (e.target.value) {
+                                        loadGameBoard(e.target.value);
+                                    } else {
+                                        setSelectedBoardId('');
+                                    }
+                                }}
+                                className="bg-gray-700 text-white px-3 py-1 rounded text-sm min-w-[200px]"
+                            >
+                                <option value="">New Board</option>
+                                {BOARD_CATEGORIES.map(category => (
+                                    <optgroup key={category.name} label={category.name}>
+                                        {category.boards.map(board => (
+                                            <option key={board.id} value={board.id}>
+                                                {board.name} ({board.width}×{board.height})
+                                            </option>
+                                        ))}
+                                    </optgroup>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
                     <div className="flex gap-2">
                         <button
                             onClick={undo}
@@ -899,12 +946,6 @@ export default function BoardEditorWithGameRendering() {
                             className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm"
                         >
                             Templates
-                        </button>
-                        <button
-                            onClick={() => setShowGameBoards(!showGameBoards)}
-                            className="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-sm"
-                        >
-                            Game Boards
                         </button>
                         <button
                             onClick={() => setShowValidation(!showValidation)}
@@ -939,49 +980,6 @@ export default function BoardEditorWithGameRendering() {
                     </div>
                 )}
 
-                {/* Game Boards Panel */}
-                {showGameBoards && (
-                    <div className="bg-gray-800 p-4 rounded-lg mb-6">
-                        <h3 className="text-lg font-semibold mb-3">Load Game Boards</h3>
-                        <p className="text-sm text-gray-400 mb-2">Raw board layouts from the game files</p>
-                        <div className="flex gap-3 items-end">
-                            <div className="flex-1">
-                                <label className="block text-sm font-medium mb-1">Select Board</label>
-                                <select
-                                    onChange={(e) => {
-                                        if (e.target.value) {
-                                            loadGameBoard(e.target.value);
-                                        }
-                                    }}
-                                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-sm"
-                                    defaultValue=""
-                                >
-                                    <option value="">Choose a board...</option>
-                                    {BOARD_CATEGORIES.map(category => (
-                                        <optgroup key={category.name} label={category.name}>
-                                            {category.boards.map(board => (
-                                                <option key={board.id} value={board.id}>
-                                                    {board.name} ({board.width}×{board.height})
-                                                </option>
-                                            ))}
-                                        </optgroup>
-                                    ))}
-                                </select>
-                            </div>
-                            <button
-                                onClick={() => {
-                                    const select = document.querySelector('select') as HTMLSelectElement;
-                                    if (select && select.value) {
-                                        loadGameBoard(select.value);
-                                    }
-                                }}
-                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm"
-                            >
-                                Load Board
-                            </button>
-                        </div>
-                    </div>
-                )}
 
                 {/* Validation Panel */}
                 {showValidation && (
@@ -1148,34 +1146,97 @@ export default function BoardEditorWithGameRendering() {
                                     </div>
                                 )}
 
-                            {/* Rotation Selection */}
-                            {(selectedItem.tool === 'tile' && (selectedItem.type === TileType.CONVEYOR || selectedItem.type === TileType.EXPRESS_CONVEYOR || selectedItem.type === TileType.GEAR_CW || selectedItem.type === TileType.PUSHER)) && (
+                            {/* Entry Points Selection for Conveyors */}
+                            {(selectedItem.tool === 'tile' && (selectedItem.type === TileType.CONVEYOR || selectedItem.type === TileType.EXPRESS_CONVEYOR)) && (
                                 <div className="mb-3">
                                     <label className="block text-sm font-medium mb-2">
-                                        {selectedItem.type === TileType.GEAR_CW ? 'Rotation' : 
-                                         selectedItem.type === TileType.PUSHER ? 'Registers' : 'Curve'}
+                                        Entry Points (Optional)
                                     </label>
-                                    <div className="grid grid-cols-1 gap-1">
-                                        {(selectedItem.type === TileType.PUSHER ? 
-                                            [
-                                                { value: 'none', name: 'Odd (1,3,5)', icon: '1️⃣' },
-                                                { value: 'counterclockwise', name: 'Even (2,4)', icon: '2️⃣' }
-                                            ] : ROTATION_OPTIONS
-                                        ).map(({ value, name, icon }) => {
-                                            // For gears, don't show 'none' option
-                                            if (selectedItem.type === TileType.GEAR_CW && value === 'none') return null;
-
+                                    <div className="grid grid-cols-2 gap-1">
+                                        {DIRECTION_OPTIONS.map(({ value, name, arrow }) => {
+                                            const isSelected = selectedEntries.includes(value);
+                                            const canAdd = selectedEntries.length < 2; // Max 2 entries for merge conveyors
                                             return (
                                                 <button
                                                     key={value}
-                                                    onClick={() => setSelectedRotation(value as 'none' | 'clockwise' | 'counterclockwise')}
-                                                    className={`px-2 py-1 rounded text-sm flex items-center gap-2 ${selectedRotation === value ? 'bg-blue-600' : 'bg-gray-600 hover:bg-gray-500'}`}
+                                                    onClick={() => {
+                                                        if (isSelected) {
+                                                            setSelectedEntries(selectedEntries.filter(d => d !== value));
+                                                        } else if (canAdd) {
+                                                            setSelectedEntries([...selectedEntries, value]);
+                                                        }
+                                                    }}
+                                                    disabled={!isSelected && !canAdd}
+                                                    className={`px-2 py-1 rounded text-sm flex items-center gap-2 ${
+                                                        isSelected ? 'bg-blue-600 hover:bg-blue-500' : 
+                                                        canAdd ? 'bg-gray-600 hover:bg-gray-500' : 
+                                                        'bg-gray-700 opacity-50 cursor-not-allowed'
+                                                    }`}
                                                 >
-                                                    <span>{icon}</span>
+                                                    <span>{arrow}</span>
                                                     {name}
                                                 </button>
                                             );
                                         })}
+                                    </div>
+                                    <p className="text-xs text-gray-400 mt-1">
+                                        {selectedEntries.length === 0 ? 'Select 1 entry for corner or 2 for merge conveyor' :
+                                         selectedEntries.length === 1 ? 'Select another entry for merge conveyor' :
+                                         '2 entries selected (merge conveyor)'}
+                                    </p>
+                                    {selectedEntries.length > 0 && (
+                                        <button
+                                            onClick={() => setSelectedEntries([])}
+                                            className="mt-2 px-2 py-1 bg-red-600 hover:bg-red-500 rounded text-xs"
+                                        >
+                                            Clear Entries
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                            
+                            {/* Gear Type Selection */}
+                            {(selectedItem.tool === 'tile' && selectedItem.type === TileType.GEAR_CW) && (
+                                <div className="mb-3">
+                                    <label className="block text-sm font-medium mb-2">Rotation</label>
+                                    <div className="grid grid-cols-1 gap-1">
+                                        <button
+                                            onClick={() => setSelectedEntries([])}
+                                            className={`px-2 py-1 rounded text-sm flex items-center gap-2 ${selectedEntries.length === 0 ? 'bg-blue-600' : 'bg-gray-600 hover:bg-gray-500'}`}
+                                        >
+                                            <span>↻</span>
+                                            Clockwise
+                                        </button>
+                                        <button
+                                            onClick={() => setSelectedEntries([Direction.UP])} // Use any direction as a flag
+                                            className={`px-2 py-1 rounded text-sm flex items-center gap-2 ${selectedEntries.length > 0 ? 'bg-blue-600' : 'bg-gray-600 hover:bg-gray-500'}`}
+                                        >
+                                            <span>↺</span>
+                                            Counter-clockwise
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* Pusher Registers Selection */}
+                            {(selectedItem.tool === 'tile' && selectedItem.type === TileType.PUSHER) && (
+                                <div className="mb-3">
+                                    <label className="block text-sm font-medium mb-2">Registers</label>
+                                    <div className="grid grid-cols-1 gap-1">
+                                        <button
+                                            onClick={() => setSelectedEntries([])}
+                                            className={`px-2 py-1 rounded text-sm flex items-center gap-2 ${selectedEntries.length === 0 ? 'bg-blue-600' : 'bg-gray-600 hover:bg-gray-500'}`}
+                                        >
+                                            <span>1️⃣</span>
+                                            Odd (1,3,5)
+                                        </button>
+                                        <button
+                                            onClick={() => setSelectedEntries([Direction.UP])} // Use any direction as a flag
+                                            className={`px-2 py-1 rounded text-sm flex items-center gap-2 ${selectedEntries.length > 0 ? 'bg-blue-600' : 'bg-gray-600 hover:bg-gray-500'}`}
+                                        >
+                                            <span>2️⃣</span>
+                                            Even (2,4)
+                                        </button>
                                     </div>
                                 </div>
                             )}

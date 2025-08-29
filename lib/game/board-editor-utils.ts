@@ -421,6 +421,10 @@ export function exportToTypeScript(boardDef: BoardDefinition): string {
             if (tile.rotate) {
                 tileLine += `, rotate: '${tile.rotate}'`;
             }
+            if (tile.entries && tile.entries.length > 0) {
+                const entries = tile.entries.map(entry => `Direction.${Direction[entry]}`).join(', ');
+                tileLine += `, entries: [${entries}]`;
+            }
             if (tile.registers && tile.registers.length > 0) {
                 tileLine += `, registers: [${tile.registers.join(', ')}]`;
             }

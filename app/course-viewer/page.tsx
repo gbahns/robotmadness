@@ -11,18 +11,17 @@ export default function CourseViewerPage() {  // Renamed from BoardViewerPage
     const [course, setCourse] = useState<CourseType | null>(null);
     const [loadError, setLoadError] = useState<string | null>(null);
 
-    // Get all course IDs from ALL_COURSES
-    const courseIds = ALL_COURSES.map(course => course.id);
 
     // Load saved course selection from localStorage on mount
     useEffect(() => {
         const savedCourseId = localStorage.getItem('courseViewer.selectedCourseId');
+        const allCourseIds = ALL_COURSES.map(course => course.id);
         
-        if (savedCourseId && courseIds.includes(savedCourseId)) {
+        if (savedCourseId && allCourseIds.includes(savedCourseId)) {
             setSelectedCourseId(savedCourseId);
-        } else if (courseIds.length > 0) {
+        } else if (allCourseIds.length > 0) {
             // No saved course or invalid, select first
-            setSelectedCourseId(courseIds[0]);
+            setSelectedCourseId(allCourseIds[0]);
         }
     }, []); // Only run once on mount
 

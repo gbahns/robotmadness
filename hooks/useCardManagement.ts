@@ -155,26 +155,10 @@ export function useCardManagement({
     const handleResetCards = useCallback(() => {
         if (!currentPlayer) return null;
 
-        // Reset local state immediately
-        const newSelectedCards = [...currentPlayer.selectedCards];
-        const lockedCount = currentPlayer.lockedRegisters;
-
-        // Only clear non-locked registers
-        for (let i = 0; i < 5 - lockedCount; i++) {
-            newSelectedCards[i] = null;
-        }
-
-        // Emit reset event to server  
+        // Only emit reset event to server - let server handle all the logic
         socketClient.emit('reset-cards', {
             roomCode,
             playerId: playerIdRef.current,
-        });
-
-        // Also emit register update to show cleared registers
-        socketClient.emit('register-update', {
-            roomCode,
-            playerId: playerIdRef.current,
-            selectedCards: newSelectedCards
         });
 
         // Update submitted state
@@ -187,21 +171,7 @@ export function useCardManagement({
             type: 'info',
             timestamp: new Date()
         });
-
-        // Return the new game state
-        if (!gameState) return null;
-        return {
-            ...gameState,
-            players: {
-                ...gameState.players,
-                [playerIdRef.current]: {
-                    ...gameState.players[playerIdRef.current],
-                    selectedCards: newSelectedCards,
-                    submitted: false,
-                },
-            },
-        };
-    }, [currentPlayer, gameState, roomCode, playerIdRef, onLogEntry]);
+    }, [currentPlayer, roomCode, playerIdRef, onLogEntry]);
 
     // Sync isSubmitted with server state
     const syncSubmittedState = useCallback((submitted: boolean) => {

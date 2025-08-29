@@ -150,7 +150,8 @@ export const AROUND_THE_WORLD_COURSE: CourseDefinition = {
     difficulty: 'hard',
     minPlayers: 5,
     maxPlayers: 8,
-    boards: ['docking-bay-2', 'island', 'spin-zone'],
+    boards: ['docking-bay-2', 'spin-zone', 'island'],
+    boardRotations: [0, 270, 270], // No rotation for docking bay, 270° (90° CCW) for spin-zone and island
     checkpoints: [
         { position: { x: 9, y: 12 }, number: 1 },
         { position: { x: 6, y: 1 }, number: 2 },
@@ -446,20 +447,16 @@ export function buildCourse(courseDef: CourseDefinition): Course {
         throw new Error(`No valid boards found for course: ${courseDef.id}`);
     }
 
-    // Separate factory floors and docking bays
-    const factoryFloors = boardDefs.filter(b => !b.id.includes('docking'));
-    const dockingBays = boardDefs.filter(b => b.id.includes('docking'));
-
     let combinedBoard: BoardDefinition;
 
     if (boardDefs.length === 1) {
         combinedBoard = boardDefs[0];
-    } else if (factoryFloors.length > 0 && dockingBays.length > 0) {
-        combinedBoard = combineBoardsVertically(factoryFloors[0], dockingBays[0]);
-
-        // If there are multiple factory floors, combine them too
-        for (let i = 1; i < factoryFloors.length; i++) {
-            combinedBoard = combineBoardsVertically(combinedBoard, factoryFloors[i]);
+    } else if (boardDefs.length > 1) {
+        // Stack boards from bottom to top
+        // The first board in the array should appear at the bottom of the screen
+        combinedBoard = boardDefs[0];
+        for (let i = 1; i < boardDefs.length; i++) {
+            combinedBoard = combineBoardsVertically(boardDefs[i], combinedBoard);
         }
     } else {
         throw new Error(`Invalid board configuration for course: ${courseDef.id}`);

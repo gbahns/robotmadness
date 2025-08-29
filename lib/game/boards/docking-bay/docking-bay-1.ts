@@ -21,16 +21,16 @@ export const DOCKING_BAY_1: BoardDefinition = {
         // entering from left, curving down and right
         { position: { x: 0, y: 2 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
         { position: { x: 1, y: 2 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
-        { position: { x: 2, y: 2 }, type: TileType.CONVEYOR, direction: Direction.DOWN, rotate: 'clockwise' },
-        { position: { x: 2, y: 3 }, type: TileType.CONVEYOR, direction: Direction.RIGHT, rotate: 'counterclockwise' },
+        { position: { x: 2, y: 2 }, entries: [Direction.LEFT], type: TileType.CONVEYOR, direction: Direction.DOWN },
+        { position: { x: 2, y: 3 }, entries: [Direction.UP], type: TileType.CONVEYOR, direction: Direction.RIGHT },
         { position: { x: 3, y: 3 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
         { position: { x: 4, y: 3 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
 
         // entering from right, curving down and left
         { position: { x: 11, y: 2 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
         { position: { x: 10, y: 2 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
-        { position: { x: 9, y: 2 }, type: TileType.CONVEYOR, direction: Direction.DOWN, rotate: 'counterclockwise' },
-        { position: { x: 9, y: 3 }, type: TileType.CONVEYOR, direction: Direction.LEFT, rotate: 'clockwise' },
+        { position: { x: 9, y: 2 }, entries: [Direction.RIGHT], type: TileType.CONVEYOR, direction: Direction.DOWN },
+        { position: { x: 9, y: 3 }, entries: [Direction.UP], type: TileType.CONVEYOR, direction: Direction.LEFT },
         { position: { x: 8, y: 3 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
         { position: { x: 7, y: 3 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
     ],

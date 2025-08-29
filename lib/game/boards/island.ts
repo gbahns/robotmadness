@@ -81,8 +81,8 @@ export const ISLAND_BOARD: BoardDefinition = {
         { position: { x: 8, y: 5 }, type: TileType.CONVEYOR, direction: Direction.UP },
         { position: { x: 8, y: 4 }, type: TileType.CONVEYOR, direction: Direction.UP },
         { position: { x: 5, y: 5 }, type: TileType.OPTION },
-        { position: { x: 5, y: 8 }, type: TileType.CONVEYOR, direction: Direction.RIGHT, rotate: 'counterclockwise' },
-        { position: { x: 6, y: 3 }, type: TileType.CONVEYOR, direction: Direction.LEFT, rotate: 'counterclockwise' },
+        { position: { x: 6, y: 3 }, type: TileType.CONVEYOR, direction: Direction.LEFT },
+        { position: { x: 5, y: 8 }, type: TileType.CONVEYOR, direction: Direction.RIGHT },
     ],
 
     walls: [
@@ -92,7 +92,6 @@ export const ISLAND_BOARD: BoardDefinition = {
         { position: { x: 0, y: 2 }, sides: [Direction.LEFT] },
         { position: { x: 6, y: 2 }, sides: [Direction.DOWN] },
         { position: { x: 5, y: 9 }, sides: [Direction.UP] },
-        { position: { x: 9, y: 6 }, sides: [Direction.UP] },
         { position: { x: 2, y: 11 }, sides: [Direction.DOWN] },
         { position: { x: 4, y: 11 }, sides: [Direction.DOWN] },
         { position: { x: 7, y: 11 }, sides: [Direction.DOWN] },
@@ -105,5 +104,6 @@ export const ISLAND_BOARD: BoardDefinition = {
         { position: { x: 4, y: 0 }, sides: [Direction.UP] },
         { position: { x: 7, y: 0 }, sides: [Direction.UP] },
         { position: { x: 9, y: 0 }, sides: [Direction.UP] },
+        { position: { x: 9, y: 6 }, sides: [Direction.LEFT] },
     ],
 };

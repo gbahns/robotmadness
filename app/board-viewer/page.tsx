@@ -37,9 +37,14 @@ export default function BoardViewerPage() {
                 // Saved board not in category, select first
                 setSelectedBoardId(validIds[0] || '');
             }
-        } else if (boardIds.length > 0) {
-            // No saved board, select first
-            setSelectedBoardId(boardIds[0]);
+        } else {
+            // Use boardIds from current category for default selection
+            const currentBoardIds = savedCategory === 'docking' 
+                ? DOCKING_BAY_BOARDS.map(b => b.id)
+                : ALL_BOARD_DEFINITIONS.map(b => b.id);
+            if (currentBoardIds.length > 0) {
+                setSelectedBoardId(currentBoardIds[0]);
+            }
         }
     }, []); // Only run once on mount
 

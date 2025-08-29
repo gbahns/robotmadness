@@ -137,8 +137,9 @@ export interface CourseDefinition {
 export interface TileElement {
   position: { x: number; y: number };
   type: TileType;
-  direction?: Direction;
-  rotate?: 'clockwise' | 'counterclockwise';
+  direction?: Direction; // Exit direction for conveyors
+  rotate?: 'clockwise' | 'counterclockwise'; // Deprecated - will be removed
+  entries?: Direction[]; // Entry sides for conveyors (for merge/T-junction conveyors)
   registers?: number[]; // For pushers
 }
 
@@ -181,8 +182,9 @@ export interface Tile {
   position: Position;
   type: TileType;
   walls: Direction[]; // Walls on this tile blocking movement in those directions
-  direction?: Direction; // For conveyors, gears, pushers
-  rotate?: 'clockwise' | 'counterclockwise'; // For gears
+  direction?: Direction; // Exit direction for conveyors, gears, pushers
+  rotate?: 'clockwise' | 'counterclockwise'; // For gears only
+  entries?: Direction[]; // Entry sides for conveyors (for merge/T-junction conveyors)
   registers?: number[]; // For pushers
 }
 

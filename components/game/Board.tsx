@@ -273,9 +273,62 @@ export default function Board({
     };
     parts.push(`Type: ${typeNames[tile.type] || tile.type}`);
 
-    // Add direction if present
-    if (tile.direction !== undefined) {
-      const dirNames = ['North', 'East', 'South', 'West'];
+    // Add direction/entry/exit info
+    const dirNames = ['North', 'East', 'South', 'West'];
+    
+    // For conveyors, show entry and exit
+    if ((tile.type === 'conveyor' || tile.type === 'express') && tile.direction !== undefined) {
+      // Determine conveyor type for debugging
+      let conveyorType = 'straight';
+      if (tile.entries && tile.entries.length > 1) {
+        // Multiple entries = merge conveyor
+        // Check if both entries are 90-degree turns (t-merge) or if one is straight (merge)
+        let rotationCount = 0;
+        for (const entry of tile.entries) {
+          const entryOpposite = (entry + 2) % 4;
+          const diff = (tile.direction - entryOpposite + 4) % 4;
+          if (diff === 1 || diff === 3) {
+            rotationCount++;
+          }
+        }
+        // t-merge = both entries are curves (2 90-degree turns)
+        // merge = one curve and one straight
+        conveyorType = rotationCount === 2 ? 't-merge' : 'merge';
+      } else if (tile.entries && tile.entries.length === 1) {
+        // Single entry - check if it's a corner
+        const entry = tile.entries[0];
+        const entryOpposite = (entry + 2) % 4;
+        const diff = (tile.direction - entryOpposite + 4) % 4;
+        if (diff === 1 || diff === 3) {
+          conveyorType = 'corner';
+        }
+      } else if (tile.rotate) {
+        conveyorType = 'corner';
+      }
+      parts.push(`Conveyor Type: ${conveyorType}`);
+      
+      parts.push(`Exit: ${dirNames[tile.direction]}`);
+      
+      // Show entries if available
+      if (tile.entries && tile.entries.length > 0) {
+        const entryDirs = tile.entries.map(e => dirNames[e]).join(', ');
+        parts.push(`Enter: ${entryDirs}`);
+      } else if (tile.rotate) {
+        // Legacy format - calculate entry from rotate
+        let entryDir: number;
+        if (tile.rotate === 'clockwise') {
+          // For clockwise, entry is 90° counter-clockwise from exit
+          // UP(0) -> RIGHT(1), RIGHT(1) -> DOWN(2), DOWN(2) -> LEFT(3), LEFT(3) -> UP(0)
+          entryDir = (tile.direction + 1) % 4;
+        } else {
+          // For counter-clockwise, entry is 90° clockwise from exit
+          // UP(0) -> LEFT(3), RIGHT(1) -> UP(0), DOWN(2) -> RIGHT(1), LEFT(3) -> DOWN(2)
+          entryDir = (tile.direction + 3) % 4;
+        }
+        parts.push(`Enter: ${dirNames[entryDir]}`);
+      }
+    } else if (tile.direction !== undefined) {
+      // For other tiles with direction
       parts.push(`Direction: ${dirNames[tile.direction]}`);
     }
 
@@ -285,8 +338,8 @@ export default function Board({
       parts.push(`Walls: ${wallNames}`);
     }
 
-    // Add rotation info
-    if (tile.rotate) {
+    // Add rotation info for gears
+    if (tile.rotate && tile.type !== 'conveyor' && tile.type !== 'express') {
       parts.push(`Rotates: ${tile.rotate}`);
     }
 
@@ -354,6 +407,7 @@ export default function Board({
             type={tile.type === 'express' ? 'express' : 'conveyor'}
             direction={tile.direction || 0}
             rotate={tile.rotate}
+            entries={tile.entries}
             tileSize={tileSize}
           />
         );
@@ -403,17 +457,30 @@ export default function Board({
       // Other tile types can be added here...
     }
 
-    // Walls - NEW IMPLEMENTATION
+    // Walls - NEW IMPLEMENTATION with brown and hatch pattern
     const walls = getWallsAt(x, y);
     if (walls && walls.length > 0) {
-      const wallThickness = 4; // pixels
-      const wallColor = '#facc15'; // yellow-400
+      const wallThickness = Math.max(6, tileSize * 0.12); // Thicker walls
+      const wallColor = '#92400e'; // Brown (amber-800)
+      const wallBorder = '#451a03'; // Dark brown (amber-950)
+      const wallHighlight = '#b45309'; // Lighter brown for texture (amber-700)
 
       walls.forEach((direction) => {
         let wallStyle: React.CSSProperties = {
           position: 'absolute',
           backgroundColor: wallColor,
+          borderColor: wallBorder,
+          borderStyle: 'solid',
           zIndex: 10, // Above tiles but below robots
+          backgroundImage: `
+            repeating-linear-gradient(
+              45deg,
+              ${wallColor},
+              ${wallColor} 2px,
+              ${wallHighlight} 2px,
+              ${wallHighlight} 3px
+            )
+          `,
         };
 
         switch (direction) {
@@ -424,6 +491,7 @@ export default function Board({
               left: 0,
               right: 0,
               height: `${wallThickness}px`,
+              borderWidth: '1px 0 1px 0',
             };
             break;
           case Direction.RIGHT:
@@ -433,6 +501,7 @@ export default function Board({
               right: 0,
               bottom: 0,
               width: `${wallThickness}px`,
+              borderWidth: '0 1px 0 1px',
             };
             break;
           case Direction.DOWN:
@@ -442,6 +511,7 @@ export default function Board({
               left: 0,
               right: 0,
               height: `${wallThickness}px`,
+              borderWidth: '1px 0 1px 0',
             };
             break;
           case Direction.LEFT:
@@ -451,6 +521,7 @@ export default function Board({
               left: 0,
               bottom: 0,
               width: `${wallThickness}px`,
+              borderWidth: '0 1px 0 1px',
             };
             break;
         }

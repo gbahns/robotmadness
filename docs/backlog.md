@@ -1,7 +1,6 @@
 ## Backlog
 * make the robot arrow black instead of white when the robot color is light
 * make the screen layout adapt correctly to different window sizes and zoom level
-* reset cards is executing the logic on both the client and the server; only need one
 * handle endgame properly (pop up a modal with the game still visible, celebrate the winner, etc)
 * reduce the padding around the board to make better use of the space
 * improve the card look
@@ -30,6 +29,7 @@
 
 ## In Progress
 * when a player dies they lose ONE option card and they get to pick which one
+* reset cards is executing the logic on both the client and the server; only need one
 
 ## Done
 * robots pushing each other

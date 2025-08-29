@@ -52,6 +52,7 @@ export default function Tile({
               type={tile.type}
               direction={tile.direction || 0}
               rotate={tile.rotate}
+              entries={tile.entries}
               tileSize={tileSize}
             />
           )}

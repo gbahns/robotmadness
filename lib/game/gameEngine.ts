@@ -1610,17 +1610,40 @@ export class GameEngine {
             }
             player.position = { ...to };
             const toTile = this.getTileAt(gameState, to.x, to.y);
-            // Only rotate if moving from conveyor to another conveyor (corner conveyors)
-            // Don't rotate when moving onto gears or other rotating elements
+            
+            // Check if robot should be rotated by a corner conveyor
+            // Only rotate if:
+            // 1. Moving from conveyor to another conveyor
+            // 2. The destination tile has a rotate property
+            // 3. The robot is entering perpendicular to the exit direction (not aligned with it)
             if (toTile && toTile.rotate && 
                 (fromTile.type === TileType.CONVEYOR || fromTile.type === TileType.EXPRESS_CONVEYOR) &&
                 (toTile.type === TileType.CONVEYOR || toTile.type === TileType.EXPRESS_CONVEYOR)) {
-                if (toTile.rotate === 'clockwise') {
-                    player.direction = (player.direction + 1) % 4;
-                } else if (toTile.rotate === 'counterclockwise') {
-                    player.direction = (player.direction + 3) % 4;
+                
+                // Get the direction the robot entered from
+                const entryDirection = fromTile.direction;
+                
+                // Get the exit direction of the corner conveyor
+                const exitDirection = toTile.direction;
+                
+                // Only rotate if both directions are defined and entry is perpendicular to exit
+                // (i.e., not the same direction or opposite direction)
+                if (entryDirection !== undefined && exitDirection !== undefined) {
+                    const isDifferentAxis = (entryDirection % 2) !== (exitDirection % 2);
+                    
+                    if (isDifferentAxis) {
+                        // Robot entered from the side, should be rotated
+                        if (toTile.rotate === 'clockwise') {
+                            player.direction = (player.direction + 1) % 4;
+                        } else if (toTile.rotate === 'counterclockwise') {
+                            player.direction = (player.direction + 3) % 4;
+                        }
+                        this.executionLog(gameState, `${player.name} rotated by corner conveyor`);
+                    } else {
+                        // Robot entered aligned with exit direction, just merging - no rotation
+                        this.executionLog(gameState, `${player.name} merged onto conveyor`);
+                    }
                 }
-                this.executionLog(gameState, `${player.name} rotated by conveyor`);
             }
         });
         this.io.to(gameState.roomCode).emit('game-state', gameState);

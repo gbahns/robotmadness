@@ -652,15 +652,15 @@ app.prepare().then(() => {
         });
 
         //player notifies the server when they have reset their cards
-        //server resets that player's cards in gameState
-        //server emits the current gameState - this was causing other players' cards to be reset so I commented it out
-        //server emits player-reset to let other players know (they don't currently handle this)
+        // Server handles all reset logic and broadcasts updated state
         socket.on('reset-cards', ({ roomCode, playerId }) => {
             const gameState = games.get(roomCode);
             if (!gameState || !gameState.players[playerId]) return;
 
             gameEngine.resetCards(gameState, playerId);
-            //io.to(roomCode).emit('game-state', gameState);
+            
+            // Broadcast the updated game state to all players
+            io.to(roomCode).emit('game-state', gameState);
             io.to(roomCode).emit('player-reset', { playerId, playerName: gameState.players[playerId].name });
         });
 

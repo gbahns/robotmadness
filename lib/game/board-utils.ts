@@ -10,6 +10,7 @@ import { CHOP_SHOP_BOARD } from './boards/chop-shop';
 import { MAELSTROM_BOARD } from './boards/maelstrom';
 import { SPIN_ZONE_BOARD } from './boards/spin-zone';
 import { VAULT_BOARD } from './boards/vault';
+import { migrateConveyorTile } from './utils/conveyor-migration';
 
 /**
  * Builds a Board object from a BoardDefinition
@@ -34,13 +35,17 @@ export function buildBoard(boardDef: BoardDefinition): Board {
         for (const tileDef of boardDef.tiles) {
             const { x, y } = tileDef.position;
             if (x >= 0 && x < boardDef.width && y >= 0 && y < boardDef.height) {
+                // Migrate conveyor tiles to new format
+                const migratedTile = migrateConveyorTile(tileDef);
+                
                 tiles[y][x] = {
                     position: { x, y },
-                    type: tileDef.type,
+                    type: migratedTile.type,
                     walls: [], // Will be populated below
-                    direction: tileDef.direction,
-                    rotate: tileDef.rotate,
-                    registers: tileDef.registers
+                    direction: migratedTile.direction,
+                    rotate: migratedTile.rotate, // Keep for gears
+                    entries: migratedTile.entries, // New entries array for conveyors
+                    registers: migratedTile.registers
                 };
             }
         }
