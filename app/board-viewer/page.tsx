@@ -16,12 +16,40 @@ export default function BoardViewerPage() {
         ? ALL_BOARD_DEFINITIONS.map(b => b.id)
         : DOCKING_BAY_BOARDS.map(b => b.id);
 
+    // Load saved board selection from localStorage on mount
     useEffect(() => {
-        // Select the first board by default
-        if (boardIds.length > 0 && !selectedBoardId) {
+        const savedBoardId = localStorage.getItem('boardViewer.selectedBoardId');
+        const savedCategory = localStorage.getItem('boardViewer.boardCategory') as 'factory' | 'docking' | null;
+        
+        if (savedCategory) {
+            setBoardCategory(savedCategory);
+        }
+        
+        if (savedBoardId) {
+            // Check if the saved board exists in the current category
+            const validIds = savedCategory === 'docking' 
+                ? DOCKING_BAY_BOARDS.map(b => b.id)
+                : ALL_BOARD_DEFINITIONS.map(b => b.id);
+            
+            if (validIds.includes(savedBoardId)) {
+                setSelectedBoardId(savedBoardId);
+            } else {
+                // Saved board not in category, select first
+                setSelectedBoardId(validIds[0] || '');
+            }
+        } else if (boardIds.length > 0) {
+            // No saved board, select first
             setSelectedBoardId(boardIds[0]);
         }
-    }, [boardCategory, boardIds, selectedBoardId]);
+    }, []); // Only run once on mount
+
+    // Save board selection to localStorage when it changes
+    useEffect(() => {
+        if (selectedBoardId) {
+            localStorage.setItem('boardViewer.selectedBoardId', selectedBoardId);
+        }
+        localStorage.setItem('boardViewer.boardCategory', boardCategory);
+    }, [selectedBoardId, boardCategory]);
 
     useEffect(() => {
         if (selectedBoardId) {

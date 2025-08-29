@@ -14,12 +14,24 @@ export default function CourseViewerPage() {  // Renamed from BoardViewerPage
     // Get all course IDs from ALL_COURSES
     const courseIds = ALL_COURSES.map(course => course.id);
 
+    // Load saved course selection from localStorage on mount
     useEffect(() => {
-        // Select the first course by default
-        if (courseIds.length > 0 && !selectedCourseId) {
+        const savedCourseId = localStorage.getItem('courseViewer.selectedCourseId');
+        
+        if (savedCourseId && courseIds.includes(savedCourseId)) {
+            setSelectedCourseId(savedCourseId);
+        } else if (courseIds.length > 0) {
+            // No saved course or invalid, select first
             setSelectedCourseId(courseIds[0]);
         }
-    }, [courseIds, selectedCourseId]);
+    }, []); // Only run once on mount
+
+    // Save course selection to localStorage when it changes
+    useEffect(() => {
+        if (selectedCourseId) {
+            localStorage.setItem('courseViewer.selectedCourseId', selectedCourseId);
+        }
+    }, [selectedCourseId]);
 
     useEffect(() => {
         if (selectedCourseId) {
