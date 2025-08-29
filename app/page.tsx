@@ -157,9 +157,11 @@ export default function Home() {
       </nav>
 
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-6xl font-bold text-yellow-400">RobotMadness</h1>
-        <UserButton />
+      <div className="relative mb-8">
+        <h1 className="text-6xl font-bold text-yellow-400 text-center">RobotMadness</h1>
+        <div className="absolute right-0 top-0">
+          <UserButton />
+        </div>
       </div>
 
       {/* Welcome message */}
