@@ -78,56 +78,56 @@
 * In and out of the guarded Vault.
 * Players: 2–4
 * Length: Short
-* Boards: Vault, Docking Bay 1
+* Boards: Docking Bay 1, Vault
 * Special Rules: None
-* flags:
+* flags: 6,3; 4,11; 8,5
 
 ### Whirlwind Tour
 * Thankfully not a threehour tour.
 * Players: 5–8
 * Length: Medium
-* Boards: Maelstrom, Docking Bay 2
+* Boards: Docking Bay 2, Maelstrom (-90°)
 * Special Rules: None
-* Flags: 
+* Flags: 8,0; 3,11; 11,6
 
 ### Lost Bearings
 * Try to keep your bearings on the twisting conveyor belts.
 * Players: 2–4
 * Length: Medium
-* Boards: Cross
+* Boards: Docking Bay 1, Cross
 * Special Rules: None
-* Flags:
+* Flags: 1,2; 10,9; 2,8
 
 ### Robot Stew
 * Try not to be the main course served at the Chop Shop.
 * Players: 2–4
 * Length: Medium
-* Boards: Chop Shop
+* Boards: Docking Bay 2, Chop Shop (-90°)
 * Special Rules: None
-* Flags:
+* Flags: 0,4; 9,7; 2,10
 
 ### Oddest Sea
 * Battle against the Maelstrom for your reward.
 * Players: 5–8
 * Length: Long
-* Boards: Maelstrom, Vault
+* Boards: Docking Bay 1, Maelstrom (90°), Vault (-90°)
 * Special Rules: None
-* Flags:
+* Flags: 8,6; 1,4; 5,8; 9,2
 
 ### Against the Grain
 * Are you with the conveyor belts or against them?
 * Players: 2–4
 * Length: Medium
-* Boards: Chess, Chop Shop
+* Boards: Docking Bay 2, Chess (-90°), Chop Shop (-90°)
 * Special Rules: None
-* Flags:
+* Flags: 10,9; 3,3; 5,17
 
 ### Island King
 * Who will be crowned King of the Island?
 * Players: 5–8
 * Length: Short
-* Boards: Island
+* Boards: Docking Bay 2, Island (90°)
 * Special Rules: None
-* Flags:
+* Flags: 5,4; 7,7; 5,6
 
 

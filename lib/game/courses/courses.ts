@@ -191,6 +191,121 @@ export const PILGRIMAGE_COURSE: CourseDefinition = {
     ]
 };
 
+// =============================================================================
+// Expert Courses
+// =============================================================================
+
+export const VAULT_ASSAULT_COURSE: CourseDefinition = {
+    id: 'vault_assault',
+    name: 'Vault Assault',
+    description: 'In and out of the guarded Vault.',
+    difficulty: 'expert',
+    minPlayers: 2,
+    maxPlayers: 4,
+    boards: ['docking-bay-1', 'vault'],
+    checkpoints: [
+        { position: { x: 6, y: 3 }, number: 1 },
+        { position: { x: 4, y: 11 }, number: 2 },
+        { position: { x: 8, y: 5 }, number: 3 }
+    ]
+};
+
+export const WHIRLWIND_TOUR_COURSE: CourseDefinition = {
+    id: 'whirlwind_tour',
+    name: 'Whirlwind Tour',
+    description: 'Thankfully not a three-hour tour.',
+    difficulty: 'expert',
+    minPlayers: 5,
+    maxPlayers: 8,
+    boards: ['docking-bay-2', 'maelstrom'],
+    boardRotations: [0, 270], // -90° is same as 270°
+    checkpoints: [
+        { position: { x: 8, y: 0 }, number: 1 },
+        { position: { x: 3, y: 11 }, number: 2 },
+        { position: { x: 11, y: 6 }, number: 3 }
+    ]
+};
+
+export const LOST_BEARINGS_COURSE: CourseDefinition = {
+    id: 'lost_bearings',
+    name: 'Lost Bearings',
+    description: 'Try to keep your bearings on the twisting conveyor belts.',
+    difficulty: 'expert',
+    minPlayers: 2,
+    maxPlayers: 4,
+    boards: ['docking-bay-1', 'cross'],
+    checkpoints: [
+        { position: { x: 1, y: 2 }, number: 1 },
+        { position: { x: 10, y: 9 }, number: 2 },
+        { position: { x: 2, y: 8 }, number: 3 }
+    ]
+};
+
+export const ROBOT_STEW_COURSE: CourseDefinition = {
+    id: 'robot_stew',
+    name: 'Robot Stew',
+    description: 'Try not to be the main course served at the Chop Shop.',
+    difficulty: 'expert',
+    minPlayers: 2,
+    maxPlayers: 4,
+    boards: ['docking-bay-2', 'chop-shop'],
+    boardRotations: [0, 270], // -90° is same as 270°
+    checkpoints: [
+        { position: { x: 0, y: 4 }, number: 1 },
+        { position: { x: 9, y: 7 }, number: 2 },
+        { position: { x: 2, y: 10 }, number: 3 }
+    ]
+};
+
+export const ODDEST_SEA_COURSE: CourseDefinition = {
+    id: 'oddest_sea',
+    name: 'Oddest Sea',
+    description: 'Battle against the Maelstrom for your reward.',
+    difficulty: 'expert',
+    minPlayers: 5,
+    maxPlayers: 8,
+    boards: ['docking-bay-1', 'maelstrom', 'vault'],
+    boardRotations: [0, 90, 270], // 90° and -90° (270°)
+    checkpoints: [
+        { position: { x: 8, y: 6 }, number: 1 },
+        { position: { x: 1, y: 4 }, number: 2 },
+        { position: { x: 5, y: 8 }, number: 3 },
+        { position: { x: 9, y: 2 }, number: 4 }
+    ]
+};
+
+export const AGAINST_THE_GRAIN_COURSE: CourseDefinition = {
+    id: 'against_the_grain',
+    name: 'Against the Grain',
+    description: 'Are you with the conveyor belts or against them?',
+    difficulty: 'expert',
+    minPlayers: 2,
+    maxPlayers: 4,
+    boards: ['docking-bay-2', 'chess', 'chop-shop'],
+    boardRotations: [0, 270, 270], // -90° is same as 270°
+    checkpoints: [
+        { position: { x: 10, y: 9 }, number: 1 },
+        { position: { x: 3, y: 3 }, number: 2 },
+        { position: { x: 5, y: 17 }, number: 3 }
+    ]
+};
+
+export const ISLAND_KING_COURSE: CourseDefinition = {
+    id: 'island_king',
+    name: 'Island King',
+    description: 'Who will be crowned King of the Island?',
+    difficulty: 'expert',
+    minPlayers: 5,
+    maxPlayers: 8,
+    boards: ['docking-bay-2', 'island'],
+    boardRotations: [0, 90],
+    checkpoints: [
+        { position: { x: 5, y: 4 }, number: 1 },
+        { position: { x: 7, y: 7 }, number: 2 },
+        { position: { x: 5, y: 6 }, number: 3 }
+    ]
+};
+
 export const SINGLE_BOARD_COURSE_DEFINITIONS: CourseDefinition[] = [
     CHECKMATE,
     DIZZY_DASH_COURSE,
@@ -200,7 +315,14 @@ export const SINGLE_BOARD_COURSE_DEFINITIONS: CourseDefinition[] = [
     BLOODBATH_CHESS_COURSE,
     AROUND_THE_WORLD_COURSE,
     DEATH_TRAP_COURSE,
-    PILGRIMAGE_COURSE
+    PILGRIMAGE_COURSE,
+    VAULT_ASSAULT_COURSE,
+    WHIRLWIND_TOUR_COURSE,
+    LOST_BEARINGS_COURSE,
+    ROBOT_STEW_COURSE,
+    ODDEST_SEA_COURSE,
+    AGAINST_THE_GRAIN_COURSE,
+    ISLAND_KING_COURSE
 ];
 
 // =============================================================================
