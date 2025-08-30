@@ -212,8 +212,8 @@ app.prepare().then(() => {
                         return;
                     }
                     
-                    console.log(`Game ${roomCode} not found, creating it`);
-                    gameState = gameEngine.createGame(roomCode, `${playerName}'s Game`); // Create if not found
+                    console.log(`Game ${roomCode} not found, creating it (practice: ${isPractice})`);
+                    gameState = gameEngine.createGame(roomCode, `${playerName}'s Game`, isPractice); // Create if not found
                     games.set(roomCode, gameState);
                     isNewGame = true;
                 } else {
@@ -263,14 +263,14 @@ app.prepare().then(() => {
                             hostId: user?.id || null, // null for guest hosts
                             maxPlayers: 8,
                             isPrivate: false,
-                            isPractice: isPractice || false
+                            isPractice: gameState.isPractice || false  // Use the game's existing isPractice value
                         }
                     });
                     console.log(`Created ${isPractice ? 'practice ' : ''}game in database: ${game.id}`);
                 }
                 
-                // Store practice mode in game state
-                gameState.isPractice = isPractice || false;
+                // Don't overwrite the isPractice flag for existing games!
+                // The game creator determines if it's a practice game, not joiners
 
                 // Add player to game using the effective player ID
                 gameEngine.addPlayerToGame(gameState, effectivePlayerId, playerName);

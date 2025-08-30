@@ -286,7 +286,7 @@ export default function GamePage() {
     //}
   };
 
-  const isHost = Object.keys(gameState?.players || {}).indexOf(playerIdRef.current) === 0;
+  const isHost = gameState?.host === playerIdRef.current;
 
   // Card management wrapper functions that update state
   const handleCardClick = (index: number) => {

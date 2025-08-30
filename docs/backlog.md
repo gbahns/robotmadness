@@ -29,7 +29,6 @@
 
 ## In Progress
 * when a player dies they lose ONE option card and they get to pick which one
-* reset cards is executing the logic on both the client and the server; only need one
 
 ## Done
 * robots pushing each other
@@ -130,3 +129,4 @@
 * need to put the timer below the registers so the cards don't jump around when it appears
 * in the Power Rankings swap the display name and username
 * in the game history show the host's and winner's dispaly name, and when a game is expanded show all the players' display names
+* reset cards is executing the logic on both the client and the server; only need one

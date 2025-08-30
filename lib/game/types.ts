@@ -91,6 +91,7 @@ export interface GameState {
   course: Course;
   roundNumber: number;
   cardsDealt: boolean;
+  host?: string;  // Player ID of the host
   isPractice?: boolean;  // Practice mode - results not recorded
   optionDeck?: OptionCard[];  // Available option cards
   discardedOptions?: OptionCard[];  // Discarded option cards

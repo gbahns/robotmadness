@@ -134,8 +134,8 @@ export class GameEngine {
         };
     }
 
-    createGame(roomCode: string, name: string): ServerGameState {
-        console.log(`Creating game with room code: ${roomCode}, name: ${name}`);
+    createGame(roomCode: string, name: string, isPractice: boolean = false): ServerGameState {
+        console.log(`Creating ${isPractice ? 'practice ' : ''}game with room code: ${roomCode}, name: ${name}`);
 
         const courseDefinition = getCourseById(RISKY_EXCHANGE.id);
         const course: Course = buildCourse(courseDefinition);
@@ -151,6 +151,7 @@ export class GameEngine {
             course: course,
             roundNumber: 0,
             cardsDealt: false,
+            isPractice: isPractice,
             optionDeck: [],
             discardedOptions: [],
             host: '',
