@@ -27,6 +27,7 @@ type Game = {
   roomCode: string;
   name: string | null;
   boardName: string | null;
+  courseName: string | null;
   isPractice?: boolean;
   startedAt: string | null;
   endedAt: string | null;
@@ -47,8 +48,37 @@ type Game = {
   };
 };
 
-type SortField = 'date' | 'name' | 'players' | 'duration' | 'winner' | 'board' | 'host' | 'maxFlags';
+type SortField = 'date' | 'name' | 'players' | 'duration' | 'winner' | 'course' | 'host' | 'maxFlags';
 type SortDirection = 'asc' | 'desc';
+
+// Map course IDs to display names
+const courseNameMap: Record<string, string> = {
+  'risky_exchange': 'Risky Exchange',
+  'checkmate': 'Checkmate',
+  'dizzy_dash': 'Dizzy Dash',
+  'island_hop': 'Island Hop',
+  'chop_shop_challenge': 'Chop Shop Challenge',
+  'twister': 'Twister',
+  'bloodbath_chess': 'Bloodbath Chess',
+  'around_the_world': 'Around the World',
+  'death_trap': 'Death Trap',
+  'pilgrimage': 'Pilgrimage',
+  'vault_assault': 'Vault Assault',
+  'whirlwind_tour': 'Whirlwind Tour',
+  'lost_bearings': 'Lost Bearings',
+  'robot_stew': 'Robot Stew',
+  'oddest_sea': 'Oddest Sea',
+  'against_the_grain': 'Against the Grain',
+  'island_king': 'Island King',
+  'test': 'Test Course'
+};
+
+const getCourseName = (courseId: string | null, boardName: string | null): string => {
+  if (courseId && courseNameMap[courseId]) {
+    return courseNameMap[courseId];
+  }
+  return boardName || '-';
+};
 
 export default function GamesPage() {
   const [games, setGames] = useState<Game[]>([]);
@@ -122,7 +152,7 @@ export default function GamesPage() {
       game.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       game.host?.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
       game.winner?.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      game.boardName?.toLowerCase().includes(searchTerm.toLowerCase());
+      getCourseName(game.courseName, game.boardName).toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
 
@@ -159,9 +189,9 @@ export default function GamesPage() {
         aValue = (a.winner?.username || '').toLowerCase();
         bValue = (b.winner?.username || '').toLowerCase();
         break;
-      case 'board':
-        aValue = (a.boardName || '').toLowerCase();
-        bValue = (b.boardName || '').toLowerCase();
+      case 'course':
+        aValue = getCourseName(a.courseName, a.boardName).toLowerCase();
+        bValue = getCourseName(b.courseName, b.boardName).toLowerCase();
         break;
       default:
         return 0;
@@ -210,7 +240,7 @@ export default function GamesPage() {
         <div className="mb-4">
           <input
             type="text"
-            placeholder="Search games, players, boards..."
+            placeholder="Search games, players, courses..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full px-3 py-2 bg-gray-800 text-white rounded-lg text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -248,10 +278,10 @@ export default function GamesPage() {
                 </th>
                 <th 
                   className="px-3 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-800 transition-colors"
-                  onClick={() => handleSort('board')}
+                  onClick={() => handleSort('course')}
                 >
                   <div className="flex items-center gap-1">
-                    Board <SortIcon field="board" />
+                    Course <SortIcon field="course" />
                   </div>
                 </th>
                 <th 
@@ -318,10 +348,12 @@ export default function GamesPage() {
                             <div className="text-xs text-gray-500">@{game.host.username}</div>
                           )}
                         </div>
+                      ) : game.isPractice ? (
+                        <span className="text-gray-500 italic">Guest</span>
                       ) : '-'}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-gray-300 text-xs">
-                      {game.boardName || '-'}
+                      {getCourseName(game.courseName, game.boardName)}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-center text-white">
                       {game._count.players}

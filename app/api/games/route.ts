@@ -75,6 +75,7 @@ export async function GET() {
         roomCode: true,
         name: true,
         boardName: true,
+        courseName: true,
         isPractice: true,
         startedAt: true,
         endedAt: true,

@@ -185,6 +185,24 @@ export default function GamePage() {
     }
   }, [initialRoomCode, roomCode]);
 
+  // Update socket auth when session changes
+  useEffect(() => {
+    if (session?.user) {
+      socketClient.auth = {
+        userId: session.user.id,
+        username: session.user.username,
+        isAuthenticated: true
+      };
+    } else if (sessionStatus === 'unauthenticated') {
+      // Clear auth data when user logs out
+      socketClient.auth = {
+        userId: undefined,
+        username: undefined,
+        isAuthenticated: false
+      };
+    }
+  }, [session, sessionStatus]);
+
   useEffect(() => {
     // Prevent multiple connections
     if (hasConnectedRef.current || sessionStatus === 'loading') return;
@@ -227,7 +245,10 @@ export default function GamePage() {
         setPlayerName(storedName);
         playerIdRef.current = storedPlayerId || '';
         
+        // Clear all auth data for guest users
         socketClient.auth = {
+          userId: undefined,
+          username: undefined,
           isAuthenticated: false
         };
         

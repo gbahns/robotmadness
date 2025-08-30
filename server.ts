@@ -244,46 +244,33 @@ app.prepare().then(() => {
                     }
                     console.log(`Authenticated user ${user.username} joining game`);
                 } else {
-                    // For guest users, use the generated playerId as a temporary user
+                    // For guest users, use their temporary playerId
                     effectivePlayerId = playerId;
                     
-                    // Check if a temporary guest user already exists with this ID
-                    user = await prisma.user.findUnique({
-                        where: { id: playerId }
-                    });
-
-                    if (!user) {
-                        // Create a temporary guest user
-                        const guestUsername = `guest.${playerName.toLowerCase().replace(/\s+/g, '.')}.${Date.now()}`;
-                        user = await prisma.user.create({
-                            data: {
-                                id: playerId,
-                                username: guestUsername,
-                                email: `${guestUsername}@guest.local`,
-                                name: `${playerName} (Guest)`
-                            }
-                        });
-                        console.log(`Created guest user: ${user.username}`);
-                    }
+                    // For practice games, we don't need a real user record
+                    // Just create a mock object for internal use
+                    user = null; // Guest users don't have database records
+                    console.log(`Guest user ${playerName} joining practice game`);
                 }
 
-                // Create or get game in database
+                // Create database record for the game (both real and practice games)
                 if (isNewGame) {
+                    // Only set hostId if we have an authenticated user
                     const game = await prisma.game.create({
                         data: {
                             roomCode: roomCode,
                             name: `${playerName}'s Game`,
-                            hostId: user.id,
+                            hostId: user?.id || null, // null for guest hosts
                             maxPlayers: 8,
                             isPrivate: false,
                             isPractice: isPractice || false
                         }
                     });
                     console.log(`Created ${isPractice ? 'practice ' : ''}game in database: ${game.id}`);
-                    
-                    // Store practice mode in game state
-                    gameState.isPractice = isPractice || false;
                 }
+                
+                // Store practice mode in game state
+                gameState.isPractice = isPractice || false;
 
                 // Add player to game using the effective player ID
                 gameEngine.addPlayerToGame(gameState, effectivePlayerId, playerName);
@@ -295,36 +282,42 @@ app.prepare().then(() => {
                 const robotColor = ROBOT_COLORS[playerIndex % ROBOT_COLORS.length];
                 const startingDock = newPlayer.startingPosition?.number || (playerIndex + 1);
 
-                // Add player to database game
-                const existingGamePlayer = await prisma.gamePlayer.findUnique({
-                    where: {
-                        gameId_userId: {
-                            gameId: (await prisma.game.findUnique({ where: { roomCode } }))?.id || '',
-                            userId: user.id
-                        }
-                    }
-                });
-
-                if (!existingGamePlayer) {
+                // Add players to database games (only if they have user records)
+                if (user) {
                     const game = await prisma.game.findUnique({ where: { roomCode } });
                     if (game) {
-                        await prisma.gamePlayer.create({
-                            data: {
-                                gameId: game.id,
-                                userId: user.id,
-                                robotColor: robotColor,
-                                startingDock: startingDock
+                        const existingGamePlayer = await prisma.gamePlayer.findUnique({
+                            where: {
+                                gameId_userId: {
+                                    gameId: game.id,
+                                    userId: user.id
+                                }
                             }
                         });
-                        console.log(`Added player ${user.username} to game ${roomCode} in database`);
+
+                        if (!existingGamePlayer) {
+                            await prisma.gamePlayer.create({
+                                data: {
+                                    gameId: game.id,
+                                    userId: user.id,
+                                    robotColor: robotColor,
+                                    startingDock: startingDock
+                                }
+                            });
+                            console.log(`Added player ${user.username} to game ${roomCode} in database`);
+                        }
                     }
+                } else {
+                    // For guest players in practice games, we just track them in memory
+                    // They won't have GamePlayer records but the game itself is still recorded
+                    console.log(`Guest player ${playerName} joined practice game ${roomCode} (no database record)`);
                 }
 
                 socket.join(roomCode);
                 socket.join(effectivePlayerId);
                 socket.data.roomCode = roomCode;
                 socket.data.playerId = effectivePlayerId;
-                socket.data.userId = user.id;
+                socket.data.userId = user?.id || null; // null for guest users
                 socket.data.isAuthenticated = isAuthenticated || false;
 
                 io.to(roomCode).emit('player-joined', { player: newPlayer });
@@ -362,7 +355,7 @@ app.prepare().then(() => {
 
             gameEngine.startGame(gameState, selectedCourse);
 
-            // Update database when game starts
+            // Update database for all games (including practice games)
             const game = await prisma.game.findUnique({ where: { roomCode } });
             if (game) {
                 await prisma.game.update({
@@ -373,7 +366,7 @@ app.prepare().then(() => {
                         courseName: selectedCourse
                     }
                 });
-                console.log(`Updated game ${roomCode} in database: started at ${new Date().toISOString()}`);
+                console.log(`Updated ${gameState.isPractice ? 'practice ' : ''}game ${roomCode} in database: started at ${new Date().toISOString()}`);
             }
 
             io.to(roomCode).emit('game-state', gameState);
