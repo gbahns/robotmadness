@@ -20,6 +20,7 @@ interface UseGameSocketProps {
     onShowRespawnModal: (show: boolean) => void;
     onIsRespawnDecision: (isRespawn: boolean) => void;
     onRespawnAlternatePositions: (positions: Position[] | undefined) => void;
+    onRespawnOptionCards: (cards: any[]) => void;  // For option cards to lose on respawn
     onIsSubmitted: (submitted: boolean) => void;
     onError: (error: string) => void;
     onLoading: (loading: boolean) => void;
@@ -47,6 +48,7 @@ export function useGameSocket({
     onShowRespawnModal,
     onIsRespawnDecision,
     onRespawnAlternatePositions,
+    onRespawnOptionCards,
     onIsSubmitted,
     onError,
     onLoading,
@@ -339,8 +341,12 @@ export function useGameSocket({
             isRespawn?: boolean;
             needsAlternatePosition?: boolean;
             availablePositions?: Position[];
+            optionCards?: any[];  // Option cards to lose
         }) => {
             console.log('Respawn power down option:', data.message);
+            if (data.optionCards && data.optionCards.length > 0) {
+                console.log('Player must choose option card to lose:', data.optionCards);
+            }
             if (data.needsAlternatePosition && data.availablePositions) {
                 console.log('Alternate positions available:', data.availablePositions);
                 onRespawnAlternatePositions(data.availablePositions);
@@ -349,6 +355,10 @@ export function useGameSocket({
             }
             onShowRespawnModal(true);
             onIsRespawnDecision(true);
+            // Store option cards for respawn decision
+            if (data.optionCards) {
+                onRespawnOptionCards(data.optionCards);
+            }
         };
 
         const handleOptionCardLossDecision = (data: { message: string; optionCards: any[] }) => {

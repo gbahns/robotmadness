@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { socketClient } from '@/lib/socket';
 import { Direction, Position } from '@/lib/game/types';
+import { OptionCard, OptionCardType } from '@/lib/game/optionCards';
 
 interface RespawnDecisionPanelProps {
     roomCode: string;
@@ -9,6 +10,7 @@ interface RespawnDecisionPanelProps {
     isRespawn?: boolean;
     alternatePositions?: Position[];
     selectedPosition?: Position;
+    optionCards?: OptionCard[];  // Option cards to choose from for loss
     onComplete: () => void;
 }
 
@@ -34,9 +36,11 @@ export default function RespawnDecisionPanel({
     isRespawn = false,
     alternatePositions,
     selectedPosition,
+    optionCards,
     onComplete
 }: RespawnDecisionPanelProps) {
     const [selectedDirection, setSelectedDirection] = useState<Direction>(Direction.UP);
+    const [selectedOptionCard, setSelectedOptionCard] = useState<OptionCardType | null>(null);
     
     // Emit respawn preview when direction or position changes
     React.useEffect(() => {
@@ -51,6 +55,11 @@ export default function RespawnDecisionPanel({
     }, [selectedDirection, selectedPosition, isRespawn, roomCode, playerId]);
 
     const handleDecision = (powerDown: boolean) => {
+        // If option cards need to be lost, make sure one is selected
+        if (optionCards && optionCards.length > 0 && !selectedOptionCard) {
+            return; // Don't allow submission without selecting a card to lose
+        }
+        
         console.log(`${playerName} chooses to ${powerDown ? 'enter powered down' : 'stay powered on'} ${isRespawn ? `facing ${Direction[selectedDirection]}` : ''}`);
         
         if (isRespawn) {
@@ -60,7 +69,8 @@ export default function RespawnDecisionPanel({
                 playerId, 
                 powerDown,
                 direction: selectedDirection,
-                position: selectedPosition
+                position: selectedPosition,
+                optionCardToLose: selectedOptionCard  // Include option card to lose if any
             });
         } else {
             // For regular power down decisions
@@ -101,6 +111,31 @@ export default function RespawnDecisionPanel({
                             : "You will respawn with 2 damage. Choose your facing direction:"}
                     </p>
 
+                    {/* Option Card Loss Selection */}
+                    {optionCards && optionCards.length > 0 && (
+                        <div className="space-y-2">
+                            <p className="text-sm font-semibold text-red-400">
+                                Your robot was destroyed! Choose an option card to lose:
+                            </p>
+                            <div className="grid grid-cols-1 gap-2">
+                                {optionCards.map((card) => (
+                                    <button
+                                        key={card.type}
+                                        onClick={() => setSelectedOptionCard(card.type)}
+                                        className={`p-2 rounded border-2 transition-all text-left ${
+                                            selectedOptionCard === card.type
+                                                ? 'border-red-500 bg-red-900/30'
+                                                : 'border-gray-600 hover:border-gray-500 bg-gray-700/50'
+                                        }`}
+                                    >
+                                        <div className="font-semibold text-xs text-white">{card.name}</div>
+                                        <div className="text-xs text-gray-400 mt-1">{card.description}</div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Direction Selection - Compact Grid */}
                     <div className="grid grid-cols-4 gap-1">
                         {[Direction.UP, Direction.RIGHT, Direction.DOWN, Direction.LEFT].map((dir) => (
@@ -123,9 +158,11 @@ export default function RespawnDecisionPanel({
                     <div className="grid grid-cols-2 gap-2">
                         <button
                             onClick={() => handleDecision(true)}
-                            disabled={alternatePositions && alternatePositions.length > 0 && !selectedPosition}
+                            disabled={(alternatePositions && alternatePositions.length > 0 && !selectedPosition) || 
+                                     (optionCards && optionCards.length > 0 && !selectedOptionCard)}
                             className={`px-3 py-2 font-semibold rounded transition-all text-sm flex items-center justify-center gap-1
-                                ${alternatePositions && alternatePositions.length > 0 && !selectedPosition
+                                ${(alternatePositions && alternatePositions.length > 0 && !selectedPosition) || 
+                                  (optionCards && optionCards.length > 0 && !selectedOptionCard)
                                     ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                                     : 'bg-yellow-500 hover:bg-yellow-600 text-white'
                                 }`}
@@ -139,9 +176,11 @@ export default function RespawnDecisionPanel({
 
                         <button
                             onClick={() => handleDecision(false)}
-                            disabled={alternatePositions && alternatePositions.length > 0 && !selectedPosition}
+                            disabled={(alternatePositions && alternatePositions.length > 0 && !selectedPosition) || 
+                                     (optionCards && optionCards.length > 0 && !selectedOptionCard)}
                             className={`px-3 py-2 font-semibold rounded transition-all text-sm flex items-center justify-center gap-1
-                                ${alternatePositions && alternatePositions.length > 0 && !selectedPosition
+                                ${(alternatePositions && alternatePositions.length > 0 && !selectedPosition) || 
+                                  (optionCards && optionCards.length > 0 && !selectedOptionCard)
                                     ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                                     : 'bg-green-600 hover:bg-green-700 text-white'
                                 }`}

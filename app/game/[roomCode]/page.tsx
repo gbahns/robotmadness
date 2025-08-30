@@ -24,7 +24,6 @@ import { useCardManagement } from '@/hooks/useCardManagement';
 import WaitingStatus from '@/components/game/WaitingStatus';
 import Timer from '@/components/game/Timer';
 import DamagePreventionDialog from '@/components/game/DamagePreventionDialog';
-import OptionCardLossDialog from '@/components/game/OptionCardLossDialog';
 // import OptionCards from '@/components/game/OptionCards';  // Keeping for potential future use
 import { OptionCard } from '@/lib/game/optionCards';
 import AllPlayersPrograms from '@/components/game/AllPlayersPrograms';
@@ -60,18 +59,13 @@ export default function GamePage() {
   const [isRespawnDecision, setIsRespawnDecision] = useState(false);
   const [respawnAlternatePositions, setRespawnAlternatePositions] = useState<Position[] | undefined>();
   const [selectedRespawnTile, setSelectedRespawnTile] = useState<Position | undefined>();
+  const [respawnOptionCards, setRespawnOptionCards] = useState<OptionCard[] | undefined>();
   const [timerTimeLeft, setTimerTimeLeft] = useState(0);
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [damagePreventionDialog, setDamagePreventionDialog] = useState<{
     isOpen: boolean;
     damageAmount: number;
     source: string;
-    optionCards: OptionCard[];
-  } | null>(null);
-  
-  const [optionCardLossDialog, setOptionCardLossDialog] = useState<{
-    isOpen: boolean;
-    message: string;
     optionCards: OptionCard[];
   } | null>(null);
 
@@ -133,6 +127,7 @@ export default function GamePage() {
         setSelectedRespawnTile(positions[0]);
       }
     },
+    onRespawnOptionCards: setRespawnOptionCards,
     onIsSubmitted: setIsSubmitted,
     onError: setError,
     onLoading: setLoading,
@@ -162,13 +157,6 @@ export default function GamePage() {
         timestamp: new Date(),
       }]);
     },
-    onOptionCardLossDecision: (data: { message: string; optionCards: OptionCard[] }) => {
-      setOptionCardLossDialog({
-        isOpen: true,
-        message: data.message,
-        optionCards: data.optionCards
-      });
-    }
   });
 
   const hasConnectedRef = useRef(false);
@@ -349,16 +337,6 @@ export default function GamePage() {
           />
         )}
 
-        {optionCardLossDialog && optionCardLossDialog.isOpen && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <OptionCardLossDialog
-              roomCode={roomCode}
-              playerId={playerIdRef.current}
-              optionCards={optionCardLossDialog.optionCards}
-              onClose={() => setOptionCardLossDialog(null)}
-            />
-          </div>
-        )}
 
         <div className="flex-1 flex flex-col min-h-0">
           {/* Game Header */}
@@ -561,11 +539,13 @@ export default function GamePage() {
                     isRespawn={isRespawnDecision}
                     alternatePositions={respawnAlternatePositions}
                     selectedPosition={selectedRespawnTile}
+                    optionCards={respawnOptionCards}
                     onComplete={() => {
                       setShowRespawnModal(false);
                       setShowPowerDownPrompt(false);
                       setRespawnAlternatePositions(undefined);
                       setSelectedRespawnTile(undefined);
+                      setRespawnOptionCards(undefined);
                     }}
                   />
                 )}

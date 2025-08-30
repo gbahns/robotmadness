@@ -90,7 +90,7 @@ interface ClientToServerEvents {
     'request-game-state': (roomCode: string) => void;
     'toggle-power-down': (data: { roomCode: string; playerId: string; selectedCards: (ProgramCard | null)[] }) => void;
     'continue-power-down': (data: { roomCode: string; playerId: string; continueDown: boolean }) => void;
-    'respawn-decision': (data: { roomCode: string; playerId: string; powerDown: boolean; direction: Direction; position?: Position }) => void;
+    'respawn-decision': (data: { roomCode: string; playerId: string; powerDown: boolean; direction: Direction; position?: Position; optionCardToLose?: OptionCardType }) => void;
     'respawn-preview': (data: { roomCode: string; playerId: string; direction: Direction; position?: Position }) => void;
     'damage-prevention-complete': (data: { roomCode: string }) => void;
     'use-option-for-damage': (data: { roomCode: string; cardId: string }) => void;
@@ -317,7 +317,7 @@ app.prepare().then(() => {
                 socket.join(effectivePlayerId);
                 socket.data.roomCode = roomCode;
                 socket.data.playerId = effectivePlayerId;
-                socket.data.userId = user?.id || null; // null for guest users
+                socket.data.userId = user?.id || undefined; // undefined for guest users
                 socket.data.isAuthenticated = isAuthenticated || false;
 
                 io.to(roomCode).emit('player-joined', { player: newPlayer });
@@ -591,13 +591,32 @@ app.prepare().then(() => {
             }
         });
 
-        // Handle respawn decision with direction choice
-        socket.on('respawn-decision', ({ roomCode, playerId, powerDown, direction, position }) => {
+        // Handle respawn decision with direction choice and optional card loss
+        socket.on('respawn-decision', ({ roomCode, playerId, powerDown, direction, position, optionCardToLose }) => {
             const gameState = games.get(roomCode);
             if (!gameState) return;
 
             const player = gameState.players[playerId];
             if (!player) return;
+
+            // Handle option card loss if specified
+            if (optionCardToLose) {
+                const cardIndex = player.optionCards?.findIndex(card => card.type === optionCardToLose);
+                if (cardIndex !== undefined && cardIndex >= 0) {
+                    const removedCard = player.optionCards?.splice(cardIndex, 1)[0];
+                    console.log(`${player.name} lost option card: ${removedCard?.name}`);
+                    
+                    io.to(roomCode).emit('option-card-lost', {
+                        playerName: player.name,
+                        cardName: removedCard?.name
+                    });
+                }
+                
+                // Clear pending option card loss decision if it exists
+                if (gameState.pendingDecisions && gameState.pendingDecisions[playerId]) {
+                    delete gameState.pendingDecisions[playerId];
+                }
+            }
 
             // Perform the actual respawn with the chosen direction and optional position
             gameEngine.performRespawn(gameState, playerId, direction, position);
@@ -800,40 +819,7 @@ app.prepare().then(() => {
             io.to(roomCode).emit('game-state', gameState);
         }
 
-        // Handle option card loss decision (when robot is destroyed)
-        socket.on('option-card-loss-decision', ({ roomCode, playerId, cardToLose }) => {
-            const gameState = games.get(roomCode);
-            if (!gameState) return;
-
-            const player = gameState.players[playerId];
-            if (!player) return;
-
-            // Validate that this player has a pending option card loss decision
-            if (!gameState.pendingDecisions || 
-                !gameState.pendingDecisions[playerId] || 
-                gameState.pendingDecisions[playerId].type !== 'option-card-loss') {
-                console.log(`Player ${player.name} tried to make option card loss decision without pending decision`);
-                return;
-            }
-
-            // Find and remove the specified card
-            const cardIndex = player.optionCards?.findIndex(card => card.type === cardToLose);
-            if (cardIndex !== undefined && cardIndex >= 0) {
-                const removedCard = player.optionCards?.splice(cardIndex, 1)[0];
-                console.log(`${player.name} lost option card: ${removedCard?.name}`);
-                
-                io.to(roomCode).emit('option-card-lost', {
-                    playerName: player.name,
-                    cardName: removedCard?.name
-                });
-            }
-
-            // Clear the pending decision
-            delete gameState.pendingDecisions[playerId];
-            
-            // Update game state for all players
-            io.to(roomCode).emit('game-state', gameState);
-        });
+        // Note: option-card-loss-decision handler removed - now integrated into respawn-decision
 
         // Dev/Test: Deal random option cards to all players
         socket.on('deal-option-cards-to-all', ({ roomCode }) => {

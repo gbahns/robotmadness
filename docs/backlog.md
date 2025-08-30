@@ -1,8 +1,10 @@
 ## Backlog
+* ability for player to mark option cards as "auto-keep" or "auto-delete" in case of taking damage or getting destroyed
+* save these selections between games
+* allow player to edit these selections in their player profile
 * make the robot arrow black instead of white when the robot color is light
 * make the screen layout adapt correctly to different window sizes and zoom level
 * handle endgame properly (pop up a modal with the game still visible, celebrate the winner, etc)
-* reduce the padding around the board to make better use of the space
 * improve the card look
     * add an up arrow to the move cards - make it big and lay the number over it in a circle like it is
     * make the back up arrow the same as the move cards, just pointing down instead of up
@@ -10,14 +12,8 @@
     * make the turn left and turn right cards thicker and rounded arrows
 * display the list phases and sub-phases and highlight the active one
 * delete the code for the game start modal (unless we think of a reason to reinstate it; board selection needs to be either here or on the game screen)
-* add all standard game boards
-* make it so robot lasers only fire if there's a robot for them to hit?
-* ability for players to register with a username and password for unique identity
-* migrate data from legacy RoboRally game
 * make the execution delay configurable
-* when one robot dies, it's asking other players if they want to enter powered down (couldn't reproduce)
 * add "Jump Jets" option card - allows robot to jump over pits when executing Move 2 or Move 3 cards (normally robots fall into any pit they move over)
-* email integration for password resets
 
 ## Authentication Enhancements (Future)
 * Email verification for new signups - prevent fake accounts
@@ -26,6 +22,7 @@
 * Password strength requirements - enforce minimum complexity
 * Rate limiting on auth endpoints - prevent brute force attacks
 * Authentication audit log - track login events for security
+* email integration for password resets
 
 ## In Progress
 * when a player dies they lose ONE option card and they get to pick which one
@@ -97,6 +94,10 @@
 * when the game is waiting on a player to make a decision it needs to show other players what they're waiting on
 * display robots' archive markers
 * somehow make checkpoints and possibly other board elements visible when a robot is sitting on them
+* add all standard game boards
+* ability for players to register with a username and password for unique identity
+* migrate data from legacy RoboRally game
+* reduce the padding around the board to make better use of the space
 
 ## Defect Fix History
 * damage isn't reducing number of cards dealt

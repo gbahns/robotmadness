@@ -174,24 +174,6 @@ export class GameEngine {
         const activePlayers = Object.values(gameState.players).filter(p => p.lives > 0);
         console.log('[WaitingStatus] Updating waiting status...');
         
-        // Check for pending option card loss decisions first
-        const pendingOptionCardLosses = Object.entries(gameState.pendingDecisions || {})
-            .filter(([, decision]) => decision.type === 'option-card-loss')
-            .map(([playerId]) => playerId);
-            
-        if (pendingOptionCardLosses.length > 0) {
-            const waitingPlayers = pendingOptionCardLosses
-                .map(id => gameState.players[id])
-                .filter(p => p);
-                
-            gameState.waitingOn = {
-                type: 'optionCardLoss',
-                playerIds: pendingOptionCardLosses,
-                playerNames: waitingPlayers.map(p => p.name)
-            };
-            return;
-        }
-        
         // Check what we're waiting for based on game phase
         if (gameState.phase === GamePhase.PROGRAMMING) {
             const waitingForCards = activePlayers.filter(p => 
@@ -1262,18 +1244,10 @@ export class GameEngine {
         player.isDead = true;
         player.position = { x: -1, y: -1 };
 
-        // Check if player has option cards to lose (only if they have lives remaining)
+        // No longer create a separate pending decision for option card loss
+        // This will be handled as part of the respawn decision
         if (player.lives > 0 && player.optionCards && player.optionCards.length > 0) {
-            // Set up a decision for the player to choose which option card to lose
-            if (!gameState.pendingDecisions) {
-                gameState.pendingDecisions = {};
-            }
-            gameState.pendingDecisions[player.id] = {
-                type: 'option-card-loss',
-                playerId: player.id,
-                optionCards: [...player.optionCards] // Make a copy of their current cards
-            };
-            console.log(`${player.name} must choose an option card to lose`);
+            console.log(`${player.name} will need to choose an option card to lose when respawning`);
         }
 
         this.io.to(gameState.roomCode).emit('robot-destroyed', {
@@ -1421,32 +1395,7 @@ export class GameEngine {
     }
 
     respawnDeadRobots(gameState: ServerGameState): boolean {
-        // First check if there are pending option card loss decisions
-        const pendingOptionCardLosses = Object.entries(gameState.pendingDecisions || {})
-            .filter(([, decision]) => decision.type === 'option-card-loss');
-            
-        if (pendingOptionCardLosses.length > 0) {
-            console.log(`Waiting for option card loss decisions from ${pendingOptionCardLosses.length} player(s)`);
-            
-            // Send option card loss prompts to players who need to decide
-            pendingOptionCardLosses.forEach(([playerId, decision]) => {
-                const player = gameState.players[playerId];
-                if (player && decision.optionCards) {
-                    console.log(`Sending option-card-loss-decision to ${player.name}`);
-                    this.io.to(playerId).emit('option-card-loss-decision', {
-                        message: `Your robot was destroyed. Choose one option card to lose.`,
-                        optionCards: decision.optionCards
-                    });
-                }
-            });
-            
-            // Update waiting status
-            this.updateWaitingStatus(gameState);
-            this.io.to(gameState.roomCode).emit('game-state', gameState);
-            
-            return true; // Indicate we need to wait for decisions
-        }
-        
+        // Option card loss is now handled as part of respawn decision
         const respawningPlayers: string[] = [];
         
         // Group respawning players by their archive marker position
@@ -1532,13 +1481,15 @@ export class GameEngine {
                     message: `Your archive position is occupied. Choose an adjacent tile, facing direction, and whether to enter powered down mode.`,
                     isRespawn: true,
                     needsAlternatePosition: true,
-                    availablePositions: availablePositions
+                    availablePositions: availablePositions,
+                    optionCards: player.optionCards && player.optionCards.length > 0 ? [...player.optionCards] : undefined
                 });
             } else {
                 console.log(`Emitting respawn-power-down-option ONLY to player ${player.id} (${player.name})`);
                 this.io.to(player.id).emit('respawn-power-down-option', {
                     message: `You will respawn with 2 damage. Choose your facing direction and whether to enter powered down mode for safety.`,
-                    isRespawn: true
+                    isRespawn: true,
+                    optionCards: player.optionCards && player.optionCards.length > 0 ? [...player.optionCards] : undefined
                 });
             }
         });
